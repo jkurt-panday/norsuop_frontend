@@ -1,0 +1,13 @@
+# Hostinger/Apache SPA fallback for React Router deep links.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve existing files and directories normally.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Let the browser application resolve client-side routes.
+  RewriteRule ^ index.html [L]
+</IfModule>

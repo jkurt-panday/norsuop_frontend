@@ -1,77 +1,37 @@
-# React + TypeScript + Vite
+# NORSU Order Payment SPA
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This workspace is the incremental standalone React/Vite frontend for the Laravel API.
 
-Currently, two official plugins are available:
+## Environment
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `VITE_API_URL`: Laravel API origin, without a trailing slash.
+- `VITE_API_TIMEOUT_MS`: optional request timeout in milliseconds; defaults to `15000`.
 
-## React Compiler
+The production build must be deployed with SPA fallback enabled so direct URLs such as `/graduate-ledger` and `/staff/requests/123` serve `index.html`. For Hostinger/Apache, keep the generated `public/.htaccess` file beside the deployed `index.html`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Generate API types from the backend contract with:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+pnpm run generate:api
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+## Validation
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+pnpm test
+pnpm build
+pnpm lint
+pnpm preview --host 127.0.0.1
+pnpm smoke
 ```
-# norsuopsystem_frontend
-# norsuorderpaymentsys_frontend
+
+`pnpm smoke` checks that production-style deep links return the SPA shell. Browser E2E tests use Playwright and mock only public option endpoints; authenticated tests require a running Laravel API with test credentials.
+
+Install the local Chromium browser once, then run the public-form E2E suite:
+
+```bash
+pnpm e2e:install
+pnpm e2e
+```
+
+Set `PLAYWRIGHT_BASE_URL` to test a deployed or separately running SPA. The default is `http://127.0.0.1:5173`.
