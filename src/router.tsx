@@ -23,7 +23,6 @@ export const router = createBrowserRouter([
   { path: "/", element: <App /> },
   { path: "/login", element: <LoginForm /> },
   { path: "/opform", element: <OpFormPage /> },
-  { path: "/public/opform", element: <OpFormPage /> },
   { path: "/opform/result", element: <OpResultPage /> },
   { path: "/public/success/:reference", element: <OpResultPage /> },
   { path: "/assessment", element: <AssessmentPage /> },

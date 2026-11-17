@@ -14,7 +14,6 @@ describe("SPA routes", () => {
     expect(paths).toEqual(
       expect.arrayContaining([
         "/opform",
-        "/public/opform",
         "/assessment",
         "/graduate-ledger",
         "/law-ledger",

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./opform.css";
-import type { ChangeEvent, FormEvent } from "react";
+import type { ChangeEvent, SubmitEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { Mail, User, ClipboardList, FileText, GraduationCap, Plus } from "lucide-react";
 import { ApiError } from "../../../api/client";
@@ -64,7 +64,7 @@ export function OpFormPage() {
     else setValues((current) => ({ ...current, position_or_designation: "", student_num: "", course_id: "", school_year: "", semester: "" }));
   }
   function reset() { setValues({ ...initialValues, request_type: "New Request" }); setDocuments([]); setActiveTab("student"); mutation.reset(); }
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setExpiringLocalStorage("submit-form-prefill", values);
     mutation.mutate({ ...values, documents }, { onSuccess: (response) => navigate(`/public/success/${encodeURIComponent(response.data.reference_number)}?token=${encodeURIComponent(response.data.access_token)}`) });
