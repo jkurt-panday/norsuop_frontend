@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useSubmitAssessment } from "./mutations";
 import { useAssessmentOptions } from "./queries";
+import { AssessmentPageFromSkeleton } from "./AssessmentPageFromSkeleton";
 
 const SCHOOL_YEAR_OPTIONS = Array.from({ length: 27 }, (_, index) => {
   const currentYear = new Date().getFullYear();
@@ -66,11 +67,7 @@ export function AssessmentPage() {
   const [values, setValues] = useState<FormValues>(initialValues);
 
   if (options.isPending) {
-    return (
-      <main className="mx-auto mt-16 max-w-3xl rounded-2xl bg-white p-8 text-center shadow-xl">
-        Loading assessment options…
-      </main>
-    );
+    return <AssessmentPageFromSkeleton />;
   }
 
   if (options.isError) {
