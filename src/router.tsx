@@ -5,6 +5,7 @@ import { OpFormPage } from "./features/public/opform/OpFormPage";
 import { OpResultPage } from "./features/public/opform/OpResultPage";
 import { AssessmentPage } from "./features/public/assessment/AssessmentPage";
 import { AssessmentResultPage } from "./features/public/assessment/AssessmentResultPage";
+import { AssessmentSuccessPage } from "./features/public/assessment/AssessmentSuccessPage";
 import { StaffRequestsPage } from "./features/staff/StaffRequestsPage";
 import { StaffRequestDetailPage } from "./features/staff/StaffRequestDetailPage";
 import { CashierRequestsPage } from "./features/cashier/CashierRequestsPage";
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
   { path: "/public/success/:reference", element: <OpResultPage /> },
   { path: "/assessment", element: <AssessmentPage /> },
   { path: "/assessment/result", element: <AssessmentResultPage /> },
+  { path: "/assessment/success", element: <AssessmentSuccessPage /> },
   {
     element: <ProtectedRoute />,
     children: [

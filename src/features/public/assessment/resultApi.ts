@@ -4,10 +4,18 @@ export type AssessmentResult = {
   data: {
     reference_number: string;
     email?: string;
+    contact_num?: string;
     first_name?: string;
+    middle_name?: string | null;
     last_name?: string;
+    student_id?: string;
+    address?: string;
+    enrolled_under?: string;
+    sy_last_attended?: string;
+    semester?: string;
+    created_at?: string;
     status?: string;
-    course?: { course_code?: string; course_desc?: string };
+    course?: { id?: number | string; course_code?: string; course_desc?: string };
   };
 };
 
