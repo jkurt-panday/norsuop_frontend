@@ -6,6 +6,7 @@ export type Ledger = "graduate" | "law";
 export type LedgerRecord = {
   id: number;
   student_id: number;
+  student_number?: string | null;
   course_id?: number;
   academic_term_id?: number;
   entry_type: "ar" | "payment" | "adjustment" | string;
@@ -15,6 +16,7 @@ export type LedgerRecord = {
   particulars: string;
   rate?: number | string;
   amount: number | string;
+  remark?: string | null;
   remarks?: string | null;
   status: string;
   membership?: string | null;

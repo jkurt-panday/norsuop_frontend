@@ -182,3 +182,110 @@ export function linkOpStudent(id: number, student_id: number) {
     body: JSON.stringify({ student_id }),
   });
 }
+
+// ── Staff Dashboard & Activity Log ──────────────────────────────────────────
+
+export type StaffDashboardData = {
+  totalRequests: number;
+  unprocessedRequests: number;
+  pendingRequests: number;
+  processedRequests: number;
+  paidRequests: number;
+  cancelledRequests: number;
+  totalRequestsLastDate: string | null;
+  unprocessedLastDate: string | null;
+  pendingLastDate: string | null;
+  processedLastDate: string | null;
+  paidLastDate: string | null;
+  cancelledLastDate: string | null;
+  statusBreakdown: Array<{ name: string; count: number }>;
+  requestsOverTime: Array<{ date: string; count: number }>;
+  requestsByMembership: Array<{ name: string; count: number }>;
+  recentRequests: Array<{
+    id: number;
+    reference_number: string;
+    full_name: string;
+    created_at?: string;
+    status: string;
+  }>;
+  recentActivity: Array<{
+    id: number;
+    event: string;
+    description: string;
+    causerName: string | null;
+    createdAt: string;
+  }>;
+};
+
+export type StaffActivityLogItem = {
+  id: number;
+  action: string;
+  event: string;
+  description: string;
+  actor_name: string | null;
+  actor_role: string | null;
+  type: string;
+  created_at: string;
+  changes?: Array<{ field: string; old: string | null; new: string | null }>;
+};
+
+export type StaffActivityLogsResponse = {
+  data: StaffActivityLogItem[];
+  meta: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+  };
+  links: { next: string | null; prev: string | null };
+};
+
+export type StaffActivityLogFilterParams = {
+  page?: number;
+  per_page?: number;
+  activity_search?: string;
+  activity_action?: string;
+  date_from?: string;
+  date_to?: string;
+  sort?: string;
+  direction?: "asc" | "desc";
+};
+
+export function getStaffDashboard(signal?: AbortSignal) {
+  return api<{ data: StaffDashboardData }>("/api/v1/staff/dashboard", {
+    signal,
+  });
+}
+
+export function getStaffActivityLogs(
+  params: StaffActivityLogFilterParams = {},
+  signal?: AbortSignal,
+) {
+  const query = new URLSearchParams();
+  query.set("page", String(params.page ?? 1));
+  query.set("per_page", String(params.per_page ?? 10));
+  if (params.activity_search?.trim()) {
+    query.set("activity_search", params.activity_search.trim());
+  }
+  if (params.activity_action?.trim() && params.activity_action !== "all") {
+    query.set("activity_action", params.activity_action.trim());
+  }
+  if (params.date_from?.trim()) {
+    query.set("date_from", params.date_from.trim());
+  }
+  if (params.date_to?.trim()) {
+    query.set("date_to", params.date_to.trim());
+  }
+  if (params.sort?.trim()) {
+    query.set("sort", params.sort.trim());
+  }
+  if (params.direction?.trim()) {
+    query.set("direction", params.direction.trim());
+  }
+
+  const qs = query.toString();
+  return api<StaffActivityLogsResponse>(
+    `/api/v1/staff/activity-log${qs ? `?${qs}` : ""}`,
+    { signal },
+  );
+}
