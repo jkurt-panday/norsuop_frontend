@@ -1,0 +1,265 @@
+.public-form-shell {
+  min-height: 100vh;
+  padding: 3rem 1.5rem;
+  background: linear-gradient(180deg, #3b82f6 0%, #cbd5e1 35%, #fff 80%);
+  color: #334155;
+}
+
+.public-form-header,
+.public-form-card,
+.public-form-tabs {
+  width: min(100%, 56rem);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.public-form-header {
+  margin-bottom: 1.5rem;
+  padding: 2.5rem;
+  border: 1px solid #dbeafe;
+  border-radius: 1.5rem;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 10px 30px #0f172a1a;
+}
+
+.public-form-logo img {
+  display: block;
+  width: min(100%, 37.5rem);
+  height: auto;
+  margin: 0 auto;
+}
+
+.public-form-header h1 {
+  margin: 1rem 0 0.5rem;
+  color: #1e3a8a;
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  font-weight: 800;
+}
+
+.public-form-header p,
+.public-form-section header p {
+  color: #64748b;
+}
+
+.public-form-tabs {
+  display: flex;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem;
+  border-radius: 1rem;
+  background: #dbeafe;
+}
+
+.public-form-tabs button {
+  flex: 1;
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: transparent;
+  color: #1e40af;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.public-form-tabs button.active {
+  background: #fff;
+  box-shadow: 0 2px 8px #1e3a8a1a;
+}
+
+.public-form-card {
+  overflow: hidden;
+  border: 1px solid #dbeafe;
+  border-radius: 1.5rem;
+  background: #fff;
+  box-shadow: 0 20px 50px #0f172a1a;
+}
+
+.public-form-section {
+  padding: 2rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.public-form-section header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  color: #2563eb;
+}
+
+.public-form-section header h2 {
+  margin: 0;
+  color: #1e3a8a;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.public-form-section header p {
+  margin-top: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.public-form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.public-form-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.public-form-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.public-form-field {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  color: #334155;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.public-form-field input,
+.public-form-field select,
+.public-form-section > input[type="file"] {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 400;
+}
+
+.public-form-inline-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+
+.public-form-field input:focus,
+.public-form-field select:focus,
+.public-form-section > input[type="file"]:focus {
+  border-color: #2563eb;
+  outline: 3px solid #2563eb33;
+}
+
+.public-form-field input[aria-invalid="true"],
+.public-form-field select[aria-invalid="true"] {
+  border-color: #dc2626;
+}
+
+.icon-button,
+.public-form-footer button {
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.icon-button {
+  display: grid;
+  width: 3rem;
+  place-items: center;
+  padding: 0;
+}
+
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.public-form-file-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.public-form-file-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #dbeafe;
+  border-radius: 0.7rem;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 0.9rem;
+}
+
+.public-form-file-list span {
+  color: #64748b;
+}
+
+.public-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.5rem 2rem;
+}
+
+.public-form-footer a {
+  align-self: center;
+  margin-right: auto;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.public-form-footer button:not(.primary) {
+  background: #64748b;
+}
+
+.public-form-footer button:hover,
+.public-form-tabs button:hover {
+  filter: brightness(0.96);
+}
+
+.public-form-footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.public-form-loading {
+  width: min(100% - 2rem, 50rem);
+  margin: 4rem auto;
+  padding: 2rem;
+  border-radius: 1rem;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 20px 50px #0f172a1a;
+}
+
+@media (max-width: 720px) {
+  .public-form-shell {
+    padding: 1.25rem 0.75rem;
+  }
+
+  .public-form-header,
+  .public-form-section {
+    padding: 1.25rem;
+  }
+
+  .public-form-grid.two,
+  .public-form-grid.three {
+    grid-template-columns: 1fr;
+  }
+
+  .public-form-footer {
+    flex-wrap: wrap;
+    padding: 1.25rem;
+  }
+
+  .public-form-footer a {
+    width: 100%;
+    margin-right: 0;
+  }
+}

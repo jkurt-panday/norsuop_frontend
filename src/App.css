@@ -1,0 +1,191 @@
+.bootstrap-card,
+.auth-card,
+.form-card {
+  width: min(100% - 2rem, 34rem);
+  margin: auto;
+  padding: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: 0 1.5rem 4rem rgb(15 23 42 / 8%);
+}
+
+.bootstrap-card h1,
+.auth-card h1,
+.form-card h1 {
+  margin-top: 0;
+}
+.form-card {
+  width: min(100% - 2rem, 46rem);
+  margin: 2rem auto;
+  text-align: left;
+}
+.form-card form {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1.5rem;
+}
+.form-card label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--text-h);
+}
+.form-card input,
+.form-card select {
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.7rem;
+  background: var(--surface);
+  color: var(--text-h);
+}
+.form-card button {
+  width: fit-content;
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.7rem 1rem;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+.success {
+  color: #067647;
+}
+.reference {
+  display: block;
+  margin: 1rem 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.04em;
+}
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+.result-actions a {
+  border-radius: 0.5rem;
+  padding: 0.7rem 1rem;
+  background: var(--accent);
+  color: white;
+  text-decoration: none;
+}
+.request-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.request-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+}
+.request-row p {
+  margin: 0.25rem 0;
+}
+.request-row > div:last-child {
+  display: grid;
+  justify-items: end;
+  gap: 0.4rem;
+}
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: 10rem 1fr;
+  gap: 0.7rem 1rem;
+  margin: 1.5rem 0;
+}
+.detail-grid dt {
+  font-weight: 600;
+  color: var(--text-h);
+}
+.detail-grid dd {
+  margin: 0;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.stats-grid article {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+}
+.stats-grid strong {
+  font-size: 1.8rem;
+  color: var(--text-h);
+}
+.processing-form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.processing-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+.processing-form input,
+.processing-form select {
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.65rem;
+  background: var(--surface);
+  color: var(--text-h);
+}
+.bootstrap-card p,
+.auth-card p {
+  line-height: 1.6;
+}
+.auth-card form {
+  display: grid;
+  gap: 0.9rem;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+.auth-card label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--text-h);
+}
+.auth-card input {
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.7rem;
+  background: var(--surface);
+  color: var(--text-h);
+}
+.field-error {
+  color: #b42318;
+}
+.auth-card a {
+  color: var(--accent);
+}
+.muted {
+  color: var(--text-muted);
+}
+.primary-link,
+.bootstrap-card button {
+  display: inline-block;
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.7rem 1rem;
+  background: var(--accent);
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+}
