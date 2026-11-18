@@ -13,6 +13,7 @@ import { CashierRequestDetailPage } from "./features/cashier/CashierRequestDetai
 import { DocumentsPage } from "./features/documents/DocumentsPage";
 import { AdminDashboardPage } from "./features/admin/AdminDashboardPage";
 import { AdminUsersPage } from "./features/admin/AdminUsersPage";
+import { AdminActivityLogPage } from "./features/admin/AdminActivityLogPage";
 import { MasterDataPage } from "./features/masterdata/MasterDataPage";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { LedgerBalancePage } from "./features/ledger/LedgerBalancePage";
@@ -87,16 +88,7 @@ export const router = createBrowserRouter([
               { path: "/admin/dashboard", element: <AdminDashboardPage /> },
               { path: "/admin/users", element: <AdminUsersPage /> },
               { path: "/admin/master-data", element: <MasterDataPage /> },
-              {
-                path: "/admin/activity-log",
-                element: (
-                  <PlaceholderPage
-                    title="Admin Activity Log"
-                    description="System audit trail and administrator activity logs."
-                    backHref="/admin"
-                  />
-                ),
-              },
+              { path: "/admin/activity-log", element: <AdminActivityLogPage /> },
             ],
           },
           {

@@ -1,5 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAdminDashboard, getAdminUsers } from "./api";
+import {
+  type ActivityLogFilterParams,
+  type AdminUsersFilterParams,
+  getAdminActivityLogs,
+  getAdminDashboard,
+  getAdminUsers,
+} from "./api";
+
 export function useAdminDashboard() {
   return useQuery({
     queryKey: ["admin", "dashboard"],
@@ -7,10 +14,27 @@ export function useAdminDashboard() {
     staleTime: 60_000,
   });
 }
-export function useAdminUsers(page: number, search: string) {
+
+export function useAdminUsers(
+  paramsOrPage: number | AdminUsersFilterParams = 1,
+  search = "",
+) {
+  const queryKey =
+    typeof paramsOrPage === "object"
+      ? ["admin", "users", paramsOrPage]
+      : ["admin", "users", { page: paramsOrPage, search }];
+
   return useQuery({
-    queryKey: ["admin", "users", page, search],
-    queryFn: ({ signal }) => getAdminUsers(page, search, signal),
+    queryKey,
+    queryFn: ({ signal }) => getAdminUsers(paramsOrPage, search, signal),
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useAdminActivityLogs(params?: ActivityLogFilterParams) {
+  return useQuery({
+    queryKey: ["admin", "activity-logs", params],
+    queryFn: ({ signal }) => getAdminActivityLogs(params, signal),
     placeholderData: (previous) => previous,
   });
 }
