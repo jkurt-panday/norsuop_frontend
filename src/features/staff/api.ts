@@ -1,17 +1,81 @@
 import { api } from "../../api/client";
 
+export type BankAccount = {
+  id: number;
+  account_name: string;
+  bank_name: string;
+  account_num: string;
+  fund_cluster: string;
+};
+
+export type UacsItem = {
+  id: number;
+  uacs_object_code: string;
+  account_title: string;
+};
+
+export type PaymentDetailOption = {
+  id: number;
+  payment_desc: string;
+};
+
+export type AcademicTerm = {
+  id: number;
+  school_year: string;
+  semester: string;
+};
+
+export type SupportingDocument = {
+  id: number;
+  form_input_id?: number;
+  original_filename: string;
+  file_extension?: string;
+  file_size?: number;
+  mime_type?: string;
+  uploaded_at?: string;
+};
+
+export type StaffStudent = {
+  id: number;
+  student_number: string;
+  full_name: string;
+};
+
+export type StaffInputData = {
+  id?: number;
+  status?: string;
+  ref_date?: string | null;
+  purpose?: string | null;
+  or_no?: string | null;
+  or_date?: string | null;
+  emailed_at?: string | null;
+  bank_account?: BankAccount | null;
+  uacs?: UacsItem | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type StaffRequest = {
   id: number;
   student_num?: number | null;
   reference_number: string;
   firstname_or_office: string;
-  middlename_or_project?: string;
+  middlename_or_project?: string | null;
   lastname_or_agency: string;
   email: string;
   amount: string | number;
-  membership?: { member_desc?: string };
-  staff_input?: { status?: string };
+  created_at?: string;
+  contact_num?: string;
+  office_or_college?: string;
+  position_or_designation?: string;
+  address?: string;
+  request_type?: string;
+  membership?: { member_desc?: string; member_code?: string };
+  payment_detail_option?: PaymentDetailOption | null;
+  staff_input?: StaffInputData | null;
+  staffInput?: StaffInputData | null;
 };
+
 export type StaffRequestList = {
   data: StaffRequest[];
   meta: {
@@ -40,24 +104,46 @@ export function getStaffRequests(filters: StaffFilters, signal?: AbortSignal) {
   });
   return api<StaffRequestList>(`/api/v1/staff/requests?${query}`, { signal });
 }
+
 export type StaffRequestDetail = {
   data: StaffRequest & {
-    payment_detail_option?: { payment_desc?: string };
-    course?: { course_code?: string; course_desc?: string };
-    supporting_documents?: Array<{ id: number; original_filename: string }>;
-    staff_input?: { status?: string; purpose?: string };
+    contact_num?: string;
+    office_or_college?: string;
+    position_or_designation?: string;
+    address?: string;
+    request_type?: string;
+    academic_term?: number | null;
+    submitted_student_number?: string | null;
+    student?: StaffStudent | null;
+    payment_detail_option?: PaymentDetailOption | null;
+    course?: { id?: number; course_code?: string; course_desc?: string; course_college?: string } | null;
+    supporting_documents?: SupportingDocument[];
+    supportingDocuments?: SupportingDocument[];
+    staff_input?: StaffInputData | null;
+    staffInput?: StaffInputData | null;
   };
-  bankAccounts: unknown[];
-  uacsList: unknown[];
-  paymentOptions: unknown[];
-  academicTerms: unknown[];
+  bankAccounts: BankAccount[];
+  uacsList: UacsItem[];
+  paymentOptions: PaymentDetailOption[];
+  academicTerms: AcademicTerm[];
 };
+
 export function getStaffRequest(id: number, signal?: AbortSignal) {
   return api<StaffRequestDetail>(`/api/v1/staff/requests/${id}`, { signal });
 }
+
+export type ProcessStaffRequestPayload = {
+  fundcluster_id: number;
+  uacs_id: number;
+  ref_date: string;
+  status: string;
+  purpose?: string;
+  [key: string]: unknown;
+};
+
 export function processStaffRequest(
   form_input_id: number,
-  payload: Record<string, unknown>,
+  payload: ProcessStaffRequestPayload | Record<string, unknown>,
 ) {
   return api(`/api/v1/staff/requests/${form_input_id}/process`, {
     method: "POST",

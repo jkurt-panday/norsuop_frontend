@@ -1,23 +1,138 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  createLedgerRecord,
+  deleteLedgerRecord,
   exportLedger,
+  getLedgerBalance,
+  getLedgerEmailRecipients,
   getLedgerPdf,
   getLedgerRecords,
   importLedger,
+  searchLedgerStudents,
   sendLedgerEmails,
+  updateLedgerRecord,
 } from "./api";
 import { api, binary } from "../../api/client";
 
 vi.mock("../../api/client", () => ({ api: vi.fn(), binary: vi.fn() }));
 
 describe("ledger API", () => {
-  it("loads filtered ledger records", async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("loads filtered ledger records with number page and search string", async () => {
     vi.mocked(api).mockResolvedValue({ data: [] });
     await getLedgerRecords("graduate", 2, "Ada");
     expect(api).toHaveBeenCalledWith(
       "/api/v1/graduate-ledger?page=2&per_page=20&search=Ada",
       expect.any(Object),
     );
+  });
+
+  it("loads ledger records with LedgerFilterParams object", async () => {
+    vi.mocked(api).mockResolvedValue({ data: [] });
+    await getLedgerRecords("law", {
+      page: 3,
+      per_page: 15,
+      search: "John",
+      entry_type: "ar",
+      status: "Paid",
+      date_from: "2026-01-01",
+      date_to: "2026-12-31",
+      school_year: "2025-2026",
+      semester: "1st Sem",
+      course: "JD",
+      balance_status: "with_balance",
+    });
+    expect(api).toHaveBeenCalledWith(
+      "/api/v1/law-ledger?page=3&per_page=15&search=John&entry_type=ar&status=Paid&date_from=2026-01-01&date_to=2026-12-31&school_year=2025-2026&semester=1st+Sem&course=JD&balance_status=with_balance",
+      expect.any(Object),
+    );
+  });
+
+  it("searches students for ledger", async () => {
+    vi.mocked(api).mockResolvedValue({ data: [{ id: 1, student_number: "2026-001", name: "Alice" }] });
+    const result = await searchLedgerStudents("graduate", "Alice", 25);
+    expect(api).toHaveBeenCalledWith(
+      "/api/v1/graduate-ledger/students/search?q=Alice&limit=25",
+      expect.any(Object),
+    );
+    expect(result).toEqual({ data: [{ id: 1, student_number: "2026-001", name: "Alice" }] });
+  });
+
+  it("fetches eligible email recipients", async () => {
+    vi.mocked(api).mockResolvedValue({
+      data: [{ id: 2, student_number: "2026-002", name: "Bob", email: "bob@example.com" }],
+    });
+    const result = await getLedgerEmailRecipients("law");
+    expect(api).toHaveBeenCalledWith(
+      "/api/v1/law-ledger/email-recipients",
+      expect.any(Object),
+    );
+    expect(result.data).toHaveLength(1);
+  });
+
+  it("creates a ledger transaction", async () => {
+    vi.mocked(api).mockResolvedValue({ message: "Created", data: { id: 10 } });
+    const payload = {
+      student_id: 1,
+      course_id: 2,
+      academic_term_id: 3,
+      entry_type: "ar" as const,
+      transaction_date: "2026-11-18",
+      particulars: "Tuition Fee",
+      rate: 500,
+      amount: 1500,
+      status: "posted",
+    };
+    await createLedgerRecord("graduate", payload);
+    expect(api).toHaveBeenCalledWith("/api/v1/graduate-ledger", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  });
+
+  it("updates a ledger transaction", async () => {
+    vi.mocked(api).mockResolvedValue({ message: "Updated", data: { id: 10 } });
+    const payload = {
+      student_id: 1,
+      course_id: 2,
+      academic_term_id: 3,
+      entry_type: "payment" as const,
+      transaction_date: "2026-11-18",
+      particulars: "Tuition Fee Settlement",
+      rate: 500,
+      amount: 1500,
+      status: "Paid",
+    };
+    await updateLedgerRecord("law", 10, payload);
+    expect(api).toHaveBeenCalledWith("/api/v1/law-ledger/10", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  });
+
+  it("deletes a ledger transaction", async () => {
+    vi.mocked(api).mockResolvedValue(undefined);
+    await deleteLedgerRecord("graduate", 99);
+    expect(api).toHaveBeenCalledWith("/api/v1/graduate-ledger/99", {
+      method: "DELETE",
+    });
+  });
+
+  it("fetches student balance details", async () => {
+    vi.mocked(api).mockResolvedValue({
+      student: { id: 5, student_number: "2026-005", name: "Carol" },
+      summary: { total_charges: 5000, total_payments: 2000, outstanding_balance: 3000 },
+      transactions: [],
+    });
+    const result = await getLedgerBalance("graduate", 5);
+    expect(api).toHaveBeenCalledWith(
+      "/api/v1/graduate-ledger/students/5/balance",
+      expect.any(Object),
+    );
+    expect(result.summary.outstanding_balance).toBe(3000);
   });
 
   it("builds multipart import requests", async () => {
@@ -39,6 +154,7 @@ describe("ledger API", () => {
     expect(init?.method).toBe("POST");
     expect(init?.body).toBeInstanceOf(FormData);
     expect((init?.body as FormData).get("preset_course_id")).toBe("4");
+    expect((init?.body as FormData).get("preset_academic_term_id")).toBe("8");
   });
 
   it("downloads ledger exports and PDFs as blobs for both ledgers", async () => {

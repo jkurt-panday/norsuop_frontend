@@ -1,12 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import { getCashierRequest, getCashierRequests } from "./api";
-export function useCashierRequests(page: number, search: string) {
+import { getCashierRequest, getCashierRequests, type CashierFilters } from "./api";
+
+export function useCashierRequests(filtersOrPage: CashierFilters | number, search = "") {
+  const filters: CashierFilters =
+    typeof filtersOrPage === "number"
+      ? { page: filtersOrPage, search, per_page: 10 }
+      : filtersOrPage;
+
   return useQuery({
-    queryKey: ["cashier", "requests", page, search],
-    queryFn: ({ signal }) => getCashierRequests(page, search, signal),
+    queryKey: ["cashier", "requests", filters],
+    queryFn: ({ signal }) => getCashierRequests(filters, signal),
     placeholderData: (previous) => previous,
   });
 }
+
 export function useCashierRequest(id: number | undefined) {
   return useQuery({
     queryKey: ["cashier", "request", id],

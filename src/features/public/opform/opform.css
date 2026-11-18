@@ -124,7 +124,6 @@
 .public-form-field input,
 .public-form-field select,
 .public-form-section > input[type="file"] {
-  min-height: 3rem;
   box-sizing: border-box;
   width: 100%;
   border: 1px solid #cbd5e1;
@@ -144,8 +143,7 @@
 
 .public-form-field input:focus,
 .public-form-field select:focus,
-.public-form-section > input[type="file"]:focus,
-.upload-dropzone:focus-within {
+.public-form-section > input[type="file"]:focus {
   border-color: #2563eb;
   outline: 3px solid #2563eb33;
 }

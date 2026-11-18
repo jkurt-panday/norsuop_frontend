@@ -1,23 +1,62 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createAdminUser, deleteAdminUser, toggleAdminUser } from "./api";
+import {
+  type CreateAdminUserPayload,
+  type UpdateAdminUserPayload,
+  createAdminUser,
+  deleteAdminUser,
+  toggleAdminUser,
+  updateAdminUser,
+} from "./api";
+
 export function useCreateAdminUser() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: createAdminUser,
-    onSuccess: () => client.invalidateQueries({ queryKey: ["admin", "users"] }),
+    mutationFn: (payload: CreateAdminUserPayload) => createAdminUser(payload),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "users"] });
+      client.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      client.invalidateQueries({ queryKey: ["admin", "activity-logs"] });
+    },
   });
 }
+
+export function useUpdateAdminUser() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: UpdateAdminUserPayload;
+    }) => updateAdminUser(id, payload),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "users"] });
+      client.invalidateQueries({ queryKey: ["admin", "activity-logs"] });
+    },
+  });
+}
+
 export function useToggleAdminUser() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: toggleAdminUser,
-    onSuccess: () => client.invalidateQueries({ queryKey: ["admin"] }),
+    mutationFn: (id: number) => toggleAdminUser(id),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "users"] });
+      client.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      client.invalidateQueries({ queryKey: ["admin", "activity-logs"] });
+    },
   });
 }
+
 export function useDeleteAdminUser() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: deleteAdminUser,
-    onSuccess: () => client.invalidateQueries({ queryKey: ["admin", "users"] }),
+    mutationFn: (id: number) => deleteAdminUser(id),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "users"] });
+      client.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      client.invalidateQueries({ queryKey: ["admin", "activity-logs"] });
+    },
   });
 }

@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useSubmitAssessment } from "./mutations";
 import { useAssessmentOptions } from "./queries";
+import { AssessmentPageFromSkeleton } from "./AssessmentPageFromSkeleton";
 
 const SCHOOL_YEAR_OPTIONS = Array.from({ length: 27 }, (_, index) => {
   const currentYear = new Date().getFullYear();
@@ -66,11 +67,7 @@ export function AssessmentPage() {
   const [values, setValues] = useState<FormValues>(initialValues);
 
   if (options.isPending) {
-    return (
-      <main className="mx-auto mt-16 max-w-3xl rounded-2xl bg-white p-8 text-center shadow-xl">
-        Loading assessment options…
-      </main>
-    );
+    return <AssessmentPageFromSkeleton />;
   }
 
   if (options.isError) {
@@ -321,10 +318,7 @@ export function AssessmentPage() {
                   onValueChange={(value) => update("enrolled_under", value)}
                   className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3"
                 >
-                  <FieldLabel
-                    htmlFor="enrolled-undergraduate"
-                    className="has-data-checked:border-blue-500 has-data-checked:ring-2 has-data-checked:ring-blue-500/30"
-                  >
+                  <FieldLabel htmlFor="enrolled-undergraduate">
                     <Field orientation="horizontal" className="h-full cursor-pointer justify-between">
                       <FieldContent>
                         <FieldTitle>Undergraduate</FieldTitle>

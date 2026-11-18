@@ -14,6 +14,7 @@ export function getCurrentUser(signal?: AbortSignal): Promise<UserResponse> {
 export function login(input: {
   email: string;
   password: string;
+  remember?: boolean;
 }): Promise<UserResponse> {
   return api<UserResponse>("/login", {
     method: "POST",

@@ -13,12 +13,15 @@ import { CashierRequestDetailPage } from "./features/cashier/CashierRequestDetai
 import { DocumentsPage } from "./features/documents/DocumentsPage";
 import { AdminDashboardPage } from "./features/admin/AdminDashboardPage";
 import { AdminUsersPage } from "./features/admin/AdminUsersPage";
+import { AdminActivityLogPage } from "./features/admin/AdminActivityLogPage";
 import { MasterDataPage } from "./features/masterdata/MasterDataPage";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { LedgerBalancePage } from "./features/ledger/LedgerBalancePage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { RoleRoute } from "./routes/RoleRoute";
 import { NotFoundPage } from "./routes/NotFoundPage";
+import { PlaceholderPage } from "./routes/PlaceholderPage";
+import { AppShellLayout } from "./layouts/AppShellLayout";
 
 export const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -32,53 +35,138 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
-      { path: "/app", element: <App /> },
       {
-        element: <RoleRoute roles={["staff", "admin"]} />,
+        element: <AppShellLayout />,
         children: [
+          { path: "/app", element: <App /> },
           {
-            path: "/graduate-ledger",
-            element: <LedgerPage ledger="graduate" />,
+            element: <RoleRoute roles={["staff", "admin"]} />,
+            children: [
+              {
+                path: "/graduate-ledger",
+                element: <LedgerPage ledger="graduate" />,
+              },
+              {
+                path: "/graduate-ledger/print-select",
+                element: (
+                  <PlaceholderPage
+                    title="Graduate Ledger - Print Statement"
+                    description="Statement selection and printing interface for Graduate School Ledger."
+                    backHref="/graduate-ledger"
+                  />
+                ),
+              },
+              { path: "/law-ledger", element: <LedgerPage ledger="law" /> },
+              {
+                path: "/law-ledger/print-select",
+                element: (
+                  <PlaceholderPage
+                    title="Law Ledger - Print Statement"
+                    description="Statement selection and printing interface for College of Law Ledger."
+                    backHref="/law-ledger"
+                  />
+                ),
+              },
+              {
+                path: "/graduate-ledger/students/:studentId/balance",
+                element: <LedgerBalancePage ledger="graduate" />,
+              },
+              {
+                path: "/law-ledger/students/:studentId/balance",
+                element: <LedgerBalancePage ledger="law" />,
+              },
+            ],
           },
-          { path: "/law-ledger", element: <LedgerPage ledger="law" /> },
           {
-            path: "/graduate-ledger/students/:studentId/balance",
-            element: <LedgerBalancePage ledger="graduate" />,
+            element: <RoleRoute roles={["staff", "admin"]} />,
+            children: [{ path: "/documents", element: <DocumentsPage /> }],
           },
           {
-            path: "/law-ledger/students/:studentId/balance",
-            element: <LedgerBalancePage ledger="law" />,
+            element: <RoleRoute roles={["admin"]} />,
+            children: [
+              { path: "/admin", element: <AdminDashboardPage /> },
+              { path: "/admin/dashboard", element: <AdminDashboardPage /> },
+              { path: "/admin/users", element: <AdminUsersPage /> },
+              { path: "/admin/master-data", element: <MasterDataPage /> },
+              { path: "/admin/activity-log", element: <AdminActivityLogPage /> },
+            ],
           },
-        ],
-      },
-      {
-        element: <RoleRoute roles={["staff", "admin"]} />,
-        children: [{ path: "/documents", element: <DocumentsPage /> }],
-      },
-      {
-        element: <RoleRoute roles={["admin"]} />,
-        children: [
-          { path: "/admin", element: <AdminDashboardPage /> },
-          { path: "/admin/users", element: <AdminUsersPage /> },
-          { path: "/admin/master-data", element: <MasterDataPage /> },
-        ],
-      },
-      {
-        element: <RoleRoute roles={["staff"]} />,
-        children: [
-          { path: "/staff", element: <App /> },
-          { path: "/staff/requests", element: <StaffRequestsPage /> },
-          { path: "/staff/requests/:id", element: <StaffRequestDetailPage /> },
-        ],
-      },
-      {
-        element: <RoleRoute roles={["cashier"]} />,
-        children: [
-          { path: "/cashier", element: <App /> },
-          { path: "/cashier/requests", element: <CashierRequestsPage /> },
           {
-            path: "/cashier/requests/:id",
-            element: <CashierRequestDetailPage />,
+            element: <RoleRoute roles={["staff", "admin"]} />,
+            children: [
+              { path: "/staff", element: <StaffRequestsPage /> },
+              { path: "/staff/staffdashboard", element: <StaffRequestsPage /> },
+              { path: "/staff/requests", element: <StaffRequestsPage /> },
+              {
+                path: "/staff/requests/:id",
+                element: <StaffRequestDetailPage />,
+              },
+              {
+                path: "/staff/bank-accounts",
+                element: <MasterDataPage initialResource="bank-accounts" />,
+              },
+              {
+                path: "/staff/payment-options",
+                element: <MasterDataPage initialResource="payment-options" />,
+              },
+              {
+                path: "/staff/memberships",
+                element: <MasterDataPage initialResource="memberships" />,
+              },
+              {
+                path: "/staff/authorized-officials",
+                element: <MasterDataPage initialResource="authorized-officials" />,
+              },
+              {
+                path: "/staff/uacs",
+                element: <MasterDataPage initialResource="uacs" />,
+              },
+              {
+                path: "/staff/courses",
+                element: <MasterDataPage initialResource="courses" />,
+              },
+              {
+                path: "/staff/assessments/dashboard",
+                element: (
+                  <PlaceholderPage
+                    title="Assessments Dashboard"
+                    description="Analytics and summary overview for student assessments."
+                    backHref="/staff/requests"
+                  />
+                ),
+              },
+              {
+                path: "/staff/assessments",
+                element: (
+                  <PlaceholderPage
+                    title="Staff Assessments"
+                    description="Management interface for assessment records and submissions."
+                    backHref="/staff/requests"
+                  />
+                ),
+              },
+              {
+                path: "/staff/activity-log",
+                element: (
+                  <PlaceholderPage
+                    title="Staff Activity Log"
+                    description="Audit trail of staff processing actions and requests."
+                    backHref="/staff/requests"
+                  />
+                ),
+              },
+            ],
+          },
+          {
+            element: <RoleRoute roles={["cashier"]} />,
+            children: [
+              { path: "/cashier", element: <App /> },
+              { path: "/cashier/requests", element: <CashierRequestsPage /> },
+              {
+                path: "/cashier/requests/:id",
+                element: <CashierRequestDetailPage />,
+              },
+            ],
           },
         ],
       },

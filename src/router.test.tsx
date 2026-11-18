@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { router } from "./router";
+import { AppShellLayout } from "./layouts/AppShellLayout";
+import { ProtectedRoute } from "./routes/ProtectedRoute";
 
 describe("SPA routes", () => {
   it("has direct routes for migrated public, ledger, and protected screens", () => {
@@ -28,5 +30,19 @@ describe("SPA routes", () => {
     const catchAll = router.routes.find((route) => route.path === "*");
     expect(catchAll).toBeDefined();
     expect(catchAll?.element).toBeDefined();
+  });
+
+  it("wraps protected routes in ProtectedRoute and AppShellLayout", () => {
+    const protectedWrapper = router.routes.find(
+      (route) => route.element && typeof route.element === "object" && "type" in route.element && route.element.type === ProtectedRoute,
+    );
+    expect(protectedWrapper).toBeDefined();
+    expect(protectedWrapper?.children).toBeDefined();
+
+    const appShellWrapper = protectedWrapper?.children?.find(
+      (child) => child.element && typeof child.element === "object" && "type" in child.element && child.element.type === AppShellLayout,
+    );
+    expect(appShellWrapper).toBeDefined();
+    expect(appShellWrapper?.children?.length).toBeGreaterThan(0);
   });
 });

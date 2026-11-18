@@ -5,6 +5,7 @@ import {
   getLedgerPdf,
   importLedger,
   sendLedgerEmails,
+  updateLedgerRecord,
   type Ledger,
   type LedgerTransactionRequest,
 } from "./api";
@@ -19,18 +20,56 @@ export function useCreateLedgerRecord() {
       ledger: Ledger;
       payload: LedgerTransactionRequest;
     }) => createLedgerRecord(ledger, payload),
-    onSuccess: (_, value) =>
-      client.invalidateQueries({ queryKey: ["ledger", value.ledger] }),
+    onSuccess: (_, value) => {
+      client.invalidateQueries({ queryKey: ["ledger", value.ledger] });
+      if (value.payload.student_id) {
+        client.invalidateQueries({
+          queryKey: ["ledger", value.ledger, "balance", value.payload.student_id],
+        });
+      }
+    },
+  });
+}
+
+export function useUpdateLedgerRecord() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ledger,
+      id,
+      payload,
+    }: {
+      ledger: Ledger;
+      id: number;
+      payload: LedgerTransactionRequest;
+    }) => updateLedgerRecord(ledger, id, payload),
+    onSuccess: (_, value) => {
+      client.invalidateQueries({ queryKey: ["ledger", value.ledger] });
+      if (value.payload.student_id) {
+        client.invalidateQueries({
+          queryKey: ["ledger", value.ledger, "balance", value.payload.student_id],
+        });
+      }
+    },
   });
 }
 
 export function useDeleteLedgerRecord() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ ledger, id }: { ledger: Ledger; id: number }) =>
-      deleteLedgerRecord(ledger, id),
-    onSuccess: (_, value) =>
-      client.invalidateQueries({ queryKey: ["ledger", value.ledger] }),
+    mutationFn: (variables: {
+      ledger: Ledger;
+      id: number;
+      studentId?: number;
+    }) => deleteLedgerRecord(variables.ledger, variables.id),
+    onSuccess: (_, value) => {
+      client.invalidateQueries({ queryKey: ["ledger", value.ledger] });
+      if (value.studentId) {
+        client.invalidateQueries({
+          queryKey: ["ledger", value.ledger, "balance", value.studentId],
+        });
+      }
+    },
   });
 }
 

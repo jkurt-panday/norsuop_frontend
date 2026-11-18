@@ -1,127 +1,190 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/geist';
+@import '@fontsource/ibm-plex-mono/700.css';
+@import '@fontsource/poppins/400.css';
+@import '@fontsource/poppins/500.css';
+@import '@fontsource/poppins/600.css';
+@import '@fontsource/poppins/700.css';
 
-@custom-variant dark (&:is(.dark *));
-/* @import 'tw-animate-css'; */
+@custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --text-muted: #6b7280;
-  --surface: #fff;
-  --bg: #fff;
-  --border: oklch(0.922 0 0);
-  --code-bg: #f4f3ec;
-  --accent: oklch(0.97 0 0);
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@theme {
+  --font-sans:
+    'Geist Variable', ui-sans-serif, system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+  --font-mono:
+    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-heading:
+    'Poppins', ui-sans-serif, system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
 
-  --sans: "Geist Variable", Geist, system-ui, sans-serif;
-  --heading: "Geist Variable", Geist, system-ui, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 
-  font: 18px/145% var(--sans);
-  font-family: var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --color-background: var(--background);
+  --color-page-background: var(--page-background);
+  --color-foreground: var(--foreground);
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
 
-  --background: oklch(1 0 0);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 
-  --foreground: oklch(0.145 0 0);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-body-color: #788293;
+  --color-dark: #1d2144;
+  --color-dark-2: #1d2144;
+  --color-dark-3: #353943;
+  --color-stroke: #e9edf7;
 
-  --card: oklch(1 0 0);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
 
-  --card-foreground: oklch(0.145 0 0);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
 
-  --popover: oklch(1 0 0);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
 
-  --popover-foreground: oklch(0.145 0 0);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
 
-  --primary: oklch(0.205 0 0);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
-  --primary-foreground: oklch(0.985 0 0);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
-  --secondary: oklch(0.97 0 0);
-
-  --secondary-foreground: oklch(0.205 0 0);
-
-  --muted: oklch(0.97 0 0);
-
-  --muted-foreground: oklch(0.556 0 0);
-
-  --accent-foreground: oklch(0.205 0 0);
-
-  --destructive: oklch(0.577 0.245 27.325);
-
-  --input: oklch(0.922 0 0);
-
-  --ring: oklch(0.708 0 0);
-
-  --chart-1: oklch(0.87 0 0);
-
-  --chart-2: oklch(0.556 0 0);
-
-  --chart-3: oklch(0.439 0 0);
-
-  --chart-4: oklch(0.371 0 0);
-
-  --chart-5: oklch(0.269 0 0);
-
-  --radius: 0.625rem;
-
-  --sidebar: oklch(0.985 0 0);
-
-  --sidebar-foreground: oklch(0.145 0 0);
-
-  --sidebar-primary: oklch(0.205 0 0);
-
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-
-  --sidebar-accent: oklch(0.97 0 0);
-
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-
-  --sidebar-border: oklch(0.922 0 0);
-
-  --sidebar-ring: oklch(0.708 0 0)
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@media (prefers-color-scheme: dark) {
-
 :root {
+  --background: #f4f6fc;
+  --page-background: #eaf3ff;
+  --foreground: #0f1e36;
+  --card: #ffffff;
+  --card-foreground: #0f1e36;
+  --popover: #ffffff;
+  --popover-foreground: #0f1e36;
+  --primary: #0062cc;
+  --primary-foreground: #ffffff;
+  --secondary: #e2e8f0;
+  --secondary-foreground: #0f1e36;
+  --muted: #e2e8f0;
+  --muted-foreground: #556378;
+  --accent: #e2e8f0;
+  --accent-foreground: #0f1e36;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #d5e0f2;
+  --input: #d5e0f2;
+  --ring: #0062cc;
+  --radius: 0.5rem;
+  --chart-1: #0062cc;
+  --chart-2: #62728b;
+  --chart-3: #1e293b;
+  --chart-4: #0f1e36;
+  --chart-5: #0f1e36;
+  --sidebar: #f8fafc;
+  --sidebar-foreground: #0f1e36;
+  --sidebar-primary: #0062cc;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e2e8f0;
+  --sidebar-accent-foreground: #0f1e36;
+  --sidebar-border: #d5e0f2;
+  --sidebar-ring: #0062cc;
 
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --text-muted: #9ca3af;
-    --surface: #1f2028;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  /* Legacy aliases for App.css */
+  --surface: var(--card);
+  --text: var(--foreground);
+  --text-h: var(--foreground);
+  --text-muted: var(--muted-foreground);
+  --code-bg: var(--muted);
+}
+
+.dark {
+  --background: #0b0f17;
+  --page-background: #07090f;
+  --foreground: #f8fafc;
+  --card: #151d2a;
+  --card-foreground: #f8fafc;
+  --popover: #1c2638;
+  --popover-foreground: #f8fafc;
+  --primary: #38bdf8;
+  --primary-foreground: #0b0f17;
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e2d42;
+  --accent-foreground: #f8fafc;
+  --destructive: #f87171;
+  --destructive-foreground: #0b0f17;
+  --border: #283548;
+  --input: #0d1420;
+  --ring: #38bdf8;
+  --chart-1: #38bdf8;
+  --chart-2: #94a3b8;
+  --chart-3: #283548;
+  --chart-4: #1c2638;
+  --chart-5: #f8fafc;
+  --sidebar: #0f1622;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #38bdf8;
+  --sidebar-primary-foreground: #0b0f17;
+  --sidebar-accent: #1e2d42;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: #1e293b;
+  --sidebar-ring: #38bdf8;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--foreground);
+    background-color: var(--background);
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role='button'][aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
   }
 }
 
@@ -233,3 +296,106 @@ code {
     @apply bg-background text-foreground;}
   html {
     @apply font-sans;}}
+/* Scrollbar */
+.custom-scrollbar {
+  scrollbar-color: #0f6fff #eaf2ff;
+  scrollbar-width: auto;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  height: 15px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #eaf2ff;
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #0f6fff;
+  border: 3px solid #eaf2ff;
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #0b5ddb;
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: #38bdf8 #0f1622;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #0f1622;
+  border-radius: 9999px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #38bdf8;
+  border: 3px solid #0f1622;
+  border-radius: 9999px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #7dd3fc;
+}
+
+/* Printable Receipt Styles */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide global page backgrounds, headers, and footers */
+  .print-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    background: transparent !important;
+  }
+
+  /* Remove card shadow and force fit */
+  .print-card {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 1rem !important;
+    break-inside: avoid !important;
+  }
+
+  /* Hide action buttons during print */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Tighten vertical spacing to guarantee 1-page fit */
+  .print-header {
+    padding-top: 1.25rem !important;
+    padding-bottom: 1.25rem !important;
+  }
+
+  .print-content {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+    row-gap: 0.75rem !important;
+  }
+}
+
+/* Respect user's motion preference — exempt functional loading indicators */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin):not(.animate-pulse):not([aria-busy="true"]):not([data-state="loading"]),
+  *:not(.animate-spin):not(.animate-pulse):not([aria-busy="true"]):not([data-state="loading"])::before,
+  *:not(.animate-spin):not(.animate-pulse):not([aria-busy="true"]):not([data-state="loading"])::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
