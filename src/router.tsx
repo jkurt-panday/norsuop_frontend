@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import App from "./App";
 import { LoginForm } from "./features/auth/LoginForm";
 import { OpFormPage } from "./features/public/opform/OpFormPage";
@@ -6,8 +6,10 @@ import { OpResultPage } from "./features/public/opform/OpResultPage";
 import { AssessmentPage } from "./features/public/assessment/AssessmentPage";
 import { AssessmentResultPage } from "./features/public/assessment/AssessmentResultPage";
 import { AssessmentSuccessPage } from "./features/public/assessment/AssessmentSuccessPage";
+import { StaffDashboardPage } from "./features/staff/StaffDashboardPage";
 import { StaffRequestsPage } from "./features/staff/StaffRequestsPage";
 import { StaffRequestDetailPage } from "./features/staff/StaffRequestDetailPage";
+import { StaffActivityLogPage } from "./features/staff/StaffActivityLogPage";
 import { CashierRequestsPage } from "./features/cashier/CashierRequestsPage";
 import { CashierRequestDetailPage } from "./features/cashier/CashierRequestDetailPage";
 import { DocumentsPage } from "./features/documents/DocumentsPage";
@@ -17,10 +19,15 @@ import { AdminActivityLogPage } from "./features/admin/AdminActivityLogPage";
 import { MasterDataPage } from "./features/masterdata/MasterDataPage";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { LedgerBalancePage } from "./features/ledger/LedgerBalancePage";
+import { PrintSelectPage } from "./features/ledger/PrintSelectPage";
+import { AssessmentIndexPage } from "./features/assessments/AssessmentIndexPage";
+import { AssessmentDashboardPage } from "./features/assessments/AssessmentDashboardPage";
+import { ProfilePage } from "./features/settings/ProfilePage";
+import { SecurityPage } from "./features/settings/SecurityPage";
+import { AppearancePage } from "./features/settings/AppearancePage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { RoleRoute } from "./routes/RoleRoute";
 import { NotFoundPage } from "./routes/NotFoundPage";
-import { PlaceholderPage } from "./routes/PlaceholderPage";
 import { AppShellLayout } from "./layouts/AppShellLayout";
 
 export const router = createBrowserRouter([
@@ -39,6 +46,17 @@ export const router = createBrowserRouter([
         element: <AppShellLayout />,
         children: [
           { path: "/app", element: <App /> },
+
+          // User Settings (all authenticated users)
+          {
+            path: "/settings",
+            element: <Navigate to="/settings/profile" replace />,
+          },
+          { path: "/settings/profile", element: <ProfilePage /> },
+          { path: "/settings/security", element: <SecurityPage /> },
+          { path: "/settings/appearance", element: <AppearancePage /> },
+
+          // Staff & Admin Ledgers
           {
             element: <RoleRoute roles={["staff", "admin"]} />,
             children: [
@@ -48,24 +66,12 @@ export const router = createBrowserRouter([
               },
               {
                 path: "/graduate-ledger/print-select",
-                element: (
-                  <PlaceholderPage
-                    title="Graduate Ledger - Print Statement"
-                    description="Statement selection and printing interface for Graduate School Ledger."
-                    backHref="/graduate-ledger"
-                  />
-                ),
+                element: <PrintSelectPage ledger="graduate" />,
               },
               { path: "/law-ledger", element: <LedgerPage ledger="law" /> },
               {
                 path: "/law-ledger/print-select",
-                element: (
-                  <PlaceholderPage
-                    title="Law Ledger - Print Statement"
-                    description="Statement selection and printing interface for College of Law Ledger."
-                    backHref="/law-ledger"
-                  />
-                ),
+                element: <PrintSelectPage ledger="law" />,
               },
               {
                 path: "/graduate-ledger/students/:studentId/balance",
@@ -81,6 +87,8 @@ export const router = createBrowserRouter([
             element: <RoleRoute roles={["staff", "admin"]} />,
             children: [{ path: "/documents", element: <DocumentsPage /> }],
           },
+
+          // Admin only
           {
             element: <RoleRoute roles={["admin"]} />,
             children: [
@@ -91,11 +99,13 @@ export const router = createBrowserRouter([
               { path: "/admin/activity-log", element: <AdminActivityLogPage /> },
             ],
           },
+
+          // Staff & Admin Operations
           {
             element: <RoleRoute roles={["staff", "admin"]} />,
             children: [
-              { path: "/staff", element: <StaffRequestsPage /> },
-              { path: "/staff/staffdashboard", element: <StaffRequestsPage /> },
+              { path: "/staff", element: <StaffDashboardPage /> },
+              { path: "/staff/staffdashboard", element: <StaffDashboardPage /> },
               { path: "/staff/requests", element: <StaffRequestsPage /> },
               {
                 path: "/staff/requests/:id",
@@ -127,36 +137,20 @@ export const router = createBrowserRouter([
               },
               {
                 path: "/staff/assessments/dashboard",
-                element: (
-                  <PlaceholderPage
-                    title="Assessments Dashboard"
-                    description="Analytics and summary overview for student assessments."
-                    backHref="/staff/requests"
-                  />
-                ),
+                element: <AssessmentDashboardPage />,
               },
               {
                 path: "/staff/assessments",
-                element: (
-                  <PlaceholderPage
-                    title="Staff Assessments"
-                    description="Management interface for assessment records and submissions."
-                    backHref="/staff/requests"
-                  />
-                ),
+                element: <AssessmentIndexPage />,
               },
               {
                 path: "/staff/activity-log",
-                element: (
-                  <PlaceholderPage
-                    title="Staff Activity Log"
-                    description="Audit trail of staff processing actions and requests."
-                    backHref="/staff/requests"
-                  />
-                ),
+                element: <StaffActivityLogPage />,
               },
             ],
           },
+
+          // Cashier
           {
             element: <RoleRoute roles={["cashier"]} />,
             children: [
