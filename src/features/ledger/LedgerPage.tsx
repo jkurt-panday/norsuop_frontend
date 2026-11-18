@@ -938,7 +938,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                         >
                           {visibleColumns.studentNumber && (
                             <td className="py-2.5 pr-4 pl-3 whitespace-nowrap text-muted-foreground font-mono text-xs">
-                              {r.student?.student_number || `ID: ${r.student_id}`}
+                              {r.student_number || r.student?.student_number || "—"}
                             </td>
                           )}
 
@@ -1032,9 +1032,9 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                             <td className="py-2.5 pr-4">
                               <Badge
                                 variant="outline"
-                                className={`text-[11px] ${getRemarkBadge(r.remarks || r.status)}`}
+                                className={`text-[11px] ${getRemarkBadge(r.remark || "Settled")}`}
                               >
-                                {r.remarks || r.status || "Settled"}
+                                {r.remark || "Settled"}
                               </Badge>
                             </td>
                           )}
