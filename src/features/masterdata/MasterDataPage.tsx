@@ -14,8 +14,12 @@ const labels: Record<MasterResource, string> = {
   "academic-terms": "Academic terms",
   "college-offices": "College offices",
 };
-export function MasterDataPage() {
-  const [resource, setResource] = useState<MasterResource>("memberships");
+interface MasterDataPageProps {
+  initialResource?: MasterResource;
+}
+
+export function MasterDataPage({ initialResource = "memberships" }: MasterDataPageProps) {
+  const [resource, setResource] = useState<MasterResource>(initialResource);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [name, setName] = useState("");
