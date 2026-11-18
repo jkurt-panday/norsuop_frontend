@@ -142,7 +142,7 @@ export function AssessmentSuccessPage() {
     <main className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white px-3 py-6 sm:px-6 sm:py-12">
       <title>Assessment Submission Successful</title>
       <div className="mx-auto max-w-5xl">
-        <Card className="overflow-hidden rounded-2xl shadow-xl sm:rounded-3xl">
+        <Card className="overflow-hidden pt-0! rounded-2xl shadow-xl sm:rounded-3xl">
           <CardHeader className="rounded-b-2xl bg-linear-to-b from-blue-600 to-blue-400 px-4 py-8 text-center text-white sm:rounded-b-3xl sm:px-8 sm:py-10">
             <img
               src="/finance_logo1.png"

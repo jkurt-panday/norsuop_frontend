@@ -321,31 +321,52 @@ export function AssessmentPage() {
                   onValueChange={(value) => update("enrolled_under", value)}
                   className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3"
                 >
-                  <FieldLabel htmlFor="enrolled-undergraduate">
+                  <FieldLabel
+                    htmlFor="enrolled-undergraduate"
+                    className="has-data-checked:border-blue-500 has-data-checked:ring-2 has-data-checked:ring-blue-500/30"
+                  >
                     <Field orientation="horizontal" className="h-full cursor-pointer justify-between">
                       <FieldContent>
                         <FieldTitle>Undergraduate</FieldTitle>
                         <FieldDescription>(not covered under RA 10931 - Free Higher Education)</FieldDescription>
                       </FieldContent>
-                      <RadioGroupItem value="Undergraduate" id="enrolled-undergraduate" />
+                      <RadioGroupItem
+                        value="Undergraduate"
+                        id="enrolled-undergraduate"
+                        className="data-checked:border-blue-500 data-checked:bg-blue-500 data-checked:text-white data-checked:ring-blue-500/30"
+                      />
                     </Field>
                   </FieldLabel>
-                  <FieldLabel htmlFor="enrolled-graduate">
+                  <FieldLabel
+                    htmlFor="enrolled-graduate"
+                    className="has-data-checked:border-blue-500 has-data-checked:ring-2 has-data-checked:ring-blue-500/30"
+                  >
                     <Field orientation="horizontal" className="h-full cursor-pointer justify-between">
                       <FieldContent>
                         <FieldTitle>Graduate</FieldTitle>
                         <FieldDescription>For master's and doctoral degree students.</FieldDescription>
                       </FieldContent>
-                      <RadioGroupItem value="Graduate" id="enrolled-graduate" />
+                      <RadioGroupItem
+                        value="Graduate"
+                        id="enrolled-graduate"
+                        className="data-checked:border-blue-500 data-checked:bg-blue-500 data-checked:text-white data-checked:ring-blue-500/30"
+                      />
                     </Field>
                   </FieldLabel>
-                  <FieldLabel htmlFor="enrolled-law">
+                  <FieldLabel
+                    htmlFor="enrolled-law"
+                    className="has-data-checked:border-blue-500 has-data-checked:ring-2 has-data-checked:ring-blue-500/30"
+                  >
                     <Field orientation="horizontal" className="h-full cursor-pointer justify-between">
                       <FieldContent>
                         <FieldTitle>School of Law</FieldTitle>
                         <FieldDescription>For Juris Doctor and legal studies students.</FieldDescription>
                       </FieldContent>
-                      <RadioGroupItem value="School of Law" id="enrolled-law" />
+                      <RadioGroupItem
+                        value="School of Law"
+                        id="enrolled-law"
+                        className="data-checked:border-blue-500 data-checked:bg-blue-500 data-checked:text-white data-checked:ring-blue-500/30"
+                      />
                     </Field>
                   </FieldLabel>
                 </RadioGroup>
@@ -364,10 +385,18 @@ export function AssessmentPage() {
                     ["sem-second", "Second Semester"],
                     ["sem-summer", "Summer"],
                   ].map(([id, label]) => (
-                    <FieldLabel htmlFor={id} key={id}>
+                    <FieldLabel
+                      htmlFor={id}
+                      key={id}
+                      className="has-data-checked:border-blue-500 has-data-checked:ring-2 has-data-checked:ring-blue-500/30"
+                    >
                       <Field orientation="horizontal" className="h-full cursor-pointer justify-between">
                         <FieldContent><FieldTitle>{label}</FieldTitle></FieldContent>
-                        <RadioGroupItem value={label} id={id} />
+                          <RadioGroupItem
+                            value={label}
+                            id={id}
+                            className="data-checked:border-blue-500 data-checked:bg-blue-500 data-checked:text-white data-checked:ring-blue-500/30"
+                          />
                       </Field>
                     </FieldLabel>
                   ))}

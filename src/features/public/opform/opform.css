@@ -124,6 +124,7 @@
 .public-form-field input,
 .public-form-field select,
 .public-form-section > input[type="file"] {
+  min-height: 3rem;
   box-sizing: border-box;
   width: 100%;
   border: 1px solid #cbd5e1;
@@ -143,7 +144,8 @@
 
 .public-form-field input:focus,
 .public-form-field select:focus,
-.public-form-section > input[type="file"]:focus {
+.public-form-section > input[type="file"]:focus,
+.upload-dropzone:focus-within {
   border-color: #2563eb;
   outline: 3px solid #2563eb33;
 }
@@ -184,8 +186,37 @@
   list-style: none;
 }
 
+.upload-dropzone {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: 2rem 1rem;
+  border: 2px dashed #93c5fd;
+  border-radius: 1rem;
+  background: #eff6ff66;
+  color: #1e40af;
+  text-align: center;
+  cursor: pointer;
+}
+
+.upload-dropzone span,
+.field-description {
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.upload-dropzone input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
 .public-form-file-list li {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 0.7rem 0.85rem;
@@ -196,8 +227,43 @@
   font-size: 0.9rem;
 }
 
-.public-form-file-list span {
+.public-form-file-list li button {
+  border: 0;
+  background: transparent;
   color: #64748b;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.public-form-file-list span,
+.public-form-file-list small {
+  color: #64748b;
+}
+
+.currency-field {
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+
+.currency-field span {
+  display: grid;
+  width: 3rem;
+  place-items: center;
+  border: 1px solid #bfdbfe;
+  border-right: 0;
+  border-radius: 0.75rem 0 0 0.75rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.currency-field input {
+  border-radius: 0 0.75rem 0.75rem 0;
+}
+
+.form-error {
+  margin: 1rem 2rem 0;
 }
 
 .public-form-footer {
