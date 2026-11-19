@@ -6,7 +6,7 @@ import {
   DonutChartCard,
   LineChartCard,
 } from "@/components/charts";
-import { api } from "../../../api/client";
+import { api } from "../../api/client";
 import { AssessmentDashboardSkeleton } from "./AssessmentDashboardSkeleton";
 
 type DashboardData = {

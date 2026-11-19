@@ -3,12 +3,12 @@ import App from "./App";
 import { LoginForm } from "./features/auth/LoginForm";
 import { OpFormPage } from "./features/public/opform/OpFormPage";
 import { OpResultPage } from "./features/public/opform/OpResultPage";
-import { AssessmentPage } from "./features/public/assessment/AssessmentPage";
-import { AssessmentDashboard } from "./features/public/assessment/AssessmentDashboard";
-import { AssessmentIndex } from "./features/public/assessment/AssessmentIndex";
-import { AssessmentEdit } from "./features/public/assessment/AssessmentEdit";
-import { AssessmentResultPage } from "./features/public/assessment/AssessmentResultPage";
-import { AssessmentSuccessPage } from "./features/public/assessment/AssessmentSuccessPage";
+import { AssessmentPage } from "./features/public/assessmentform/AssessmentPage";
+import { AssessmentDashboard } from "./features/assessments/AssessmentDashboard";
+import { AssessmentIndex } from "./features/assessments/AssessmentIndex";
+import { AssessmentEdit } from "./features/assessments/AssessmentEdit";
+import { AssessmentResultPage } from "./features/public/assessmentform/AssessmentResultPage";
+import { AssessmentSuccessPage } from "./features/public/assessmentform/AssessmentSuccessPage";
 import { StaffDashboardPage } from "./features/staff/StaffDashboardPage";
 import { StaffRequestsPage } from "./features/staff/StaffRequestsPage";
 import { StaffRequestDetailPage } from "./features/staff/StaffRequestDetailPage";
@@ -23,8 +23,6 @@ import { MasterDataPage } from "./features/masterdata/MasterDataPage";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { LedgerBalancePage } from "./features/ledger/LedgerBalancePage";
 import { PrintSelectPage } from "./features/ledger/PrintSelectPage";
-import { AssessmentIndexPage } from "./features/assessments/AssessmentIndexPage";
-import { AssessmentDashboardPage } from "./features/assessments/AssessmentDashboardPage";
 import { ProfilePage } from "./features/settings/ProfilePage";
 import { SecurityPage } from "./features/settings/SecurityPage";
 import { AppearancePage } from "./features/settings/AppearancePage";
@@ -99,7 +97,10 @@ export const router = createBrowserRouter([
               { path: "/admin/dashboard", element: <AdminDashboardPage /> },
               { path: "/admin/users", element: <AdminUsersPage /> },
               { path: "/admin/master-data", element: <MasterDataPage /> },
-              { path: "/admin/activity-log", element: <AdminActivityLogPage /> },
+              {
+                path: "/admin/activity-log",
+                element: <AdminActivityLogPage />,
+              },
             ],
           },
 
@@ -108,7 +109,10 @@ export const router = createBrowserRouter([
             element: <RoleRoute roles={["staff", "admin"]} />,
             children: [
               { path: "/staff", element: <StaffDashboardPage /> },
-              { path: "/staff/staffdashboard", element: <StaffDashboardPage /> },
+              {
+                path: "/staff/staffdashboard",
+                element: <StaffDashboardPage />,
+              },
               { path: "/staff/requests", element: <StaffRequestsPage /> },
               {
                 path: "/staff/requests/:id",
@@ -128,7 +132,9 @@ export const router = createBrowserRouter([
               },
               {
                 path: "/staff/authorized-officials",
-                element: <MasterDataPage initialResource="authorized-officials" />,
+                element: (
+                  <MasterDataPage initialResource="authorized-officials" />
+                ),
               },
               {
                 path: "/staff/uacs",
@@ -138,16 +144,16 @@ export const router = createBrowserRouter([
                 path: "/staff/courses",
                 element: <MasterDataPage initialResource="courses" />,
               },
+              // TODO move these into feature/assessment folder rather than at public
               {
                 path: "/staff/assessments/dashboard",
-                element: <AssessmentDashboardPage />,
-              },
-              {
-                path: "/staff/assessments",
-                element: <AssessmentIndexPage />,
+                element: <AssessmentDashboard />,
               },
               { path: "/staff/assessments", element: <AssessmentIndex /> },
-              { path: "/staff/assessments/:id/edit", element: <AssessmentEdit /> },
+              {
+                path: "/staff/assessments/:id/edit",
+                element: <AssessmentEdit />,
+              },
               {
                 path: "/staff/activity-log",
                 element: <StaffActivityLogPage />,

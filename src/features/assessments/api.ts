@@ -96,6 +96,10 @@ export function getAssessments(
   });
 }
 
+export function getAssessmentCourses(signal?: AbortSignal) {
+  return api<{ data: AssessmentCourse[] }>("/api/v1/courses?per_page=100", { signal });
+}
+
 export function getAssessmentDashboard(signal?: AbortSignal) {
   return api<{ data: AssessmentDashboardData }>("/api/v1/assessments/dashboard", {
     signal,
