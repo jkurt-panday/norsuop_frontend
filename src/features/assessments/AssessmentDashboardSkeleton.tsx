@@ -25,6 +25,7 @@ export function AssessmentDashboardSkeleton() {
       <Card className="rounded-2xl border border-border bg-card px-2! py-2! shadow-sm">
         <CardHeader className="p-3">
           <Skeleton className="h-10 w-80 rounded-lg" />
+          <Skeleton className="mt-2 h-4 w-[34rem] max-w-full rounded-lg" />
         </CardHeader>
       </Card>
 
