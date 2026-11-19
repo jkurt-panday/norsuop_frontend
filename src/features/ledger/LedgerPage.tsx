@@ -1,4 +1,4 @@
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import {
   Search,
   DollarSign,
@@ -15,6 +15,9 @@ import {
   Mail,
   Download,
   ChevronDown,
+  Sparkles,
+  Award,
+  RefreshCw,
 } from "lucide-react";
 import {
   type Ledger,
@@ -22,7 +25,7 @@ import {
   type LedgerRecord,
 } from "./api";
 import { useLedgerRecords } from "./queries";
-import { useDeleteLedgerRecord } from "./mutations";
+import { useDeleteLedgerRecord, useApplyMembership, useApplyLatinHonor } from "./mutations";
 import {
   formatCurrency,
   formatTransactionDate,
@@ -161,6 +164,8 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
   // Query
   const query = useLedgerRecords(ledger, activeFilters);
   const deleteMutation = useDeleteLedgerRecord();
+  const applyMembershipMutation = useApplyMembership();
+  const applyLatinHonorMutation = useApplyLatinHonor();
 
   // Modals & Drawer state
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
@@ -175,6 +180,34 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<LedgerRecord | null>(null);
+
+  // Refresh cooldown — 15 s buffer to prevent spam
+  const [refreshCooledAt, setRefreshCooledAt] = useState<number>(0);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const refreshCooldown = Date.now() < refreshCooledAt;
+
+  const handleRefresh = () => {
+    if (refreshCooldown || query.isFetching) return;
+    query.refetch();
+    const until = Date.now() + 5_000;
+    setRefreshCooledAt(until);
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => setRefreshCooledAt(0), 5_000);
+  };
+
+  // Tick every second while cooldown is active so the button label stays accurate
+  const [, forceTickRefresh] = useState(0);
+  // (effect declared after all state, runs after mount)
+
+  const [membershipTarget, setMembershipTarget] = useState<LedgerRecord | null>(null);
+  const [selectedMembership, setSelectedMembership] = useState<"NAPU" | "NORSUFFA" | "">("");
+  const [membershipError, setMembershipError] = useState<string | null>(null);
+
+  // Apply-latin-honor modal state (Law only)
+  const [honorTarget, setHonorTarget] = useState<LedgerRecord | null>(null);
+  const [selectedHonor, setSelectedHonor] = useState<"SUMMA" | "MAGNA" | "CUM_LAUDE" | "">("");
+  const [honorError, setHonorError] = useState<string | null>(null);
 
   // Active filter helper
   const applyFilters = (overrides: Partial<typeof filterState> = {}) => {
@@ -286,6 +319,42 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     setTransactionModalOpen(true);
   };
 
+  // Latin honor discount percentage helper
+  const latinHonorPct = (honor: "SUMMA" | "MAGNA" | "CUM_LAUDE" | "") =>
+    honor === "SUMMA" ? 100 : honor === "MAGNA" ? 75 : honor === "CUM_LAUDE" ? 50 : 0;
+
+  const handleConfirmApplyMembership = () => {
+    if (!membershipTarget || !selectedMembership) return;
+    setMembershipError(null);
+    applyMembershipMutation.mutate(
+      { ledger, id: membershipTarget.id, membership: selectedMembership },
+      {
+        onSuccess: () => {
+          setMembershipTarget(null);
+          setSelectedMembership("");
+        },
+        onError: (err) =>
+          setMembershipError(err instanceof Error ? err.message : "Failed to apply membership."),
+      },
+    );
+  };
+
+  const handleConfirmApplyLatinHonor = () => {
+    if (!honorTarget || !selectedHonor) return;
+    setHonorError(null);
+    applyLatinHonorMutation.mutate(
+      { ledger, id: honorTarget.id, latin_honor: selectedHonor },
+      {
+        onSuccess: () => {
+          setHonorTarget(null);
+          setSelectedHonor("");
+        },
+        onError: (err) =>
+          setHonorError(err instanceof Error ? err.message : "Failed to apply Latin honor."),
+      },
+    );
+  };
+
   const handleConfirmDelete = () => {
     if (!deleteTarget) return;
     deleteMutation.mutate(
@@ -340,6 +409,13 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     },
   ].filter(Boolean) as { key: keyof typeof filterState; label: string }[];
 
+  // Interval tick while cooldown is active → keeps the button label current
+  useEffect(() => {
+    if (!refreshCooldown) return;
+    const id = setInterval(() => forceTickRefresh((n) => n + 1), 1_000);
+    return () => clearInterval(id);
+  }, [refreshCooldown]);
+
   return (
     <div className="w-full space-y-6 pb-12">
       {/* Top Header / Action Bar */}
@@ -354,6 +430,21 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            className="h-9 border-input text-foreground hover:bg-muted disabled:opacity-50"
+            onClick={handleRefresh}
+            disabled={refreshCooldown || query.isFetching}
+            title={refreshCooldown ? "Please wait before refreshing again" : "Refresh ledger data"}
+          >
+            <RefreshCw
+              className={`mr-1.5 h-4 w-4 ${query.isFetching ? "animate-spin" : ""} ${refreshCooldown ? "text-muted-foreground" : ""}`}
+            />
+            {refreshCooldown
+              ? `Wait ${Math.ceil((refreshCooledAt - Date.now()) / 1_000)}s`
+              : "Refresh"}
+          </Button>
+
           <Button
             className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => setEmailModalOpen(true)}
@@ -1068,6 +1159,42 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
+
+                              {/* Apply Membership — Graduate AR rows with no membership yet */}
+                              {!isLaw && r.entry_type === "ar" && !r.membership && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-muted-foreground hover:text-purple-600"
+                                  title="Apply Membership Scholarship"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMembershipTarget(r);
+                                    setSelectedMembership("");
+                                    setMembershipError(null);
+                                  }}
+                                >
+                                  <Sparkles className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+
+                              {/* Apply Latin Honor — Law AR rows with no latin_honor yet */}
+                              {isLaw && r.entry_type === "ar" && !r.latin_honor && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-muted-foreground hover:text-amber-600"
+                                  title="Apply Latin Honor Scholarship"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setHonorTarget(r);
+                                    setSelectedHonor("");
+                                    setHonorError(null);
+                                  }}
+                                >
+                                  <Award className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1184,6 +1311,205 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                 </>
               ) : (
                 "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Apply Membership Modal (Graduate only) */}
+      <Dialog
+        open={membershipTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) { setMembershipTarget(null); setSelectedMembership(""); setMembershipError(null); }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-400">
+              <Sparkles className="h-5 w-5" />
+              Apply Membership Scholarship
+            </DialogTitle>
+            <DialogDescription>
+              Apply a 100% scholarship discount to the AR entry for{" "}
+              <span className="font-semibold text-foreground">
+                {membershipTarget?.student
+                  ? `${membershipTarget.student.last_name}, ${membershipTarget.student.first_name}`
+                  : `Student #${membershipTarget?.student_id}`}
+              </span>
+              {membershipTarget && (
+                <span className="ml-1 font-mono text-foreground">
+                  ({formatCurrency(Number(membershipTarget.amount))})
+                </span>
+              )}
+              . This will create a matching Adjustment entry.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {membershipError && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+                {membershipError}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-foreground">Select Membership</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["NAPU", "NORSUFFA"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setSelectedMembership(m)}
+                    className={`rounded-xl border px-4 py-3 text-left text-xs font-semibold transition-all ${
+                      selectedMembership === m
+                        ? "border-purple-500 bg-purple-50 text-purple-900 shadow-xs ring-1 ring-purple-400 dark:bg-purple-950/40 dark:text-purple-200"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <div>{m}</div>
+                    <div className="mt-0.5 text-[11px] font-normal opacity-70">
+                      {m === "NAPU" ? "NORSU Admin. Personnel Union" : "NORSU Federated Faculty Assoc."}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {selectedMembership && membershipTarget && (
+              <div className="flex items-center justify-between rounded-lg bg-purple-50 px-3 py-2 text-xs text-purple-900 dark:bg-purple-950/30 dark:text-purple-300">
+                <span>
+                  AR({selectedMembership}) + Adjustment({selectedMembership}) −{formatCurrency(Number(membershipTarget.amount))}
+                </span>
+                <span className="font-bold">Net ₱0.00</span>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => { setMembershipTarget(null); setSelectedMembership(""); setMembershipError(null); }}
+              disabled={applyMembershipMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmApplyMembership}
+              disabled={!selectedMembership || applyMembershipMutation.isPending}
+              className="bg-purple-600 text-white hover:bg-purple-700"
+            >
+              {applyMembershipMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  Applying…
+                </>
+              ) : (
+                "Apply Scholarship"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Apply Latin Honor Modal (Law only) */}
+      <Dialog
+        open={honorTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) { setHonorTarget(null); setSelectedHonor(""); setHonorError(null); }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <Award className="h-5 w-5" />
+              Apply Latin Honor Scholarship
+            </DialogTitle>
+            <DialogDescription>
+              Apply a partial scholarship discount to the AR entry for{" "}
+              <span className="font-semibold text-foreground">
+                {honorTarget?.student
+                  ? `${honorTarget.student.last_name}, ${honorTarget.student.first_name}`
+                  : `Student #${honorTarget?.student_id}`}
+              </span>
+              {honorTarget && (
+                <span className="ml-1 font-mono text-foreground">
+                  ({formatCurrency(Number(honorTarget.amount))})
+                </span>
+              )}
+              . This will create a matching Adjustment entry.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {honorError && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+                {honorError}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-foreground">Select Latin Honor</p>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { value: "SUMMA", label: "Summa Cum Laude", pct: 100 },
+                  { value: "MAGNA", label: "Magna Cum Laude", pct: 75 },
+                  { value: "CUM_LAUDE", label: "Cum Laude", pct: 50 },
+                ] as const).map((h) => (
+                  <button
+                    key={h.value}
+                    type="button"
+                    onClick={() => setSelectedHonor(h.value)}
+                    className={`rounded-xl border px-3 py-3 text-left text-xs font-semibold transition-all ${
+                      selectedHonor === h.value
+                        ? "border-amber-500 bg-amber-50 text-amber-900 shadow-xs ring-1 ring-amber-400 dark:bg-amber-950/40 dark:text-amber-200"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <div>{h.label}</div>
+                    <div className="mt-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                      {h.pct}% off
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {selectedHonor && honorTarget && (() => {
+              const pct = latinHonorPct(selectedHonor);
+              const base = Number(honorTarget.amount);
+              const discount = Math.round(base * pct) / 100;
+              return (
+                <div className="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+                  <span>
+                    Adjustment −{formatCurrency(discount)} ({pct}% of {formatCurrency(base)})
+                  </span>
+                  <span className="font-bold">Net {formatCurrency(base - discount)}</span>
+                </div>
+              );
+            })()}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => { setHonorTarget(null); setSelectedHonor(""); setHonorError(null); }}
+              disabled={applyLatinHonorMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmApplyLatinHonor}
+              disabled={!selectedHonor || applyLatinHonorMutation.isPending}
+              className="bg-amber-600 text-white hover:bg-amber-700"
+            >
+              {applyLatinHonorMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  Applying…
+                </>
+              ) : (
+                "Apply Scholarship"
               )}
             </Button>
           </DialogFooter>
