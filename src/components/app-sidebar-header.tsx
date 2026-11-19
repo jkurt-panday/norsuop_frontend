@@ -1,9 +1,11 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCurrentUser } from "@/features/auth/queries";
+import { getAssessment } from "@/features/assessments/api";
 
 export interface BreadcrumbItem {
   title: string;
@@ -45,6 +47,12 @@ export function AppSidebarHeader({
   const { data } = useCurrentUser();
   const userName = data?.data?.name ?? "";
   const location = useLocation();
+  const assessmentId = location.pathname.match(/^\/staff\/assessments\/(\d+)(?:\/|$)/)?.[1];
+  const assessmentQuery = useQuery({
+    queryKey: ["assessment", assessmentId],
+    queryFn: ({ signal }) => getAssessment(assessmentId!, signal),
+    enabled: Boolean(assessmentId),
+  });
 
   const resolvedBreadcrumbs: BreadcrumbItem[] = React.useMemo(() => {
     if (breadcrumbs && breadcrumbs.length > 0) {
@@ -58,18 +66,24 @@ export function AppSidebarHeader({
     let currentPath = "";
 
     for (let i = 0; i < segments.length; i++) {
+      // The edit route is an implementation detail; the assessment reference
+      // is the meaningful final breadcrumb for this page.
+      if (assessmentId && segments[i] === "edit") continue;
+
       currentPath += `/${segments[i]}`;
-      const title =
-        routeTitleMap[currentPath] ||
-        segments[i].charAt(0).toUpperCase() + segments[i].slice(1).replace(/-/g, " ");
+      const isAssessmentId = assessmentId && segments[i] === assessmentId;
+      const title = isAssessmentId
+        ? assessmentQuery.data?.data.reference_number ?? segments[i]
+        : routeTitleMap[currentPath] ||
+          segments[i].charAt(0).toUpperCase() + segments[i].slice(1).replace(/-/g, " ");
       crumbs.push({
         title,
-        href: i < segments.length - 1 ? currentPath : undefined,
+        href: i < segments.length - 1 && !isAssessmentId ? currentPath : undefined,
       });
     }
 
     return crumbs;
-  }, [breadcrumbs, location.pathname]);
+  }, [assessmentId, assessmentQuery.data, breadcrumbs, location.pathname]);
 
   return (
     <div className="flex h-16 items-center gap-4 border-b border-white/20 bg-primary px-6 text-primary-foreground dark:border-sidebar-border dark:bg-sidebar dark:text-sidebar-foreground">

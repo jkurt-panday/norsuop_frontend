@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, useTransition, type SubmitEvent } from "react";
 import { Link } from "react-router";
 import { format, parseISO } from "date-fns";
 import {
@@ -14,10 +14,16 @@ import {
   Trash2,
 } from "lucide-react";
 import type { AssessmentItem as Assessment, AssessmentFilterParams as AssessmentFilters } from "./api";
-import { getAssessments, getAssessmentCourses, deleteAssessment } from "./api";
+import { getAssessmentCourses, deleteAssessment } from "./api";
 import { AssessmentIndexSkeleton } from "./AssessmentIndexSkeleton";
 import { useAssessments } from "./queries";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +82,12 @@ const initialFilters: AssessmentFilters = {
 const statuses = ["pending", "mailed", "rejected", "completed"];
 const statusLabel = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1);
+const statusDotClass: Record<string, string> = {
+  pending: "bg-amber-500",
+  mailed: "bg-blue-500",
+  rejected: "bg-red-500",
+  completed: "bg-emerald-500",
+};
 const enrolledUnder = ["Undergraduate", "Graduate", "School of Law"];
 const semesters = ["First Semester", "Second Semester", "Summer"];
 const schoolYears = Array.from({ length: 27 }, (_, index) => {
@@ -175,6 +187,18 @@ function FilterCombobox({
     typeof option === "string" ? { value: option, label: option } : option,
   );
   const selected = values.find((option) => option.value === value);
+  const isStatusFilter = label === "Status";
+  const renderOptionLabel = (option: { value: string; label: string }) => (
+    <span className="inline-flex items-center gap-2">
+      {isStatusFilter && (
+        <span
+          aria-hidden="true"
+          className={`size-2 rounded-full ${statusDotClass[option.value] ?? "bg-muted-foreground"}`}
+        />
+      )}
+      {option.label}
+    </span>
+  );
   return (
     <Combobox
       items={values}
@@ -187,14 +211,23 @@ function FilterCombobox({
         placeholder={label}
         aria-label={label}
         showClear={Boolean(value)}
-        className="h-10 w-44 rounded-lg"
-      />
+        className={`h-10 w-44 rounded-lg ${isStatusFilter && selected ? "pl-7" : ""}`}
+      >
+        {isStatusFilter && selected && (
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+            <span
+              aria-hidden="true"
+              className={`size-2 rounded-full ${statusDotClass[selected.value] ?? "bg-muted-foreground"}`}
+            />
+          </span>
+        )}
+      </ComboboxInput>
       <ComboboxContent>
         <ComboboxEmpty>No options found.</ComboboxEmpty>
         <ComboboxList>
           {(option) => (
             <ComboboxItem key={option.value} value={option.label}>
-              {option.label}
+              {renderOptionLabel(option)}
             </ComboboxItem>
           )}
         </ComboboxList>
@@ -215,6 +248,7 @@ export function AssessmentIndex() {
   const [sy, setSy] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [goToPage, setGoToPage] = useState("");
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
     const defaults = { email: true, course: true, enrolledUnder: true, schoolYear: true, semester: true, submitted: true, status: true };
     if (typeof window === "undefined") return defaults;
@@ -238,7 +272,7 @@ export function AssessmentIndex() {
 
   const updateFilters = (next: Partial<AssessmentFilters>) =>
     startTransition(() => setFilters((current) => ({ ...current, ...next })));
-  const applyFilters = (event: FormEvent) => {
+  const applyFilters = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     updateFilters({
       page: 1,
@@ -262,6 +296,14 @@ export function AssessmentIndex() {
     setDateFrom("");
     setDateTo("");
     setFilters(initialFilters);
+  };
+  const goToPageNumber = () => {
+    const page = Number.parseInt(goToPage, 10);
+    if (!Number.isInteger(page)) return;
+    updateFilters({
+      page: Math.min(Math.max(1, page), query.data?.meta.last_page ?? 1),
+    });
+    setGoToPage("");
   };
   const sort = (column: AssessmentFilters["sort"]) =>
     updateFilters({
@@ -323,11 +365,8 @@ export function AssessmentIndex() {
                 <Input
                   placeholder="Search for reference number, first/last name, email"
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  onKeyDown={(event) =>
-                    event.key === "Enter" && applyFilters(event)
-                  }
-                  className="h-10 min-w-0 flex-1 rounded-xl px-4 text-sm sm:w-150 sm:flex-none"
+                   onChange={(event) => setSearch(event.target.value)}
+                   className="h-10 min-w-0 flex-1 rounded-xl px-4 text-sm sm:w-150 sm:flex-none"
                 />
                 <Button
                   type="submit"
@@ -556,83 +595,111 @@ export function AssessmentIndex() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
-      {query.data && (
-        <div className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3">
-          <p className="justify-self-start text-sm text-muted-foreground">
-            Showing{" "}
-            {query.data.data.length
-              ? (query.data.meta.current_page - 1) * query.data.meta.per_page +
-                1
-              : 0}
-            –
-            {Math.min(
-              query.data.meta.current_page * query.data.meta.per_page,
-              query.data.meta.total,
-            )}{" "}
-            of {query.data.meta.total}
-          </p>
-          <Pagination className="mx-0 w-auto justify-self-end">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  // disabled={filters.page === 1 || query.isFetching}
-                  onClick={() =>
-                    updateFilters({
-                      page: Math.max(1, (filters.page ?? 1) - 1),
-                    })
-                  }
+         </CardContent>
+         {query.data && (
+           <CardFooter className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3">
+             <p className="justify-self-start text-sm text-muted-foreground">
+               Showing{" "}
+               {query.data.data.length
+                 ? (query.data.meta.current_page - 1) * query.data.meta.per_page +
+                   1
+                 : 0}
+               –
+               {Math.min(
+                 query.data.meta.current_page * query.data.meta.per_page,
+                 query.data.meta.total,
+               )}{" "}
+               of {query.data.meta.total}
+             </p>
+              <div className="flex items-center gap-2 justify-self-end">
+                <label htmlFor="assessment-go-to-page" className="whitespace-nowrap text-sm text-muted-foreground">
+                  Go to page:
+                </label>
+                <Input
+                  id="assessment-go-to-page"
+                  type="number"
+                  min={1}
+                  max={query.data.meta.last_page}
+                  value={goToPage}
+                  onChange={(event) => setGoToPage(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") goToPageNumber();
+                  }}
+                  className="h-8 w-16 rounded-lg px-2 text-center"
+                  aria-label="Page number"
                 />
-              </PaginationItem>
-              {Array.from(
-                { length: query.data.meta.last_page },
-                (_, index) => index + 1,
-              )
-                .filter(
-                  (page) =>
-                    page === 1 ||
-                    page === query.data.meta.last_page ||
-                    Math.abs(page - query.data.meta.current_page) <= 1,
-                )
-                .map((page, index, pages) => (
-                  <span key={page} className="contents">
-                    {index > 0 && pages[index - 1] !== page - 1 && (
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPageNumber}
+                  disabled={!goToPage}
+                  className="h-8 rounded-lg"
+                >
+                  Go
+                </Button>
+                <Pagination className="mx-0 w-auto">
+                  <PaginationContent>
                     <PaginationItem>
-                      <PaginationLink
-                        isActive={page === query.data.meta.current_page}
-                        // disabled={query.isFetching}
-                        onClick={() => updateFilters({ page })}
-                      >
-                        {page}
-                      </PaginationLink>
+                      <PaginationPrevious
+                     // disabled={filters.page === 1 || query.isFetching}
+                     onClick={() =>
+                       updateFilters({
+                         page: Math.max(1, (filters.page ?? 1) - 1),
+                       })
+                     }
+                   />
+                 </PaginationItem>
+                 {Array.from(
+                   { length: query.data.meta.last_page },
+                   (_, index) => index + 1,
+                 )
+                   .filter(
+                     (page) =>
+                       page === 1 ||
+                       page === query.data.meta.last_page ||
+                       Math.abs(page - query.data.meta.current_page) <= 1,
+                   )
+                   .map((page, index, pages) => (
+                     <span key={page} className="contents">
+                       {index > 0 && pages[index - 1] !== page - 1 && (
+                         <PaginationItem>
+                           <PaginationEllipsis />
+                         </PaginationItem>
+                       )}
+                       <PaginationItem>
+                         <PaginationLink
+                           isActive={page === query.data.meta.current_page}
+                           // disabled={query.isFetching}
+                           onClick={() => updateFilters({ page })}
+                         >
+                           {page}
+                         </PaginationLink>
+                       </PaginationItem>
+                     </span>
+                   ))}
+                 <PaginationItem>
+                   <PaginationNext
+                     disabled={
+                       filters.page === query.data.meta.last_page ||
+                       query.isFetching
+                     }
+                     onClick={() =>
+                       updateFilters({
+                         page: Math.min(
+                           query.data.meta.last_page,
+                           (filters.page ?? 1) + 1,
+                         ),
+                       })
+                     }
+                   />
                     </PaginationItem>
-                  </span>
-                ))}
-              <PaginationItem>
-                <PaginationNext
-                  disabled={
-                    filters.page === query.data.meta.last_page ||
-                    query.isFetching
-                  }
-                  onClick={() =>
-                    updateFilters({
-                      page: Math.min(
-                        query.data.meta.last_page,
-                        (filters.page ?? 1) + 1,
-                      ),
-                    })
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
-    </div>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </CardFooter>
+         )}
+       </Card>
+     </div>
   );
 }
