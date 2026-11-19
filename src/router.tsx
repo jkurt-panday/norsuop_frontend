@@ -29,8 +29,6 @@ import { CoursesPage } from "./features/masterdata/CoursesPage";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { LedgerBalancePage } from "./features/ledger/LedgerBalancePage";
 import { PrintSelectPage } from "./features/ledger/PrintSelectPage";
-import { AssessmentIndexPage } from "./features/assessments/AssessmentIndexPage";
-import { AssessmentDashboardPage } from "./features/assessments/AssessmentDashboardPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { RoleRoute } from "./routes/RoleRoute";
 import { NotFoundPage } from "./routes/NotFoundPage";
