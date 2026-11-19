@@ -17,7 +17,6 @@ import {
   LogOut,
   FileSpreadsheet,
   FileSearchIcon,
-  Settings,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -118,9 +117,6 @@ const navigationHrefs = [
   ...staffCollapsibleItems.flatMap((item) =>
     item.items.map((subItem) => subItem.href),
   ),
-  "/settings/profile",
-  "/settings/security",
-  "/settings/appearance",
 ];
 
 const SIDEBAR_COLLAPSIBLE_STORAGE_KEY = "norsu.sidebar.collapsible.open";
@@ -365,13 +361,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-blue-400/20 px-3 py-3 space-y-2 dark:border-sidebar-border">
-        <Link
-          to="/settings/profile"
-          className="flex w-full items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20 dark:border-white/10 dark:bg-sidebar-accent dark:hover:bg-sidebar-accent/80"
-        >
-          <Settings className="h-4 w-4" />
-          Settings
-        </Link>
         <AlertDialog>
           <AlertDialogTrigger
             render={

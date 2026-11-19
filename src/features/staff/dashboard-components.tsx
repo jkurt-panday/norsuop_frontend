@@ -1,0 +1,547 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  Activity,
+  CheckCircle2,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+/* ============================================================
+   getDayLabel — relative day label for stat card subtitles
+   ============================================================ */
+export function getDayLabel(dateString?: string | null): string | null {
+  if (!dateString) {
+    return null;
+  }
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  date.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round((today.getTime() - date.getTime()) / 86400000);
+
+  if (diffDays <= 0) {
+    return "Today";
+  }
+
+  if (diffDays === 1) {
+    return "1 day ago";
+  }
+
+  return `${diffDays} days ago`;
+}
+
+/* ============================================================
+   1. StatCard — single number metric
+   ============================================================ */
+export interface StatCardProps {
+  label: string;
+  value: number | string;
+  bgClass?: string;
+  textClass?: string;
+  icon?: ReactNode;
+  subtitle?: string | null;
+}
+
+export function StatCard({
+  label,
+  value,
+  bgClass = "bg-slate-900",
+  textClass = "text-white",
+  icon,
+  subtitle,
+}: StatCardProps) {
+  return (
+    <div className={`rounded-3xl p-6 shadow-sm ${bgClass} ${textClass}`}>
+      <div className="flex items-start justify-between">
+        <p className="text-sm tracking-[0.2em] uppercase opacity-70">{label}</p>
+        {icon && <span className="opacity-80">{icon}</span>}
+      </div>
+      <p className="mt-4 text-3xl font-semibold">{value}</p>
+      {subtitle && <p className="mt-1 text-xs opacity-60">{subtitle}</p>}
+    </div>
+  );
+}
+
+/* ============================================================
+   2. ChartCard — bar / line / pie chart via Recharts
+   ============================================================ */
+export interface ChartCardProps {
+  title: string;
+  description?: string;
+  type: "bar" | "line" | "pie";
+  data: Record<string, string | number>[];
+  xKey: string;
+  yKey: string;
+  color?: string;
+  height?: number;
+  pieColors?: string[];
+}
+
+const DEFAULT_PIE_COLORS = [
+  "#0d6efd",
+  "#0dcaf0",
+  "#ffc107",
+  "#198754",
+  "#dc3545",
+  "#6f42c1",
+];
+
+// Colors keyed by status name so slices (and legend dots) stay consistent
+// regardless of the order the data arrives in.
+const STATUS_PIE_COLORS: Record<string, string> = {
+  cancelled: "#ef4444",
+  paid: "#3b82f6",
+  processed: "#22c55e",
+  pending: "#f59e0b",
+  unprocessed: "#94a3b8",
+};
+
+const tooltipStyle = {
+  borderRadius: 8,
+  border: "1px solid var(--border)",
+  backgroundColor: "var(--card)",
+  color: "var(--foreground)",
+  fontSize: 12,
+};
+
+// Custom dot renderer for the line chart — only draws a visible dot where
+// the value is greater than 0, so long flat (zero) stretches read as
+// intentionally quiet instead of being cluttered with dots at zero.
+function renderLineDot(yKey: string, color: string) {
+  return (props: {
+    cx?: number;
+    cy?: number;
+    payload?: Record<string, string | number>;
+  }) => {
+    const { cx, cy, payload } = props;
+
+    if (cx === undefined || cy === undefined || !payload) {
+      return <></>;
+    }
+
+    const value = Number(payload[yKey] ?? 0);
+
+    if (value <= 0) {
+      return <></>;
+    }
+
+    return <circle cx={cx} cy={cy} r={3} fill={color} />;
+  };
+}
+
+export function ChartCard({
+  title,
+  description,
+  type,
+  data,
+  xKey,
+  yKey,
+  color = "#0d6efd",
+  height = 280,
+  pieColors = DEFAULT_PIE_COLORS,
+}: ChartCardProps) {
+  const pieTotal =
+    type === "pie"
+      ? data.reduce((sum, d) => sum + Number(d[yKey] ?? 0), 0)
+      : 0;
+
+  return (
+    <Card className="gap-4 rounded-xl py-4">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold text-foreground">
+          {title}
+        </CardTitle>
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
+      </CardHeader>
+      <CardContent>
+        <div
+          style={{ width: "100%", height, position: "relative" }}
+          className={type === "pie" ? "-mt-7" : ""}
+        >
+          <div
+            className={`relative z-10 h-full w-full ${
+              type === "pie" ? "flex items-center justify-center" : ""
+            }`}
+          >
+            <ResponsiveContainer minWidth={0} width="100%" height="100%">
+              {type === "bar" ? (
+                <BarChart
+                  data={data}
+                  layout="vertical"
+                  margin={{ left: -10, right: 50 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 12, fill: "currentColor" }}
+                    className="text-muted-foreground"
+                    allowDecimals={false}
+                    domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.2)]}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey={xKey}
+                    tick={{ fontSize: 11, fill: "currentColor" }}
+                    className="text-muted-foreground"
+                    width={100}
+                  />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Bar
+                    dataKey={yKey}
+                    fill={color}
+                    radius={[0, 6, 6, 0]}
+                    barSize={28}
+                  />
+                </BarChart>
+              ) : type === "line" ? (
+                <LineChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    dataKey={xKey}
+                    tick={{ fontSize: 12, fill: "currentColor" }}
+                    className="text-muted-foreground"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: "currentColor" }}
+                    className="text-muted-foreground"
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    labelFormatter={(label) =>
+                      new Date(String(label)).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })
+                    }
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey={yKey}
+                    stroke={color}
+                    strokeWidth={2.5}
+                    dot={renderLineDot(yKey, color)}
+                  />
+                </LineChart>
+              ) : (
+                <PieChart>
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Pie
+                    data={
+                      pieTotal === 0
+                        ? [{ [xKey]: "No data", [yKey]: 1 }]
+                        : data
+                    }
+                    dataKey={yKey}
+                    nameKey={xKey}
+                    innerRadius={height / 5}
+                    outerRadius={height / 3}
+                    paddingAngle={2}
+                  >
+                    {data.map((item, index) => {
+                      const name = String(item[xKey] ?? "").toLowerCase();
+
+                      return (
+                        <Cell
+                          key={index}
+                          fill={
+                            STATUS_PIE_COLORS[name] ??
+                            pieColors[index % pieColors.length]
+                          }
+                        />
+                      );
+                    })}
+                  </Pie>
+                </PieChart>
+              )}
+            </ResponsiveContainer>
+            {type === "pie" && data.length > 0 && (
+              <div className="pointer-events-none absolute right-0 bottom-2 left-0 z-20 flex justify-center gap-2 text-xs text-muted-foreground">
+                {data.map((item) => {
+                  const name = String(item[xKey] ?? "");
+                  const color = STATUS_PIE_COLORS[name.toLowerCase()] ?? pieColors[0];
+
+                  return (
+                    <div
+                      key={name}
+                      className="flex items-center gap-1.5 whitespace-nowrap"
+                    >
+                      <span
+                        className="inline-block h-3 w-3 rounded-full"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span>{name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {type === "pie" && (
+            <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center pb-2">
+              <span className="text-2xl font-bold text-foreground">
+                {pieTotal}
+              </span>
+              <span className="text-xs text-muted-foreground">Total</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ============================================================
+   3. ActivityLogList — timeline of created/updated/deleted/processed events
+   ============================================================ */
+export interface ActivityLogItem {
+  id: number;
+  event: string;
+  description: string;
+  causerName: string | null;
+  createdAt: string;
+}
+
+export interface ActivityLogListProps {
+  title?: string;
+  logs: ActivityLogItem[];
+  emptyMessage?: string;
+  limit?: number;
+  maxVisible?: number;
+}
+
+const EVENT_CONFIG: Record<
+  string,
+  { icon: typeof Plus; badgeClass: string; label: string }
+> = {
+  created: {
+    icon: Plus,
+    badgeClass:
+      "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40",
+    label: "Created",
+  },
+  updated: {
+    icon: Pencil,
+    badgeClass:
+      "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40",
+    label: "Updated",
+  },
+  deleted: {
+    icon: Trash2,
+    badgeClass:
+      "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border dark:border-rose-800/40",
+    label: "Deleted",
+  },
+  processed: {
+    icon: CheckCircle2,
+    badgeClass:
+      "bg-blue-100 text-blue-800 dark:bg-sky-950/60 dark:text-sky-300 dark:border dark:border-sky-800/40",
+    label: "Processed",
+  },
+};
+
+const getEventConfig = (event: string) =>
+  EVENT_CONFIG[event] ?? {
+    icon: Activity,
+    badgeClass:
+      "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40",
+    label: event,
+  };
+
+const formatRelativeOrDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.round(diffMs / 60000);
+
+  if (diffMins < 1) {
+    return "Just now";
+  }
+
+  if (diffMins < 60) {
+    return `${diffMins}m ago`;
+  }
+
+  const diffHours = Math.round(diffMins / 60);
+
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+export function ActivityLogList({
+  title = "Activity Log",
+  logs,
+  emptyMessage = "No activity yet.",
+  limit,
+  maxVisible = 10,
+}: ActivityLogListProps) {
+  const visibleLogs = limit ? logs.slice(0, limit) : logs;
+  const shouldScroll = visibleLogs.length > maxVisible;
+
+  return (
+    <Card className="gap-4 rounded-3xl py-0 shadow-sm">
+      <CardHeader className="px-6 py-4">
+        <CardTitle className="text-base font-semibold text-foreground">
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-6 pb-6">
+        {visibleLogs.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            {emptyMessage}
+          </p>
+        ) : (
+          <ul
+            className={`space-y-4 ${
+              shouldScroll ? "max-h-96 overflow-y-auto pr-2" : ""
+            }`}
+          >
+            {visibleLogs.map((log) => {
+              const { icon: Icon, badgeClass, label } = getEventConfig(log.event);
+
+              return (
+                <li key={log.id} className="flex items-start gap-3">
+                  <span
+                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${badgeClass}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeClass}`}
+                      >
+                        {label}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatRelativeOrDate(log.createdAt)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-foreground">
+                      {log.description}
+                    </p>
+                    {log.causerName && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        by {log.causerName}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ============================================================
+   4. useReloadCooldown — SPA-adapted reload button cooldown
+   ============================================================ */
+export interface ReloadCooldownReturn {
+  reload: () => void;
+  isReloading: boolean;
+  cooldown: number;
+  canReload: boolean;
+}
+
+export function useReloadCooldown(
+  reloadFn: () => Promise<unknown> | unknown,
+  durationSeconds = 10,
+): ReloadCooldownReturn {
+  const [isReloading, setIsReloading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearCooldownInterval = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  const startCooldown = useCallback(() => {
+    clearCooldownInterval();
+    const endTime = Date.now() + durationSeconds * 1000;
+    setCooldown(durationSeconds);
+
+    intervalRef.current = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+      setCooldown(remaining);
+      if (remaining <= 0) {
+        clearCooldownInterval();
+      }
+    }, 200);
+  }, [durationSeconds, clearCooldownInterval]);
+
+  useEffect(() => {
+    return () => {
+      clearCooldownInterval();
+    };
+  }, [clearCooldownInterval]);
+
+  const canReload = !isReloading && cooldown <= 0;
+
+  const reload = useCallback(() => {
+    if (!canReload) {
+      return;
+    }
+
+    setIsReloading(true);
+    Promise.resolve()
+      .then(reloadFn)
+      .catch(() => undefined)
+      .finally(() => {
+        setIsReloading(false);
+        startCooldown();
+      });
+  }, [canReload, reloadFn, startCooldown]);
+
+  return {
+    reload,
+    isReloading,
+    cooldown,
+    canReload,
+  };
+}

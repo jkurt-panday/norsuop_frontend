@@ -180,7 +180,7 @@ export function StaffActivityLogPage() {
   const meta = query.data?.meta;
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
+    <div className="w-full space-y-6">
       {/* Header Banner */}
       <Card className="rounded-2xl bg-card shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between p-4">

@@ -14,12 +14,8 @@ import {
   Columns3,
   Mail,
   Download,
-  MoreHorizontal,
   ChevronDown,
-  User,
-  Scale,
 } from "lucide-react";
-import { ApiError } from "../../api/client";
 import {
   type Ledger,
   type LedgerFilterParams,
@@ -345,7 +341,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
   ].filter(Boolean) as { key: keyof typeof filterState; label: string }[];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-12">
+    <div className="w-full space-y-6 pb-12">
       {/* Top Header / Action Bar */}
       <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
         <div>
@@ -1210,7 +1206,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
       <LedgerTransactionForm
         ledger={ledger}
         mode={transactionMode}
-        record={editingRecord ?? undefined}
+        initialData={editingRecord ?? undefined}
         defaultStudentId={defaultStudentId}
         defaultStudentName={defaultStudentName}
         open={transactionModalOpen}

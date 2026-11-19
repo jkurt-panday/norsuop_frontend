@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  createCohortLedger,
   createLedgerRecord,
   deleteLedgerRecord,
   getLedgerPdf,
   importLedger,
   sendLedgerEmails,
   updateLedgerRecord,
+  type CohortStoreRequest,
   type Ledger,
   type LedgerTransactionRequest,
 } from "./api";
@@ -50,6 +52,22 @@ export function useUpdateLedgerRecord() {
           queryKey: ["ledger", value.ledger, "balance", value.payload.student_id],
         });
       }
+    },
+  });
+}
+
+export function useCohortStore() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ledger,
+      payload,
+    }: {
+      ledger: Ledger;
+      payload: CohortStoreRequest;
+    }) => createCohortLedger(ledger, payload),
+    onSuccess: (_, value) => {
+      client.invalidateQueries({ queryKey: ["ledger", value.ledger] });
     },
   });
 }

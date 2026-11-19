@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router";
+import { createBrowserRouter } from "react-router";
 import App from "./App";
 import { LoginForm } from "./features/auth/LoginForm";
 import { OpFormPage } from "./features/public/opform/OpFormPage";
@@ -20,12 +20,15 @@ import { AdminDashboardPage } from "./features/admin/AdminDashboardPage";
 import { AdminUsersPage } from "./features/admin/AdminUsersPage";
 import { AdminActivityLogPage } from "./features/admin/AdminActivityLogPage";
 import { MasterDataPage } from "./features/masterdata/MasterDataPage";
+import { BankAccountsPage } from "./features/masterdata/BankAccountsPage";
+import { PaymentOptionsPage } from "./features/masterdata/PaymentOptionsPage";
+import { MembershipsPage } from "./features/masterdata/MembershipsPage";
+import { AuthorizedOfficialsPage } from "./features/masterdata/AuthorizedOfficialsPage";
+import { UacsPage } from "./features/masterdata/UacsPage";
+import { CoursesPage } from "./features/masterdata/CoursesPage";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { LedgerBalancePage } from "./features/ledger/LedgerBalancePage";
 import { PrintSelectPage } from "./features/ledger/PrintSelectPage";
-import { ProfilePage } from "./features/settings/ProfilePage";
-import { SecurityPage } from "./features/settings/SecurityPage";
-import { AppearancePage } from "./features/settings/AppearancePage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { RoleRoute } from "./routes/RoleRoute";
 import { NotFoundPage } from "./routes/NotFoundPage";
@@ -47,15 +50,6 @@ export const router = createBrowserRouter([
         element: <AppShellLayout />,
         children: [
           { path: "/app", element: <App /> },
-
-          // User Settings (all authenticated users)
-          {
-            path: "/settings",
-            element: <Navigate to="/settings/profile" replace />,
-          },
-          { path: "/settings/profile", element: <ProfilePage /> },
-          { path: "/settings/security", element: <SecurityPage /> },
-          { path: "/settings/appearance", element: <AppearancePage /> },
 
           // Staff & Admin Ledgers
           {
@@ -120,29 +114,27 @@ export const router = createBrowserRouter([
               },
               {
                 path: "/staff/bank-accounts",
-                element: <MasterDataPage initialResource="bank-accounts" />,
+                element: <BankAccountsPage />,
               },
               {
                 path: "/staff/payment-options",
-                element: <MasterDataPage initialResource="payment-options" />,
+                element: <PaymentOptionsPage />,
               },
               {
                 path: "/staff/memberships",
-                element: <MasterDataPage initialResource="memberships" />,
+                element: <MembershipsPage />,
               },
               {
                 path: "/staff/authorized-officials",
-                element: (
-                  <MasterDataPage initialResource="authorized-officials" />
-                ),
+                element: <AuthorizedOfficialsPage />,
               },
               {
                 path: "/staff/uacs",
-                element: <MasterDataPage initialResource="uacs" />,
+                element: <UacsPage />,
               },
               {
                 path: "/staff/courses",
-                element: <MasterDataPage initialResource="courses" />,
+                element: <CoursesPage />,
               },
               // TODO move these into feature/assessment folder rather than at public
               {
