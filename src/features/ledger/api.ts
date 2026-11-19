@@ -314,6 +314,28 @@ export function getLedgerPdf(ledger: Ledger, studentId: number) {
     `/api/v1/${ledger}-ledger/pdf?student_id=${encodeURIComponent(studentId)}`,
   );
 }
+export function applyMembership(
+  ledger: Ledger,
+  id: number,
+  membership: "NAPU" | "NORSUFFA",
+) {
+  return api<{ message: string; record_id: number }>(
+    `/api/v1/${ledger}-ledger/${id}/apply-membership`,
+    { method: "POST", body: JSON.stringify({ membership }) },
+  );
+}
+
+export function applyLatinHonor(
+  ledger: Ledger,
+  id: number,
+  latin_honor: "SUMMA" | "MAGNA" | "CUM_LAUDE",
+) {
+  return api<{ message: string; record_id: number }>(
+    `/api/v1/${ledger}-ledger/${id}/apply-honor`,
+    { method: "POST", body: JSON.stringify({ latin_honor }) },
+  );
+}
+
 export function sendLedgerEmails(
   ledger: Ledger,
   payload: {

@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  applyLatinHonor,
+  applyMembership,
   createCohortLedger,
   createLedgerRecord,
   deleteLedgerRecord,
@@ -137,5 +139,41 @@ export function useSendLedgerEmails() {
         note?: string;
       };
     }) => sendLedgerEmails(ledger, payload),
+  });
+}
+
+export function useApplyMembership() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ledger,
+      id,
+      membership,
+    }: {
+      ledger: Ledger;
+      id: number;
+      membership: "NAPU" | "NORSUFFA";
+    }) => applyMembership(ledger, id, membership),
+    onSuccess: (_, value) => {
+      client.invalidateQueries({ queryKey: ["ledger", value.ledger] });
+    },
+  });
+}
+
+export function useApplyLatinHonor() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ledger,
+      id,
+      latin_honor,
+    }: {
+      ledger: Ledger;
+      id: number;
+      latin_honor: "SUMMA" | "MAGNA" | "CUM_LAUDE";
+    }) => applyLatinHonor(ledger, id, latin_honor),
+    onSuccess: (_, value) => {
+      client.invalidateQueries({ queryKey: ["ledger", value.ledger] });
+    },
   });
 }
