@@ -13,13 +13,10 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import type { Assessment, AssessmentFilters } from "./assessmentApi";
-import {
-  getAssessments,
-  getAssessmentCourses,
-  deleteAssessment,
-} from "./assessmentApi";
+import type { AssessmentItem as Assessment, AssessmentFilterParams as AssessmentFilters } from "./api";
+import { getAssessments, getAssessmentCourses, deleteAssessment } from "./api";
 import { AssessmentIndexSkeleton } from "./AssessmentIndexSkeleton";
+import { useAssessments } from "./queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,14 +84,6 @@ const schoolYears = Array.from({ length: 27 }, (_, index) => {
     (new Date().getMonth() >= 5 ? currentYear : currentYear - 1) - index;
   return `${startYear}-${startYear + 1}`;
 });
-
-function useAssessments(filters: AssessmentFilters) {
-  return useQuery({
-    queryKey: ["assessments", filters],
-    queryFn: ({ signal }) => getAssessments(filters, signal),
-    placeholderData: (previous) => previous,
-  });
-}
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-US", {
@@ -227,7 +216,7 @@ export function AssessmentIndex() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
-    const defaults = { email: true, course: true, enrolledUnder: true, semester: true, submitted: true, status: true };
+    const defaults = { email: true, course: true, enrolledUnder: true, schoolYear: true, semester: true, submitted: true, status: true };
     if (typeof window === "undefined") return defaults;
     try { return { ...defaults, ...JSON.parse(window.localStorage.getItem("assessment-visible-columns") ?? "{}") }; } catch { return defaults; }
   });
@@ -435,7 +424,7 @@ export function AssessmentIndex() {
                         <PopoverContent align="end" className="w-64 p-3">
                           <p className="mb-2 text-sm font-semibold">Visible columns</p>
                           <div className="grid gap-1">
-                            {Object.entries({ email: "Email", course: "Course", enrolledUnder: "Enrolled Under", semester: "Semester", submitted: "Submitted", status: "Status" }).map(([column, label]) => (
+                            {Object.entries({ email: "Email", course: "Course", enrolledUnder: "Enrolled Under", schoolYear: "SY Last Attended", semester: "Semester", submitted: "Submitted", status: "Status" }).map(([column, label]) => (
                               <label key={column} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
                                 <Checkbox checked={visibleColumns[column]} onCheckedChange={() => toggleColumn(column)} />
                                 <span>{label}</span>
@@ -477,8 +466,9 @@ export function AssessmentIndex() {
                   <TableHead>Name</TableHead>
                   {visibleColumns.email && <TableHead>Email</TableHead>}
                   {visibleColumns.course && <TableHead>Course</TableHead>}
-                  {visibleColumns.enrolledUnder && <TableHead>Enrolled Under</TableHead>}
-                  {visibleColumns.semester && <TableHead>Semester</TableHead>}
+{visibleColumns.enrolledUnder && <TableHead>Enrolled Under</TableHead>}
+                   {visibleColumns.schoolYear && <TableHead>SY Last Attended</TableHead>}
+                   {visibleColumns.semester && <TableHead>Semester</TableHead>}
                   {visibleColumns.submitted && <TableHead>
                     <button
                       className="inline-flex items-center"
@@ -519,12 +509,13 @@ export function AssessmentIndex() {
                         </Tooltip>
                       </TooltipProvider>
                       </TableCell>}
-                    {visibleColumns.enrolledUnder && <TableCell className="py-2!">
-                      <Badge variant={badgeVariant(assessment.enrolled_under)}>
-                        {assessment.enrolled_under}
-                      </Badge>
-                      </TableCell>}
-                    {visibleColumns.semester && <TableCell className="py-2!">
+{visibleColumns.enrolledUnder && <TableCell className="py-2!">
+                       <Badge variant={badgeVariant(assessment.enrolled_under)}>
+                         {assessment.enrolled_under}
+                       </Badge>
+                       </TableCell>}
+                     {visibleColumns.schoolYear && <TableCell className="py-2!">{assessment.sy_last_attended}</TableCell>}
+                     {visibleColumns.semester && <TableCell className="py-2!">
                       <Badge variant={badgeVariant(assessment.semester)}>
                         {assessment.semester}
                       </Badge>
