@@ -16,7 +16,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    pool: "forks",
+    pool: "threads",
     exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
   },
 });
