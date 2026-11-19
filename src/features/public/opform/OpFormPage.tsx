@@ -13,7 +13,7 @@ import {
   Field,
   FieldError,
   FieldLabel,
-  FieldDescription
+  FieldDescription,
 } from "../../../components/ui/field";
 import { Input } from "../../../components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "../../../components/ui/tabs";
@@ -86,7 +86,9 @@ export function OpFormPage() {
   const [activeTab, setActiveTab] = useState<FormTab>("student");
   const [values, setValues] = useState({ ...initialValues, ...prefill });
   const [documents, setDocuments] = useState<File[]>([]);
-  const [documentProgress, setDocumentProgress] = useState<Record<string, number>>({});
+  const [documentProgress, setDocumentProgress] = useState<
+    Record<string, number>
+  >({});
   const [documentError, setDocumentError] = useState("");
   const [addCollegeOffices, setAddCollegeOffices] = useState<Option[]>([]);
   const [addCollegeOfficeOpen, setAddCollegeOfficeOpen] = useState(false);
@@ -168,7 +170,9 @@ export function OpFormPage() {
     }
     setDocumentError("");
     setDocuments((current) => [...current, ...incoming]);
-    incoming.forEach((file) => setDocumentProgress((current) => ({ ...current, [fileKey(file)]: 100 })));
+    incoming.forEach((file) =>
+      setDocumentProgress((current) => ({ ...current, [fileKey(file)]: 100 })),
+    );
   }
   function fileType(file: File): "pdf" | "image" | "empty" {
     if (file.name.toLowerCase().endsWith(".pdf")) return "pdf";
@@ -203,7 +207,7 @@ export function OpFormPage() {
             onValueChange={(value) => changeTab(value as FormTab)}
             className="public-form-tabs mb-2 w-full rounded-2xl! bg-transparent! p-0!"
           >
-            <TabsList className="flex h-12 w-full items-stretch gap-1 rounded-2xl bg-blue-50 p-1">
+            <TabsList className="flex h-12 w-full items-stretch gap-1 rounded-2xl bg-white p-1">
               <TabsTrigger
                 value="general"
                 className="flex-1 rounded-xl text-base font-semibold data-active:text-blue-700"
@@ -270,7 +274,7 @@ export function OpFormPage() {
                         placeholder="0912 333 4444"
                         maxLength={13}
                         value={values.contact_num.replace(
-                          /^(\\d{0,4})(\\d{0,3})(\\d{0,4}).*/,
+                          /^(\d{0,4})(\d{0,3})(\d{0,4}).*/,
                           (_, a, b, c) => [a, b, c].filter(Boolean).join(" "),
                         )}
                         onChange={(event) =>
@@ -782,6 +786,7 @@ export function OpFormPage() {
                       {documents.map((file) => (
                         <FileUpload.ListItemProgressFill
                           key={fileKey(file)}
+                          className="text-white [&_p]:text-white [&_svg]:text-white [&_hr]:bg-white/40"
                           name={file.name}
                           size={file.size}
                           type={fileType(file)}
@@ -857,4 +862,3 @@ export function OpFormPage() {
     </>
   );
 }
-
