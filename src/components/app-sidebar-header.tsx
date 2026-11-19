@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router";
-import { ChevronRight, Settings } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCurrentUser } from "@/features/auth/queries";
@@ -35,10 +35,6 @@ const routeTitleMap: Record<string, string> = {
   "/graduate-ledger/print-select": "Print Statement",
   "/law-ledger": "Law Ledger",
   "/law-ledger/print-select": "Print Statement",
-  "/settings": "Settings",
-  "/settings/profile": "Profile Settings",
-  "/settings/security": "Security Settings",
-  "/settings/appearance": "Appearance Settings",
 };
 
 export function AppSidebarHeader({
@@ -109,13 +105,6 @@ export function AppSidebarHeader({
           Hello, {userName}!
         </span>
       )}
-      <Link
-        to="/settings/profile"
-        className={`rounded-lg p-2 text-primary-foreground hover:bg-white/10 dark:text-sidebar-foreground dark:hover:bg-sidebar-accent ${userName ? "sm:ml-2" : "ml-auto"}`}
-        title="Settings"
-      >
-        <Settings className="h-4 w-4" />
-      </Link>
       <ThemeToggle className="ml-1" />
     </div>
   );

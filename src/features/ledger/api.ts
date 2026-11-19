@@ -87,6 +87,10 @@ export type LedgerStudent = {
   name: string;
 };
 
+export type LedgerRosterStudent = LedgerStudent & {
+  last_course_id: number | null;
+};
+
 export type LedgerSummary = {
   total_charges: number;
   total_payments: number;
@@ -119,8 +123,52 @@ export type LedgerList = {
 };
 
 export type LedgerImportResult = components["schemas"]["LedgerImportResult"];
-export type LedgerTransactionRequest =
-  components["schemas"]["LedgerTransactionRequest"];
+
+/**
+ * Fields the ledger API accepts that are not (yet) in the generated OpenAPI
+ * schema — see LedgerController::validated().
+ */
+type LedgerEntryExtras = {
+  remarks?: string;
+  status?: string;
+  membership?: string;
+  latin_honor?: string;
+  discount_amount?: number;
+};
+
+type LedgerEntryBase = components["schemas"]["LedgerTransactionRequest"] &
+  LedgerEntryExtras;
+
+export type LedgerBatchItem = Omit<
+  LedgerEntryBase,
+  "student_id" | "course_id" | "academic_term_id" | "transaction_date"
+>;
+
+export type LedgerTransactionRequest = LedgerEntryBase & {
+  /** Batch mode: 1–50 line items sharing the same student / term / date. */
+  items?: LedgerBatchItem[];
+};
+
+export type CohortRow = {
+  student_id: number;
+  units?: number;
+  rate?: number;
+  amount: number;
+  membership?: string | null;
+  discount_amount?: number | null;
+  remarks?: string | null;
+};
+
+export type CohortStoreRequest = {
+  course_id: number;
+  academic_term_id: number;
+  entry_type: "ar" | "payment" | "adjustment";
+  transaction_date: string;
+  particulars: string;
+  reference_number?: string | null;
+  status?: string;
+  cohort_rows: CohortRow[];
+};
 
 export function getLedgerRecords(
   ledger: Ledger,
@@ -184,6 +232,28 @@ export function getLedgerEmailRecipients(
     `/api/v1/${ledger}-ledger/email-recipients`,
     { signal },
   );
+}
+
+export function getLedgerRoster(ledger: Ledger, signal?: AbortSignal) {
+  return api<{ data: LedgerRosterStudent[] }>(
+    `/api/v1/${ledger}-ledger/students/roster`,
+    { signal },
+  );
+}
+
+export function createCohortLedger(
+  ledger: Ledger,
+  payload: CohortStoreRequest,
+) {
+  return api<{
+    message: string;
+    created_count: number;
+    scholarships_applied: number;
+    data: LedgerRecord[];
+  }>(`/api/v1/${ledger}-ledger/cohort-store`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function createLedgerRecord(

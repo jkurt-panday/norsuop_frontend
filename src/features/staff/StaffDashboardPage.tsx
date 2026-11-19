@@ -1,430 +1,312 @@
-import { Link } from "react-router";
-import {
-  FileText,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
-  TrendingUp,
-  RefreshCw,
-  ArrowRight,
-  Activity,
-  Layers,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { useCallback } from "react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ActivityLogList,
+  ChartCard,
+  StatCard,
+  getDayLabel,
+  useReloadCooldown,
+} from "./dashboard-components";
+import type { StaffDashboardData } from "./api";
 import { useStaffDashboard } from "./queries";
 
-const STATUS_BADGE_CLASSES: Record<string, string> = {
-  unprocessed:
-    "bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40",
-  pending:
-    "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40",
-  processed:
-    "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40",
-  paid:
-    "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 dark:border dark:border-blue-800/40",
-  cancelled:
-    "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border dark:border-rose-800/40",
+const statusBadgeClass = (status?: string) => {
+  switch (status) {
+    case "processed":
+      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40";
+    case "cancelled":
+      return "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border dark:border-rose-800/40";
+    case "pending":
+      return "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40";
+    default:
+      return "bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40";
+  }
 };
 
-function formatDate(value?: string | null) {
-  if (!value) return "No activity";
+const formatDate = (value?: string | null) => {
+  if (!value) {
+    return "-";
+  }
+
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
   return date.toLocaleDateString("en-US", {
     month: "short",
-    day: "numeric",
+    day: "2-digit",
     year: "numeric",
   });
-}
-
-function formatRelativeTime(dateString?: string | null): string {
-  if (!dateString) return "";
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (diffSec < 60) return "Just now";
-  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-  return `${Math.floor(diffSec / 86400)}d ago`;
-}
+};
 
 export function StaffDashboardPage() {
   const query = useStaffDashboard();
 
+  const refetch = query.refetch;
+
+  const handleReload = useCallback(() => refetch(), [refetch]);
+
+  const {
+    reload: handleDashboardReload,
+    isReloading: isDashboardReloading,
+    cooldown: reloadCooldown,
+    canReload,
+  } = useReloadCooldown(handleReload);
+
   if (query.isPending) {
     return (
-      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
-        <Skeleton className="h-20 w-full rounded-2xl" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 rounded-2xl" />
-          ))}
+      <div className="w-full space-y-5">
+          <Skeleton className="h-28 w-full rounded-3xl" />
+          <div className="grid gap-5 md:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 rounded-3xl" />
+            ))}
+          </div>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Skeleton className="h-72 rounded-xl" />
+            <Skeleton className="h-72 rounded-xl lg:col-span-2" />
+          </div>
+          <Skeleton className="h-64 rounded-xl" />
         </div>
-        <Skeleton className="h-64 rounded-2xl" />
-      </div>
     );
   }
 
   const d = query.data?.data;
-  const requestsOverTime = d?.requestsOverTime ?? [];
-  const statusBreakdown = d?.statusBreakdown ?? [];
-  const requestsByMembership = d?.requestsByMembership ?? [];
-  const recentRequests = d?.recentRequests ?? [];
-  const recentActivity = d?.recentActivity ?? [];
 
-  const maxDailyCount = Math.max(...requestsOverTime.map((r) => r.count), 1);
-  const totalRequests = d?.totalRequests ?? 0;
+  const {
+    totalRequests = 0,
+    pendingRequests = 0,
+    processedRequests = 0,
+    paidRequests = 0,
+    cancelledRequests = 0,
+    unprocessedRequests = 0,
+    totalRequestsLastDate = null,
+    pendingLastDate = null,
+    processedLastDate = null,
+    paidLastDate = null,
+    cancelledLastDate = null,
+    unprocessedLastDate = null,
+    statusBreakdown = [],
+    requestsOverTime = [],
+    requestsByMembership = [],
+    recentRequests: allRecentRequests = [],
+    recentActivity = [],
+  } = d ?? ({} as Partial<StaffDashboardData>);
+
+  // Only show requests created today — anything before or after today is excluded.
+  const todayStr = new Date().toDateString();
+  const recentRequests = allRecentRequests.filter(
+    (request) =>
+      request.created_at &&
+      new Date(request.created_at).toDateString() === todayStr,
+  );
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
-      {/* Header Banner */}
-      <Card className="rounded-2xl bg-card shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between p-4">
+    <div className="w-full">
+        <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="font-['Poppins'] text-2xl font-bold tracking-tight text-primary sm:text-3xl">
-              Staff Operational Dashboard
-            </CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Real-time monitor of student Order of Payment requests, processing bottlenecks, and daily trends.
+            <div className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+              Dashboard
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Staff dashboard overview for requests and activity.
             </p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => void query.refetch()}
-            disabled={query.isFetching}
-          >
-            <RefreshCw className={`h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`} />
-            <span>{query.isFetching ? "Reloading..." : "Reload"}</span>
-          </Button>
-        </CardHeader>
-      </Card>
-
-      {/* KPI Cards: Total, Unprocessed, Pending, Processed, Paid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {/* Total Requests */}
-        <Card className="rounded-2xl border border-border p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Requests
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <FileText className="h-4 w-4" />
-            </div>
+          <div className="flex flex-wrap items-center gap-4 text-right text-sm text-muted-foreground md:text-base">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleDashboardReload}
+              disabled={!canReload}
+              title={
+                reloadCooldown > 0
+                  ? `Wait ${reloadCooldown}s to reload`
+                  : "Reload dashboard"
+              }
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${
+                  isDashboardReloading ? "animate-spin" : ""
+                }`}
+              />
+              <span>
+                {isDashboardReloading
+                  ? "Reloading..."
+                  : reloadCooldown > 0
+                    ? `Reload (${reloadCooldown}s)`
+                    : "Reload"}
+              </span>
+            </Button>
+            <p>
+              Total Requests:{" "}
+              <span className="font-semibold text-foreground">
+                {totalRequests}
+              </span>
+            </p>
           </div>
-          <div className="mt-2 text-2xl font-bold text-foreground">{d?.totalRequests ?? 0}</div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Latest: {formatDate(d?.totalRequestsLastDate)}
-          </p>
-        </Card>
+        </div>
 
-        {/* Unprocessed */}
-        <Card className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 dark:border-amber-900/40 dark:bg-amber-950/20">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-              Unprocessed
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
-              <AlertCircle className="h-4 w-4" />
-            </div>
+        {/* Stat cards */}
+        <div className="grid gap-5 md:grid-cols-6">
+          <StatCard
+            label="Total Requests"
+            value={totalRequests}
+            bgClass="bg-card border border-border"
+            textClass="text-foreground"
+            subtitle={getDayLabel(totalRequestsLastDate)}
+          />
+          <StatCard
+            label="Pending"
+            value={pendingRequests}
+            bgClass="bg-amber-500/10 border border-amber-500/20"
+            textClass="text-amber-600 dark:text-amber-400"
+            subtitle={getDayLabel(pendingLastDate)}
+          />
+          <StatCard
+            label="Processed"
+            value={processedRequests}
+            bgClass="bg-emerald-500/10 border border-emerald-500/20"
+            textClass="text-emerald-600 dark:text-emerald-400"
+            subtitle={getDayLabel(processedLastDate)}
+          />
+          <StatCard
+            label="Paid"
+            value={paidRequests}
+            bgClass="bg-blue-500/10 border border-blue-500/20"
+            textClass="text-blue-600 dark:text-blue-400"
+            subtitle={getDayLabel(paidLastDate)}
+          />
+          <StatCard
+            label="Cancelled"
+            value={cancelledRequests}
+            bgClass="bg-rose-500/10 border border-rose-500/20"
+            textClass="text-rose-600 dark:text-rose-400"
+            subtitle={getDayLabel(cancelledLastDate)}
+          />
+          <StatCard
+            label="Unprocessed"
+            value={unprocessedRequests}
+            bgClass="bg-slate-500/10 border border-slate-500/20"
+            textClass="text-slate-600 dark:text-slate-300"
+            subtitle={getDayLabel(unprocessedLastDate)}
+          />
+        </div>
+
+        {/* Charts */}
+        <div className="mt-2 grid gap-4 lg:grid-cols-3">
+          <ChartCard
+            title="OP Requests by Status"
+            description="Current breakdown of all requests"
+            type="pie"
+            data={statusBreakdown}
+            xKey="name"
+            yKey="count"
+            pieColors={["#94a3b8", "#f59e0b", "#3b82f6", "#ef4444", "#22c55e"]}
+          />
+          <div className="lg:col-span-2">
+            <ChartCard
+              title="OP Requests Over the Last 30 Days"
+              description="Daily request volume, rolling window"
+              type="line"
+              data={requestsOverTime}
+              xKey="date"
+              yKey="count"
+            />
           </div>
-          <div className="mt-2 text-2xl font-bold text-foreground">{d?.unprocessedRequests ?? 0}</div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Awaiting initial review
-          </p>
-        </Card>
+        </div>
 
-        {/* Pending */}
-        <Card className="rounded-2xl border border-border p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Pending
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
-              <Clock className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold text-foreground">{d?.pendingRequests ?? 0}</div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Awaiting cashier settlement
-          </p>
-        </Card>
+        <div className="mt-4">
+          <ChartCard
+            title="OP Requests by Membership"
+            description="Total requests submitted per membership type"
+            type="bar"
+            data={requestsByMembership}
+            xKey="name"
+            yKey="count"
+            height={240}
+          />
+        </div>
 
-        {/* Processed */}
-        <Card className="rounded-2xl border border-border p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Processed
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-              <CheckCircle2 className="h-4 w-4" />
+        {/* Recent Requests + Activity Log */}
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <section className="rounded-3xl border border-border bg-card shadow-sm">
+            <div className="flex items-center gap-2 border-b border-border px-6 py-4">
+              <h2 className="text-base font-semibold text-foreground">
+                Recent Requests
+              </h2>
             </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold text-foreground">{d?.processedRequests ?? 0}</div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Ready for payment collection
-          </p>
-        </Card>
-
-        {/* Paid */}
-        <Card className="rounded-2xl border border-border p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Paid
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-              <CheckCircle2 className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold text-foreground">{d?.paidRequests ?? 0}</div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Completed transactions
-          </p>
-        </Card>
-      </div>
-
-      {/* 30-Day Activity Sparkline */}
-      {requestsOverTime.length > 0 && (
-        <Card className="border border-border p-5">
-          <CardHeader className="p-0 pb-4">
-            <CardTitle className="text-base font-semibold text-foreground">
-              Order of Payment Request Volume (Last 30 Days)
-            </CardTitle>
-            <CardDescription>Daily intake across all offices and departments</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="flex h-36 items-end gap-1.5 pt-4">
-              {requestsOverTime.map((item, idx) => {
-                const heightPct = Math.round((item.count / maxDailyCount) * 100);
-                return (
-                  <div
-                    key={idx}
-                    className="group relative flex-1 flex flex-col items-center h-full justify-end"
-                  >
-                    <div
-                      style={{ height: `${Math.max(heightPct, 4)}%` }}
-                      className="w-full rounded-t bg-primary/80 transition-all hover:bg-primary"
-                    />
-                    <div className="absolute -top-7 hidden rounded bg-slate-900 px-1.5 py-0.5 text-[10px] text-white shadow group-hover:block z-10 whitespace-nowrap">
-                      {item.date}: {item.count}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-              <span>{requestsOverTime[0]?.date}</span>
-              <span>{requestsOverTime[requestsOverTime.length - 1]?.date}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Status Breakdown & Memberships */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Status Breakdown */}
-        <Card className="border border-border p-5">
-          <CardHeader className="p-0 pb-4">
-            <CardTitle className="text-base font-semibold text-foreground">
-              Status Distribution
-            </CardTitle>
-            <CardDescription>Breakdown by processing state</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-0">
-            {statusBreakdown.map((item, index) => {
-              const pct = totalRequests > 0 ? Math.round((item.count / totalRequests) * 100) : 0;
-              return (
-                <div key={index} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-foreground">{item.name}</span>
-                    <span className="font-mono text-muted-foreground">
-                      {item.count} ({pct}%)
-                    </span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
+            <div className="p-4">
+              {recentRequests.length > 0 ? (
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="w-full table-fixed text-left text-sm text-foreground">
+                    <thead className="sticky top-0 z-10 border-b border-border bg-card">
+                      <tr>
+                        <th className="w-[25%] pb-3 font-medium text-muted-foreground">
+                          Reference
+                        </th>
+                        <th className="w-[25%] pb-3 font-medium text-muted-foreground">
+                          Name
+                        </th>
+                        <th className="w-[20%] pb-3 font-medium text-muted-foreground">
+                          Status
+                        </th>
+                        <th className="w-[20%] pb-3 font-medium text-muted-foreground">
+                          Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {recentRequests.map((request) => (
+                        <tr key={request.id}>
+                          <td className="py-3">
+                            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium whitespace-nowrap text-slate-700 dark:border dark:border-slate-700/40 dark:bg-slate-800/60 dark:text-slate-300">
+                              {request.reference_number}
+                            </span>
+                          </td>
+                          <td className="py-3 text-foreground">
+                            {request.full_name}
+                          </td>
+                          <td className="py-3">
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(
+                                request.status,
+                              )}`}
+                            >
+                              {request.status
+                                ? request.status.charAt(0).toUpperCase() +
+                                  request.status.slice(1)
+                                : "Unprocessed"}
+                            </span>
+                          </td>
+                          <td className="py-3 text-muted-foreground">
+                            {formatDate(request.created_at)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* Requests by Membership */}
-        <Card className="border border-border p-5">
-          <CardHeader className="p-0 pb-4">
-            <CardTitle className="text-base font-semibold text-foreground">
-              Requests by Membership Category
-            </CardTitle>
-            <CardDescription>Distribution across student and client categories</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-0">
-            {requestsByMembership.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No membership data available.</p>
-            ) : (
-              requestsByMembership.map((item, index) => {
-                const pct = totalRequests > 0 ? Math.round((item.count / totalRequests) * 100) : 0;
-                return (
-                  <div key={index} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <Layers className="h-4 w-4 text-primary" />
-                        <span className="font-medium text-foreground">{item.name}</span>
-                      </div>
-                      <span className="font-mono text-muted-foreground">
-                        {item.count} ({pct}%)
-                      </span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-sky-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Requests & Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Requests Table */}
-        <Card className="border border-border">
-          <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
-            <div>
-              <CardTitle className="text-base font-semibold text-foreground">
-                Recent OP Requests
-              </CardTitle>
-              <CardDescription>Latest submissions requiring attention</CardDescription>
-            </div>
-            <Link
-              to="/staff/requests"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-            >
-              View All <ArrowRight className="h-3 w-3" />
-            </Link>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ref No.</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentRequests.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                      No recent requests found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  recentRequests.map((req) => (
-                    <TableRow key={req.id}>
-                      <TableCell className="font-mono text-xs font-semibold text-primary">
-                        {req.reference_number}
-                      </TableCell>
-                      <TableCell className="text-sm font-medium text-foreground">
-                        {req.full_name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            STATUS_BADGE_CLASSES[req.status] ??
-                            STATUS_BADGE_CLASSES.unprocessed
-                          }
-                        >
-                          {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link
-                          to={`/staff/requests/${req.id}`}
-                          className="text-xs font-medium text-primary hover:underline"
-                        >
-                          Process
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        {/* Recent Staff Activity Trail */}
-        <Card className="border border-border">
-          <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
-            <div>
-              <CardTitle className="text-base font-semibold text-foreground">
-                Staff Audit Activity
-              </CardTitle>
-              <CardDescription>Audit actions recorded across the portal</CardDescription>
-            </div>
-            <Link
-              to="/staff/activity-log"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-            >
-              Full Log <ArrowRight className="h-3 w-3" />
-            </Link>
-          </CardHeader>
-          <CardContent className="p-4 pt-2">
-            <div className="divide-y divide-border">
-              {recentActivity.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  No recent staff activity logged yet.
-                </p>
               ) : (
-                recentActivity.map((log) => (
-                  <div key={log.id} className="flex items-start gap-3 py-3">
-                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <Activity className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground leading-snug">
-                        {log.description}
-                      </p>
-                      <span className="text-[11px] text-muted-foreground">
-                        {formatRelativeTime(log.createdAt)}
-                      </span>
-                    </div>
-                  </div>
-                ))
+                <p className="text-center text-sm text-muted-foreground">
+                  No recent requests
+                </p>
               )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </section>
+
+          <ActivityLogList
+            title="Recent OP Activity"
+            logs={recentActivity}
+            limit={20}
+            maxVisible={10}
+          />
+        </div>
     </div>
   );
 }

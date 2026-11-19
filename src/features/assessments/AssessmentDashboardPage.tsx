@@ -9,7 +9,7 @@ export function AssessmentDashboardPage() {
 
   if (query.isPending) {
     return (
-      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
+      <div className="w-full space-y-6">
         <Skeleton className="h-20 w-full rounded-2xl" />
         <div className="grid gap-6 md:grid-cols-3">
           <Skeleton className="h-32 rounded-xl" />
@@ -38,7 +38,7 @@ export function AssessmentDashboardPage() {
   const maxDailyTotal = Math.max(...dailyRequests.map((d) => d.total), 1);
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
+    <div className="w-full space-y-6">
       {/* Header Banner */}
       <Card className="rounded-2xl bg-card shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between p-4">
