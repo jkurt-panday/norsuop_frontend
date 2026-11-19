@@ -48,7 +48,6 @@ export function useLedgerStudents(
     queryKey: ["ledger", ledger, "students", query.trim()],
     queryFn: ({ signal }) => searchLedgerStudents(ledger, query.trim(), 50, signal),
     enabled: enabled && query.trim().length > 0,
-    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -61,20 +60,6 @@ export function useSearchLedgerStudents(
     queryKey: ["ledger", ledger, "students-search", query.trim()],
     queryFn: ({ signal }) => searchLedgerStudents(ledger, query.trim(), 50, signal),
     enabled: enabled && query.trim().length > 0,
-    staleTime: 1000 * 60 * 2,
-  });
-}
-
-export function useLedgerStudents(
-  ledger: Ledger,
-  query = "",
-  enabled = true,
-) {
-  return useQuery({
-    queryKey: ["ledger", ledger, "students-search", query.trim()],
-    queryFn: ({ signal }) => searchLedgerStudents(ledger, query.trim(), 50, signal),
-    enabled,
-    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -83,7 +68,6 @@ export function useLedgerRoster(ledger: Ledger, enabled = true) {
     queryKey: ["ledger", ledger, "students-roster"],
     queryFn: ({ signal }) => getLedgerRoster(ledger, signal),
     enabled,
-    staleTime: 1000 * 60 * 10,
   });
 }
 
