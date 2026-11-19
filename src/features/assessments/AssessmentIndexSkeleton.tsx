@@ -15,7 +15,10 @@ export function AssessmentIndexSkeleton() {
     >
       <Card className="rounded-2xl bg-card px-2! py-2! shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between p-3">
-          <Skeleton className="h-10 w-64 rounded-lg" />
+          <div>
+            <Skeleton className="h-10 w-64 rounded-lg" />
+            <Skeleton className="mt-2 h-4 w-72 max-w-full rounded-lg" />
+          </div>
         </CardHeader>
       </Card>
 

@@ -1,5 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   AreaChartCard,
   BarChartCard,
@@ -50,9 +55,14 @@ export function AssessmentDashboard() {
       <title>Dashboard Assessment</title>
       <Card className="rounded-2xl border border-border bg-card px-2! py-2! text-card-foreground shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between p-3">
-          <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
-            Assessments Dashboard
-          </CardTitle>
+          <div>
+            <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+              Assessments Dashboard
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Monitor assessment requests and trends across courses, semesters, and enrollment types.
+            </CardDescription>
+          </div>
         </CardHeader>
       </Card>
       <AreaChartCard

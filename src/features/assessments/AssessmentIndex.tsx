@@ -20,6 +20,7 @@ import { useAssessments } from "./queries";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -336,9 +337,14 @@ export function AssessmentIndex() {
       <title>Index Assessment</title>
       <Card className="rounded-2xl bg-card px-2! py-2! shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between p-3">
-          <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
-            Assessments
-          </CardTitle>
+           <div>
+             <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+               Assessments
+             </CardTitle>
+             <CardDescription className="mt-1">
+               Review, filter, and manage submitted assessment requests.
+             </CardDescription>
+           </div>
           {/* <Button
             type="button"
             variant="outline"

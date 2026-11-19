@@ -135,6 +135,7 @@ export type EmailAssessmentSoaPayload = {
   subject?: string;
   recipient_name?: string;
   note?: string;
+  ledger_student?: string;
 };
 
 export function emailAssessmentSoa(
@@ -151,9 +152,9 @@ export function getAssessmentPrintSoaUrl(
   id: number | string,
   ledgerStudent?: string,
 ) {
-  const baseUrl = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
   const query = ledgerStudent
     ? `?ledger_student=${encodeURIComponent(ledgerStudent)}`
     : "";
-  return `${baseUrl}/api/v1/assessments/${id}/print-soa${query}`;
+  // Return an API path; apiUrl() adds VITE_API_URL exactly once.
+  return `/api/v1/assessments/${id}/print-soa${query}`;
 }
