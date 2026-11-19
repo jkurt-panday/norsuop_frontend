@@ -4,6 +4,9 @@ import { LoginForm } from "./features/auth/LoginForm";
 import { OpFormPage } from "./features/public/opform/OpFormPage";
 import { OpResultPage } from "./features/public/opform/OpResultPage";
 import { AssessmentPage } from "./features/public/assessment/AssessmentPage";
+import { AssessmentDashboard } from "./features/public/assessment/AssessmentDashboard";
+import { AssessmentIndex } from "./features/public/assessment/AssessmentIndex";
+import { AssessmentEdit } from "./features/public/assessment/AssessmentEdit";
 import { AssessmentResultPage } from "./features/public/assessment/AssessmentResultPage";
 import { AssessmentSuccessPage } from "./features/public/assessment/AssessmentSuccessPage";
 import { StaffRequestsPage } from "./features/staff/StaffRequestsPage";
@@ -127,24 +130,10 @@ export const router = createBrowserRouter([
               },
               {
                 path: "/staff/assessments/dashboard",
-                element: (
-                  <PlaceholderPage
-                    title="Assessments Dashboard"
-                    description="Analytics and summary overview for student assessments."
-                    backHref="/staff/requests"
-                  />
-                ),
+                element: <AssessmentDashboard />,
               },
-              {
-                path: "/staff/assessments",
-                element: (
-                  <PlaceholderPage
-                    title="Staff Assessments"
-                    description="Management interface for assessment records and submissions."
-                    backHref="/staff/requests"
-                  />
-                ),
-              },
+              { path: "/staff/assessments", element: <AssessmentIndex /> },
+              { path: "/staff/assessments/:id/edit", element: <AssessmentEdit /> },
               {
                 path: "/staff/activity-log",
                 element: (

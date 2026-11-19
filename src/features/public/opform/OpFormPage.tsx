@@ -45,6 +45,7 @@ import {
 import { useSubmitOpForm } from "./mutations";
 import { useOpOptions } from "./queries";
 import type { Option } from "./api";
+import { OpFormSkeleton } from "./OpFormSkeleton";
 
 const reqTypes = ["New Request", "Re-issue Request"] as const;
 type FormTab = "general" | "student";
@@ -90,12 +91,7 @@ export function OpFormPage() {
   const [addCollegeOffices, setAddCollegeOffices] = useState<Option[]>([]);
   const [addCollegeOfficeOpen, setAddCollegeOfficeOpen] = useState(false);
 
-  if (options.isPending)
-    return (
-      <main className="public-form-loading">
-        Loading Order of Payment options…
-      </main>
-    );
+  if (options.isPending) return <OpFormSkeleton />;
   if (options.isError)
     return (
       <main className="public-form-loading">
@@ -224,7 +220,7 @@ export function OpFormPage() {
           </Tabs>
           <Card className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl">
             <form noValidate onSubmit={submit}>
-              <CardHeader className="border-b border-slate-100 bg-white pb-6">
+              <CardHeader className="border-b border-slate-100 bg-white pb-6 mb-4!">
                 <CardTitle className="flex items-center gap-3 text-xl font-semibold text-blue-900">
                   <Mail className="h-5 w-5 text-blue-600" />
                   Contact Information
@@ -810,7 +806,7 @@ export function OpFormPage() {
                     : "Submission failed."}
                 </p>
               )}
-              <CardFooter className="flex flex-wrap justify-end gap-2 px-8 py-6 pt-2">
+              <CardFooter className="flex flex-wrap justify-end gap-2 px-8 py-6 pt-2 mt-6!">
                 <Button
                   variant="outline"
                   type="button"
