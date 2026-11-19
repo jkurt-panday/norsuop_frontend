@@ -19,11 +19,13 @@ export type OpResult = {
     membership?: { member_code?: string; member_desc?: string };
     payment_detail_option?: { payment_desc?: string };
     course?: { id?: number; course_code?: string; course_desc?: string };
-    supporting_documents?: Array<{
-      original_filename: string;
-      mime_type: string;
-      file_size?: number;
-    }>;
+     supporting_documents?: Array<{
+       id?: number;
+       original_filename: string;
+       mime_type: string;
+       file_size?: number;
+       uploaded_at?: string;
+     }>;
     created_at?: string;
   };
 };

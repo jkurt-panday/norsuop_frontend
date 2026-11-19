@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router";
 import App from "./App";
 import { LoginForm } from "./features/auth/LoginForm";
 import { OpFormPage } from "./features/public/opform/OpFormPage";
-import { OpResultPage } from "./features/public/opform/OpResultPage";
+import { OpFormSuccessPage } from "./features/public/opform/OpFormSuccessPage";
 import { AssessmentPage } from "./features/public/assessmentform/AssessmentPage";
 import { AssessmentDashboard } from "./features/assessments/AssessmentDashboard";
 import { AssessmentIndex } from "./features/assessments/AssessmentIndex";
@@ -35,8 +35,8 @@ export const router = createBrowserRouter([
   { path: "/", element: <App /> },
   { path: "/login", element: <LoginForm /> },
   { path: "/opform", element: <OpFormPage /> },
-  { path: "/opform/result", element: <OpResultPage /> },
-  { path: "/public/success/:reference", element: <OpResultPage /> },
+  { path: "/opform/result", element: <OpFormSuccessPage /> },
+  { path: "/public/success/:reference", element: <OpFormSuccessPage /> },
   { path: "/assessment", element: <AssessmentPage /> },
   { path: "/assessment/result", element: <AssessmentResultPage /> },
   { path: "/assessment/success", element: <AssessmentSuccessPage /> },
@@ -144,7 +144,6 @@ export const router = createBrowserRouter([
                 path: "/staff/courses",
                 element: <MasterDataPage initialResource="courses" />,
               },
-              // TODO move these into feature/assessment folder rather than at public
               {
                 path: "/staff/assessments/dashboard",
                 element: <AssessmentDashboard />,
