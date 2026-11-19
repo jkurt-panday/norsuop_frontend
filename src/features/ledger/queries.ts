@@ -65,19 +65,6 @@ export function useSearchLedgerStudents(
   });
 }
 
-export function useLedgerStudents(
-  ledger: Ledger,
-  query = "",
-  enabled = true,
-) {
-  return useQuery({
-    queryKey: ["ledger", ledger, "students-search", query.trim()],
-    queryFn: ({ signal }) => searchLedgerStudents(ledger, query.trim(), 50, signal),
-    enabled,
-    staleTime: 1000 * 60 * 2,
-  });
-}
-
 export function useLedgerRoster(ledger: Ledger, enabled = true) {
   return useQuery({
     queryKey: ["ledger", ledger, "students-roster"],
