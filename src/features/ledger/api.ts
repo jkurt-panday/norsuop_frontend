@@ -314,7 +314,6 @@ export function getLedgerPdf(ledger: Ledger, studentId: number) {
     `/api/v1/${ledger}-ledger/pdf?student_id=${encodeURIComponent(studentId)}`,
   );
 }
-
 export function sendLedgerEmails(
   ledger: Ledger,
   payload: {

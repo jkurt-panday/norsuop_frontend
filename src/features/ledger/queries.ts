@@ -39,6 +39,19 @@ export function useLedgerBalance(
   });
 }
 
+export function useLedgerStudents(
+  ledger: Ledger,
+  query: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["ledger", ledger, "students", query.trim()],
+    queryFn: ({ signal }) => searchLedgerStudents(ledger, query.trim(), 50, signal),
+    enabled: enabled && query.trim().length > 0,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
 export function useSearchLedgerStudents(
   ledger: Ledger,
   query: string,

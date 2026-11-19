@@ -110,14 +110,16 @@ export function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
-      <div>
-        <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
-          Admin Dashboard
-        </CardTitle>
-        <p className="mt-1 text-sm text-muted-foreground">
-          System overview and user statistics.
-        </p>
+      {/* Header Banner */}
+      <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+        <div>
+          <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+            Admin Dashboard
+          </CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            System overview and user statistics.
+          </p>
+        </div>
       </div>
 
       {/* KPI Stats Cards */}
@@ -180,7 +182,7 @@ export function AdminDashboardPage() {
           <CardTitle className="text-lg font-semibold text-foreground">
             Recent System Activity
           </CardTitle>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm">
             <Link to="/admin/activity-log" className="gap-1.5 text-xs font-medium">
               View all activity
               <ArrowRight className="h-3.5 w-3.5" />

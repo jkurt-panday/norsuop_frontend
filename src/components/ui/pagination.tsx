@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "cn"
+
 import { Button } from "./button"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
@@ -22,7 +23,7 @@ function PaginationContent({
   return (
     <ul
       data-slot="pagination-content"
-      className={cn("flex flex-wrap items-center gap-1", className)}
+      className={cn("flex items-center gap-0.5", className)}
       {...props}
     />
   )
@@ -35,44 +36,41 @@ function PaginationItem({ ...props }: React.ComponentProps<"li">) {
 type PaginationLinkProps = {
   isActive?: boolean
   disabled?: boolean
-  size?: "default" | "sm" | "lg" | "icon"
-  href?: string
-} & React.ButtonHTMLAttributes<HTMLButtonElement>
+} & Pick<React.ComponentProps<typeof Button>, "size"> &
+  React.ComponentProps<"a">
 
 function PaginationLink({
   className,
   isActive,
-  disabled,
+  disabled = false,
+  onClick,
   size = "icon",
-  href,
-  children,
   ...props
 }: PaginationLinkProps) {
-  if (href) {
-    return (
-      <Button
-        variant={isActive ? "outline" : "ghost"}
-        size={size}
-        className={cn(isActive && "font-semibold pointer-events-none", className)}
-        render={<a href={href} aria-current={isActive ? "page" : undefined} />}
-      >
-        {children}
-      </Button>
-    )
-  }
-
   return (
     <Button
-      type="button"
       variant={isActive ? "outline" : "ghost"}
       size={size}
-      disabled={disabled}
-      aria-current={isActive ? "page" : undefined}
-      className={cn(isActive && "font-semibold pointer-events-none border-primary/40 bg-accent", className)}
-      {...props}
-    >
-      {children}
-    </Button>
+      className={cn(disabled && "pointer-events-none opacity-50", className)}
+      nativeButton={false}
+      render={
+        <a
+          aria-current={isActive ? "page" : undefined}
+          aria-disabled={disabled || undefined}
+          data-slot="pagination-link"
+          data-active={isActive}
+          tabIndex={disabled ? -1 : props.tabIndex}
+          onClick={(event) => {
+            if (disabled) {
+              event.preventDefault();
+              return;
+            }
+            onClick?.(event);
+          }}
+          {...props}
+        />
+      }
+    />
   )
 }
 
@@ -80,16 +78,16 @@ function PaginationPrevious({
   className,
   text = "Previous",
   ...props
-}: PaginationLinkProps & { text?: string }) {
+}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
   return (
     <PaginationLink
       aria-label="Go to previous page"
       size="default"
-      className={cn("gap-1 pl-2.5", className)}
+      className={cn("pl-1.5!", className)}
       {...props}
     >
-      <ChevronLeftIcon className="size-4" />
-      <span className="hidden sm:inline">{text}</span>
+      <ChevronLeftIcon data-icon="inline-start" />
+      <span className="hidden sm:block">{text}</span>
     </PaginationLink>
   )
 }
@@ -98,16 +96,16 @@ function PaginationNext({
   className,
   text = "Next",
   ...props
-}: PaginationLinkProps & { text?: string }) {
+}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
   return (
     <PaginationLink
       aria-label="Go to next page"
       size="default"
-      className={cn("gap-1 pr-2.5", className)}
+      className={cn("pr-1.5!", className)}
       {...props}
     >
-      <span className="hidden sm:inline">{text}</span>
-      <ChevronRightIcon className="size-4" />
+      <span className="hidden sm:block">{text}</span>
+      <ChevronRightIcon data-icon="inline-end" />
     </PaginationLink>
   )
 }
@@ -121,12 +119,13 @@ function PaginationEllipsis({
       aria-hidden
       data-slot="pagination-ellipsis"
       className={cn(
-        "flex size-8 items-center justify-center text-muted-foreground",
+        "flex size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
     >
-      <MoreHorizontalIcon className="size-4" />
+      <MoreHorizontalIcon
+      />
       <span className="sr-only">More pages</span>
     </span>
   )

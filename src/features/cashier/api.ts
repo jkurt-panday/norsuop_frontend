@@ -145,7 +145,6 @@ export function getCashierRequest(id: number, signal?: AbortSignal) {
     signal,
   });
 }
-
 export function updateCashierPayment(
   id: number,
   payload: { status: string; or_no?: string; or_date?: string },

@@ -3,9 +3,12 @@ import App from "./App";
 import { LoginForm } from "./features/auth/LoginForm";
 import { OpFormPage } from "./features/public/opform/OpFormPage";
 import { OpResultPage } from "./features/public/opform/OpResultPage";
-import { AssessmentPage } from "./features/public/assessment/AssessmentPage";
-import { AssessmentResultPage } from "./features/public/assessment/AssessmentResultPage";
-import { AssessmentSuccessPage } from "./features/public/assessment/AssessmentSuccessPage";
+import { AssessmentPage } from "./features/public/assessmentform/AssessmentPage";
+import { AssessmentDashboard } from "./features/assessments/AssessmentDashboard";
+import { AssessmentIndex } from "./features/assessments/AssessmentIndex";
+import { AssessmentEdit } from "./features/assessments/AssessmentEdit";
+import { AssessmentResultPage } from "./features/public/assessmentform/AssessmentResultPage";
+import { AssessmentSuccessPage } from "./features/public/assessmentform/AssessmentSuccessPage";
 import { StaffDashboardPage } from "./features/staff/StaffDashboardPage";
 import { StaffRequestsPage } from "./features/staff/StaffRequestsPage";
 import { StaffRequestDetailPage } from "./features/staff/StaffRequestDetailPage";
@@ -90,7 +93,10 @@ export const router = createBrowserRouter([
               { path: "/admin/dashboard", element: <AdminDashboardPage /> },
               { path: "/admin/users", element: <AdminUsersPage /> },
               { path: "/admin/master-data", element: <MasterDataPage /> },
-              { path: "/admin/activity-log", element: <AdminActivityLogPage /> },
+              {
+                path: "/admin/activity-log",
+                element: <AdminActivityLogPage />,
+              },
             ],
           },
 
@@ -99,7 +105,10 @@ export const router = createBrowserRouter([
             element: <RoleRoute roles={["staff", "admin"]} />,
             children: [
               { path: "/staff", element: <StaffDashboardPage /> },
-              { path: "/staff/staffdashboard", element: <StaffDashboardPage /> },
+              {
+                path: "/staff/staffdashboard",
+                element: <StaffDashboardPage />,
+              },
               { path: "/staff/requests", element: <StaffRequestsPage /> },
               {
                 path: "/staff/requests/:id",
@@ -129,13 +138,15 @@ export const router = createBrowserRouter([
                 path: "/staff/courses",
                 element: <CoursesPage />,
               },
+              // TODO move these into feature/assessment folder rather than at public
               {
                 path: "/staff/assessments/dashboard",
-                element: <AssessmentDashboardPage />,
+                element: <AssessmentDashboard />,
               },
+              { path: "/staff/assessments", element: <AssessmentIndex /> },
               {
-                path: "/staff/assessments",
-                element: <AssessmentIndexPage />,
+                path: "/staff/assessments/:id/edit",
+                element: <AssessmentEdit />,
               },
               {
                 path: "/staff/activity-log",

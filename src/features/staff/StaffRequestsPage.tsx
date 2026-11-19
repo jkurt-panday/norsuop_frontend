@@ -326,7 +326,7 @@ export function StaffRequestsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[180px]">
+                  <TableHead className="w-45">
                     <button
                       type="button"
                       onClick={() => handleSort("reference_number")}
@@ -416,7 +416,6 @@ export function StaffRequestsPage() {
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          asChild
                           title="View Request Details"
                           className="text-muted-foreground hover:text-foreground"
                         >

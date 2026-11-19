@@ -7,7 +7,6 @@ import {
   Calendar,
   CreditCard,
   Inbox,
-  CheckCircle2,
   Receipt,
   Eye,
 } from "lucide-react";
@@ -15,7 +14,7 @@ import { ApiError } from "../../api/client";
 import {
   getCashierAmount,
   getCashierEmail,
-  getCashierOrDate,
+  // getCashierOrDate,
   getCashierOrNo,
   getCashierPayorName,
   getCashierReferenceNumber,
@@ -287,7 +286,7 @@ export function CashierRequestsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[180px]">Reference #</TableHead>
+                  <TableHead className="w-45">Reference #</TableHead>
                   <TableHead>Payor</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
@@ -347,7 +346,6 @@ export function CashierRequestsPage() {
                         <Button
                           variant={status === "paid" ? "ghost" : "default"}
                           size="sm"
-                          asChild
                           className="h-7 text-xs gap-1"
                         >
                           <Link to={`/cashier/requests/${request.id}`}>

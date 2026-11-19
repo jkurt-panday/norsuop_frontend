@@ -86,7 +86,6 @@ export type StaffRequestList = {
   };
   links: { next: string | null; prev: string | null };
 };
-
 export type StaffFilters = {
   page?: number;
   per_page?: number;

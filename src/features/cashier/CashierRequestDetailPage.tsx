@@ -158,7 +158,7 @@ export function CashierRequestDetailPage() {
             </p>
           </div>
           <div>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm">
               <Link to="/cashier/requests">Back to payment requests</Link>
             </Button>
           </div>
@@ -180,7 +180,7 @@ export function CashierRequestDetailPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon-xs" asChild>
+          <Button variant="ghost" size="icon-xs">
             <Link to="/cashier/requests" aria-label="Back to cashier requests">
               <ArrowLeft className="size-4" />
             </Link>
