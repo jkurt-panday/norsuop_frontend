@@ -8,6 +8,21 @@ export type AssessmentCourse = {
   course_desc: string;
 };
 
+export type AssessmentLedgerCandidate = {
+  key: string;
+  name: string;
+  studentId: string | null;
+  pdfQueryKey: "student_id" | "student";
+  pdfQueryValue: string;
+};
+
+export type AssessmentLedgerStatement = {
+  source: "graduate" | "law" | "unsupported";
+  matchStatus: "matched" | "manual" | "missing" | "ambiguous" | "unsupported";
+  selectedStudent: AssessmentLedgerCandidate | null;
+  candidates: AssessmentLedgerCandidate[];
+};
+
 export type AssessmentItem = {
   id: number;
   reference_number: string;
@@ -24,6 +39,7 @@ export type AssessmentItem = {
   status: AssessmentStatus | null;
   created_at: string;
   course: AssessmentCourse;
+  ledgerStatement?: AssessmentLedgerStatement;
 };
 
 export type AssessmentsResponse = {

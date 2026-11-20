@@ -132,6 +132,8 @@ function toDateInput(value: Date | undefined) {
   return value ? format(value, "yyyy-MM-dd") : "";
 }
 
+// TODO make email work through the SPA
+
 function DateFilter({
   label,
   value,
