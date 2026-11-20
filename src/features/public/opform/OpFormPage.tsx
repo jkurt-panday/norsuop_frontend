@@ -84,7 +84,11 @@ export function OpFormPage() {
   const options = useOpOptions();
   const mutation = useSubmitOpForm();
   const [activeTab, setActiveTab] = useState<FormTab>("student");
-  const [values, setValues] = useState({ ...initialValues, ...prefill });
+  const [values, setValues] = useState<Record<string, string>>({
+    ...initialValues,
+    ...prefill,
+    position_or_designation: "Student",
+  });
   const [documents, setDocuments] = useState<File[]>([]);
   const [documentProgress, setDocumentProgress] = useState<
     Record<string, number>
