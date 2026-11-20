@@ -547,14 +547,14 @@ export function AssessmentIndex() {
                         <Tooltip>
                           <TooltipTrigger className="cursor-default">
                             <span className="inline-flex cursor-default rounded-full bg-blue-400 px-3 py-1 text-xs font-semibold text-white">
-                              {assessment.course.course_code}
+                               {assessment.course?.course_code ?? "Unassigned"}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent
                             side="inline-start"
                             className="bg-blue-500 text-white"
                           >
-                            {assessment.course.course_desc}
+                             {assessment.course?.course_desc ?? "No course assigned"}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
