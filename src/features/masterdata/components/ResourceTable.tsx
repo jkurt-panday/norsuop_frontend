@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { MasterList } from "../api";
+import { useCurrentUser } from "@/features/auth/queries";
 
 export interface ColumnDef<T> {
   header: string;
@@ -123,6 +124,8 @@ export function ResourceTable<T extends { id: number }>({
   const [deleteTarget, setDeleteTarget] = useState<T | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const currentUserQuery = useCurrentUser();
+  const isAdmin = currentUserQuery.data?.data.role === "admin";
 
   // Reload cooldown
   const [cooldown, setCooldown] = useState(0);
@@ -459,7 +462,7 @@ export function ResourceTable<T extends { id: number }>({
                               <Pencil className="h-4 w-4" />
                             </button>
                           )}
-                          {onDelete && (
+                          {isAdmin && onDelete && (
                             <button
                               type="button"
                               onClick={() => {
