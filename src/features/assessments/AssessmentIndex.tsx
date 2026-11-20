@@ -133,8 +133,6 @@ function toDateInput(value: Date | undefined) {
   return value ? format(value, "yyyy-MM-dd") : "";
 }
 
-// TODO make email work through the SPA
-
 function DateFilter({
   label,
   value,
@@ -215,7 +213,7 @@ function FilterCombobox({
         placeholder={label}
         aria-label={label}
         showClear={Boolean(value)}
-        className={`h-10 w-44 rounded-lg ${isStatusFilter && selected ? "pl-7" : ""}`}
+        className={`h-10 w-40 rounded-lg ${isStatusFilter && selected ? "pl-7" : ""}`}
       >
         {isStatusFilter && selected && (
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
@@ -342,14 +340,14 @@ export function AssessmentIndex() {
       <title>Index Assessment</title>
       <Card className="rounded-2xl bg-card px-2! py-2! shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between p-3">
-           <div>
-             <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
-               Assessments
-             </CardTitle>
-             <CardDescription className="mt-1">
-               Review, filter, and manage submitted assessment requests.
-             </CardDescription>
-           </div>
+          <div>
+            <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+              Assessments
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Review, filter, and manage submitted assessment requests.
+            </CardDescription>
+          </div>
           {/* <Button
             type="button"
             variant="outline"
@@ -376,8 +374,8 @@ export function AssessmentIndex() {
                 <Input
                   placeholder="Search for reference number, first/last name, email"
                   value={search}
-                   onChange={(event) => setSearch(event.target.value)}
-                   className="h-10 min-w-0 flex-1 rounded-xl px-4 text-sm sm:w-150 sm:flex-none"
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="h-10 min-w-0 flex-1 rounded-xl px-4 text-sm sm:w-150 sm:flex-none"
                 />
                 <Button
                   type="submit"
@@ -398,94 +396,124 @@ export function AssessmentIndex() {
                 >
                   <RefreshCw className="size-4" />
                 </Button>
-              </div>
-              <div className="flex w-full flex-col gap-3 rounded-xl border border-border/70 bg-muted/20 p-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
-                  <div className="flex min-w-0 flex-col gap-1.5">
-                    <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                      Date range
-                    </span>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <DateFilter
-                        label="From date"
-                        value={dateFrom}
-                        max={toDate(dateTo)}
-                        onChange={setDateFrom}
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-10 shrink-0 rounded-xl"
+                        aria-label="Choose visible columns"
                       />
-                      <span className="text-sm text-muted-foreground">to</span>
-                      <DateFilter
-                        label="To date"
-                        value={dateTo}
-                        min={toDate(dateFrom)}
-                        onChange={setDateTo}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                      Filters
-                    </span>
-                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <FilterCombobox
-                        label="Status"
-                        value={status}
-                        options={statuses.map((value) => ({
-                          value,
-                          label: statusLabel(value),
-                        }))}
-                        onChange={setStatus}
-                      />
-                      <FilterCombobox
-                        label="Course"
-                        value={courseId}
-                        options={(coursesQuery.data?.data ?? []).map(
-                          (course) => ({
-                            value: String(course.id),
-                            label: `${course.course_code} - ${course.course_desc}`,
-                          }),
-                        )}
-                        onChange={setCourseId}
-                      />
-                      <FilterCombobox
-                        label="Enrolled Under"
-                        value={enrolled}
-                        options={enrolledUnder}
-                        onChange={setEnrolled}
-                      />
-                      <FilterCombobox
-                        label="Semester"
-                        value={semester}
-                        options={semesters}
-                        onChange={setSemester}
-                      />
-                      <FilterCombobox
-                        label="SY Last Attended"
-                        value={sy}
-                        options={schoolYears}
-                        onChange={setSy}
-                      />
-                      <Popover>
-                        <PopoverTrigger
-                          render={<Button type="button" variant="outline" className="h-10 shrink-0 rounded-xl" aria-label="Choose visible columns" />}
+                    }
+                  >
+                    <Columns3 className="size-4" />
+                    <span className="hidden sm:inline">Columns</span>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-64 p-3">
+                    <p className="mb-2 text-sm font-semibold">
+                      Visible columns
+                    </p>
+                    <div className="grid gap-1">
+                      {Object.entries({
+                        email: "Email",
+                        course: "Course",
+                        enrolledUnder: "Enrolled Under",
+                        schoolYear: "SY Last Attended",
+                        semester: "Semester",
+                        submitted: "Submitted",
+                        status: "Status",
+                      }).map(([column, label]) => (
+                        <label
+                          key={column}
+                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
                         >
-                          <Columns3 className="size-4" />
-                          <span className="hidden sm:inline">Columns</span>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" className="w-64 p-3">
-                          <p className="mb-2 text-sm font-semibold">Visible columns</p>
-                          <div className="grid gap-1">
-                            {Object.entries({ email: "Email", course: "Course", enrolledUnder: "Enrolled Under", schoolYear: "SY Last Attended", semester: "Semester", submitted: "Submitted", status: "Status" }).map(([column, label]) => (
-                              <label key={column} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
-                                <Checkbox checked={visibleColumns[column]} onCheckedChange={() => toggleColumn(column)} />
-                                <span>{label}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                          <Checkbox
+                            checked={visibleColumns[column]}
+                            onCheckedChange={() => toggleColumn(column)}
+                          />
+                          <span>{label}</span>
+                        </label>
+                      ))}
                     </div>
-                  </div>
-                </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="w-full overflow-x-auto rounded-xl border border-border/70 bg-muted/20 p-3">
+                <table className="w-full min-w-190 table-fixed border-collapse">
+                  <thead>
+                    <tr>
+                      <th colSpan={2} className="w-2/5 border-b border-r border-border/70 px-3 pb-2 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                        Date range
+                      </th>
+                      <th colSpan={4} className="border-b border-border/70 px-3 pb-2 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                        Filters
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="w-1/5 border-r border-border/70 px-3 pt-3 align-top">
+                        <DateFilter
+                          label="From date"
+                          value={dateFrom}
+                          max={toDate(dateTo)}
+                          onChange={setDateFrom}
+                        />
+                      </td>
+                      <td className="w-1/5 border-r border-border/70 px-3 pt-3 align-top">
+                        <DateFilter
+                          label="To date"
+                          value={dateTo}
+                          min={toDate(dateFrom)}
+                          onChange={setDateTo}
+                        />
+                      </td>
+                      <td colSpan={4} className="px-3 pt-3 align-top">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <FilterCombobox
+                            label="Status"
+                            value={status}
+                            options={statuses.map((value) => ({
+                              value,
+                              label: statusLabel(value),
+                            }))}
+                            onChange={setStatus}
+                          />
+                          <FilterCombobox
+                            label="Course"
+                            value={courseId}
+                            options={(coursesQuery.data?.data ?? []).map(
+                              (course) => ({
+                                value: String(course.id),
+                                label: `${course.course_code} - ${course.course_desc}`,
+                              }),
+                            )}
+                            onChange={setCourseId}
+                          />
+                          <FilterCombobox
+                            label="Enrolled Under"
+                            value={enrolled}
+                            options={enrolledUnder}
+                            onChange={setEnrolled}
+                          />
+                          <FilterCombobox
+                            label="Semester"
+                            value={semester}
+                            options={semesters}
+                            onChange={setSemester}
+                          />
+                          <FilterCombobox
+                            label="SY Last Attended"
+                            value={sy}
+                            options={schoolYears}
+                            onChange={setSy}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </form>
@@ -516,17 +544,23 @@ export function AssessmentIndex() {
                   <TableHead>Name</TableHead>
                   {visibleColumns.email && <TableHead>Email</TableHead>}
                   {visibleColumns.course && <TableHead>Course</TableHead>}
-{visibleColumns.enrolledUnder && <TableHead>Enrolled Under</TableHead>}
-                   {visibleColumns.schoolYear && <TableHead>SY Last Attended</TableHead>}
-                   {visibleColumns.semester && <TableHead>Semester</TableHead>}
-                  {visibleColumns.submitted && <TableHead>
-                    <button
-                      className="inline-flex items-center"
-                      onClick={() => sort("created_at")}
-                    >
-                      Submitted {sortIcon("created_at")}
-                    </button>
-                  </TableHead>}
+                  {visibleColumns.enrolledUnder && (
+                    <TableHead>Enrolled Under</TableHead>
+                  )}
+                  {visibleColumns.schoolYear && (
+                    <TableHead>SY Last Attended</TableHead>
+                  )}
+                  {visibleColumns.semester && <TableHead>Semester</TableHead>}
+                  {visibleColumns.submitted && (
+                    <TableHead>
+                      <button
+                        className="inline-flex items-center"
+                        onClick={() => sort("created_at")}
+                      >
+                        Submitted {sortIcon("created_at")}
+                      </button>
+                    </TableHead>
+                  )}
                   {visibleColumns.status && <TableHead>Status</TableHead>}
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -535,53 +569,77 @@ export function AssessmentIndex() {
                 {query.data.data.map((assessment) => (
                   <TableRow
                     key={assessment.id}
-                     className="even:bg-gray-100 dark:even:bg-muted/30 hover:bg-gray-600/20 dark:hover:bg-muted/50"
+                    className="even:bg-gray-100 dark:even:bg-muted/30 hover:bg-gray-600/20 dark:hover:bg-muted/50"
                   >
                     <TableCell className="px-3! py-2! pl-4! font-medium text-primary">
                       {assessment.reference_number}
                     </TableCell>
-                    <TableCell className="py-2!">{fullName(assessment)}</TableCell>
-                    {visibleColumns.email && <TableCell className="py-2!">{assessment.email}</TableCell>}
-                    {visibleColumns.course && <TableCell className="py-2! text-left">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger className="cursor-default">
-                            <span className="inline-flex cursor-default rounded-full bg-blue-400 px-3 py-1 text-xs font-semibold text-white">
-                               {assessment.course?.course_code ?? "Unassigned"}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="inline-start"
-                            className="bg-blue-500 text-white"
-                          >
-                             {assessment.course?.course_desc ?? "No course assigned"}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      </TableCell>}
-{visibleColumns.enrolledUnder && <TableCell className="py-2!">
-                       <Badge variant={badgeVariant(assessment.enrolled_under)}>
-                         {assessment.enrolled_under}
-                       </Badge>
-                       </TableCell>}
-                     {visibleColumns.schoolYear && <TableCell className="py-2!">{assessment.sy_last_attended}</TableCell>}
-                     {visibleColumns.semester && <TableCell className="py-2!">
-                      <Badge variant={badgeVariant(assessment.semester)}>
-                        {assessment.semester}
-                      </Badge>
-                      </TableCell>}
-                    {visibleColumns.submitted && <TableCell className="py-2!">{formatDate(assessment.created_at)}</TableCell>}
+                    <TableCell className="py-2!">
+                      {fullName(assessment)}
+                    </TableCell>
+                    {visibleColumns.email && (
+                      <TableCell className="py-2!">
+                        {assessment.email}
+                      </TableCell>
+                    )}
+                    {visibleColumns.course && (
+                      <TableCell className="py-2! text-left">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger className="cursor-default">
+                              <span className="inline-flex cursor-default rounded-full bg-blue-400 px-3 py-1 text-xs font-semibold text-white">
+                                {assessment.course?.course_code ?? "Unassigned"}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="inline-start"
+                              className="bg-blue-500 text-white"
+                            >
+                              {assessment.course?.course_desc ??
+                                "No course assigned"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                    )}
+                    {visibleColumns.enrolledUnder && (
+                      <TableCell className="py-2!">
+                        <Badge
+                          variant={badgeVariant(assessment.enrolled_under)}
+                        >
+                          {assessment.enrolled_under}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.schoolYear && (
+                      <TableCell className="py-2!">
+                        {assessment.sy_last_attended}
+                      </TableCell>
+                    )}
+                    {visibleColumns.semester && (
+                      <TableCell className="py-2!">
+                        <Badge variant={badgeVariant(assessment.semester)}>
+                          {assessment.semester}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.submitted && (
+                      <TableCell className="py-2!">
+                        {formatDate(assessment.created_at)}
+                      </TableCell>
+                    )}
                     {visibleColumns.status && (
                       <TableCell className="py-2!">
                         <Badge variant={badgeVariant(assessment.status)}>
                           {assessment.status
-                            ? assessment.status[0].toUpperCase() + assessment.status.slice(1)
+                            ? assessment.status[0].toUpperCase() +
+                              assessment.status.slice(1)
                             : "Unknown"}
                         </Badge>
                       </TableCell>
                     )}
                     <TableCell className="py-2!">
-                       <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                         <Link
                           to={`/staff/assessments/${assessment.id}/edit`}
                           className="inline-flex size-8 items-center justify-center rounded-lg bg-amber-500 text-white transition-colors hover:bg-amber-600"
@@ -590,17 +648,17 @@ export function AssessmentIndex() {
                         >
                           <Pencil className="size-4" />
                         </Link>
-                         {isAdmin && (
-                           <button
-                             type="button"
-                             className="inline-flex size-8 items-center justify-center rounded-lg bg-red-500 text-white transition-colors hover:bg-red-600"
-                             aria-label={`Delete ${assessment.reference_number}`}
-                             title={`Delete ${assessment.reference_number}`}
-                             onClick={() => void remove(assessment)}
-                           >
-                             <Trash2 className="size-4" />
-                           </button>
-                         )}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            className="inline-flex size-8 items-center justify-center rounded-lg bg-red-500 text-white transition-colors hover:bg-red-600"
+                            aria-label={`Delete ${assessment.reference_number}`}
+                            title={`Delete ${assessment.reference_number}`}
+                            onClick={() => void remove(assessment)}
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -608,111 +666,115 @@ export function AssessmentIndex() {
               </TableBody>
             </Table>
           )}
-         </CardContent>
-         {query.data && (
-           <CardFooter className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3">
-             <p className="justify-self-start text-sm text-muted-foreground">
-               Showing{" "}
-               {query.data.data.length
-                 ? (query.data.meta.current_page - 1) * query.data.meta.per_page +
-                   1
-                 : 0}
-               –
-               {Math.min(
-                 query.data.meta.current_page * query.data.meta.per_page,
-                 query.data.meta.total,
-               )}{" "}
-               of {query.data.meta.total}
-             </p>
-              <div className="flex items-center gap-2 justify-self-end">
-                <label htmlFor="assessment-go-to-page" className="whitespace-nowrap text-sm text-muted-foreground">
-                  Go to page:
-                </label>
-                <Input
-                  id="assessment-go-to-page"
-                  type="number"
-                  min={1}
-                  max={query.data.meta.last_page}
-                  value={goToPage}
-                  onChange={(event) => setGoToPage(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") goToPageNumber();
-                  }}
-                  className="h-8 w-16 rounded-lg px-2 text-center"
-                  aria-label="Page number"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={goToPageNumber}
-                  disabled={!goToPage}
-                  className="h-8 rounded-lg"
-                >
-                  Go
-                </Button>
-                <Pagination className="mx-0 w-auto">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                     // disabled={filters.page === 1 || query.isFetching}
-                     onClick={() =>
-                       updateFilters({
-                         page: Math.max(1, (filters.page ?? 1) - 1),
-                       })
-                     }
-                   />
-                 </PaginationItem>
-                 {Array.from(
-                   { length: query.data.meta.last_page },
-                   (_, index) => index + 1,
-                 )
-                   .filter(
-                     (page) =>
-                       page === 1 ||
-                       page === query.data.meta.last_page ||
-                       Math.abs(page - query.data.meta.current_page) <= 1,
-                   )
-                   .map((page, index, pages) => (
-                     <span key={page} className="contents">
-                       {index > 0 && pages[index - 1] !== page - 1 && (
-                         <PaginationItem>
-                           <PaginationEllipsis />
-                         </PaginationItem>
-                       )}
-                       <PaginationItem>
-                         <PaginationLink
-                           isActive={page === query.data.meta.current_page}
-                           // disabled={query.isFetching}
-                           onClick={() => updateFilters({ page })}
-                         >
-                           {page}
-                         </PaginationLink>
-                       </PaginationItem>
-                     </span>
-                   ))}
-                 <PaginationItem>
-                   <PaginationNext
-                     disabled={
-                       filters.page === query.data.meta.last_page ||
-                       query.isFetching
-                     }
-                     onClick={() =>
-                       updateFilters({
-                         page: Math.min(
-                           query.data.meta.last_page,
-                           (filters.page ?? 1) + 1,
-                         ),
-                       })
-                     }
-                   />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            </CardFooter>
-         )}
-       </Card>
-     </div>
+        </CardContent>
+        {query.data && (
+          <CardFooter className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3">
+            <p className="justify-self-start text-sm text-muted-foreground">
+              Showing{" "}
+              {query.data.data.length
+                ? (query.data.meta.current_page - 1) *
+                    query.data.meta.per_page +
+                  1
+                : 0}
+              –
+              {Math.min(
+                query.data.meta.current_page * query.data.meta.per_page,
+                query.data.meta.total,
+              )}{" "}
+              of {query.data.meta.total}
+            </p>
+            <div className="flex items-center gap-2 justify-self-end">
+              <label
+                htmlFor="assessment-go-to-page"
+                className="whitespace-nowrap text-sm text-muted-foreground"
+              >
+                Go to page:
+              </label>
+              <Input
+                id="assessment-go-to-page"
+                type="number"
+                min={1}
+                max={query.data.meta.last_page}
+                value={goToPage}
+                onChange={(event) => setGoToPage(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") goToPageNumber();
+                }}
+                className="h-8 w-16 rounded-lg px-2 text-center"
+                aria-label="Page number"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={goToPageNumber}
+                disabled={!goToPage}
+                className="h-8 rounded-lg"
+              >
+                Go
+              </Button>
+              <Pagination className="mx-0 w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      // disabled={filters.page === 1 || query.isFetching}
+                      onClick={() =>
+                        updateFilters({
+                          page: Math.max(1, (filters.page ?? 1) - 1),
+                        })
+                      }
+                    />
+                  </PaginationItem>
+                  {Array.from(
+                    { length: query.data.meta.last_page },
+                    (_, index) => index + 1,
+                  )
+                    .filter(
+                      (page) =>
+                        page === 1 ||
+                        page === query.data.meta.last_page ||
+                        Math.abs(page - query.data.meta.current_page) <= 1,
+                    )
+                    .map((page, index, pages) => (
+                      <span key={page} className="contents">
+                        {index > 0 && pages[index - 1] !== page - 1 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+                        <PaginationItem>
+                          <PaginationLink
+                            isActive={page === query.data.meta.current_page}
+                            // disabled={query.isFetching}
+                            onClick={() => updateFilters({ page })}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      </span>
+                    ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      disabled={
+                        filters.page === query.data.meta.last_page ||
+                        query.isFetching
+                      }
+                      onClick={() =>
+                        updateFilters({
+                          page: Math.min(
+                            query.data.meta.last_page,
+                            (filters.page ?? 1) + 1,
+                          ),
+                        })
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          </CardFooter>
+        )}
+      </Card>
+    </div>
   );
 }
