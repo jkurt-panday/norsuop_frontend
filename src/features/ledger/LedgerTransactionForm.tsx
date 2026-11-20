@@ -6,6 +6,7 @@ import {
   Search,
   Sparkles,
   User,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { ApiError } from "../../api/client";
@@ -31,6 +32,7 @@ import {
 
 type EntryMode = "single" | "batch" | "cohort";
 type Membership = "" | "NAPU" | "NORSUFFA";
+type StudentMode = "existing" | "new";
 
 interface LedgerTransactionFormProps {
   ledger: Ledger;
@@ -40,6 +42,7 @@ interface LedgerTransactionFormProps {
   initialData?: LedgerRecord | null;
   defaultStudentId?: number;
   defaultStudentName?: string;
+  defaultEntryType?: "ar" | "payment" | "adjustment";
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -72,7 +75,6 @@ const PARTICULARS_PRESETS: Record<Ledger, string[]> = {
 function ModeSwitcher({
   mode,
   onChange,
-  ledger,
 }: {
   mode: EntryMode;
   onChange: (m: EntryMode) => void;
@@ -81,9 +83,7 @@ function ModeSwitcher({
   const tabs: Array<{ value: EntryMode; label: string; icon: React.ReactNode }> = [
     { value: "single", label: "Single Entry", icon: <User className="h-3.5 w-3.5" /> },
     { value: "batch", label: "Batch Lines", icon: <Layers className="h-3.5 w-3.5" /> },
-    ...(ledger === "graduate"
-      ? [{ value: "cohort" as EntryMode, label: "Cohort", icon: <Users className="h-3.5 w-3.5" /> }]
-      : []),
+    { value: "cohort", label: "Cohort", icon: <Users className="h-3.5 w-3.5" /> },
   ];
 
   return (
@@ -193,6 +193,7 @@ interface FormFieldsProps {
   initialData?: LedgerRecord | null;
   defaultStudentId?: number;
   defaultStudentName?: string;
+  defaultEntryType?: "ar" | "payment" | "adjustment";
   onClose: () => void;
   onSuccess: (msg: string) => void;
 }
@@ -203,6 +204,7 @@ function SingleFormFields({
   initialData,
   defaultStudentId,
   defaultStudentName,
+  defaultEntryType,
   onClose,
   onSuccess,
 }: FormFieldsProps) {
@@ -229,6 +231,14 @@ function SingleFormFields({
   const [studentLabel, setStudentLabel] = useState<string>(initialStudentLabel);
   const [studentSearch, setStudentSearch] = useState("");
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+  const [studentMode, setStudentMode] = useState<StudentMode>("existing");
+  const [newStudent, setNewStudent] = useState({
+    student_number: "",
+    email: "",
+    last_name: "",
+    first_name: "",
+    middle_name: "",
+  });
 
   // ── Core fields ────────────────────────────────────────────────────────────
   const [courseId, setCourseId] = useState<number | "">(
@@ -244,7 +254,7 @@ function SingleFormFields({
   const [entryType, setEntryType] = useState<"ar" | "payment" | "adjustment">(
     mode === "edit" && initialData
       ? ((initialData.entry_type as "ar" | "payment" | "adjustment") || "ar")
-      : "ar",
+      : (defaultEntryType ?? "ar"),
   );
   const [date, setDate] = useState(
     mode === "edit" && initialData?.transaction_date
@@ -327,7 +337,15 @@ function SingleFormFields({
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!studentId) return setErrorMessage("Please select a student.");
+    if (studentMode === "existing" && !studentId) {
+      return setErrorMessage("Please select a student.");
+    }
+    if (studentMode === "new" && !newStudent.last_name.trim()) {
+      return setErrorMessage("Please enter the new student's last name.");
+    }
+    if (studentMode === "new" && !newStudent.first_name.trim()) {
+      return setErrorMessage("Please enter the new student's first name.");
+    }
     const resolvedCourseId = courseId || masterQuery.data?.courses?.[0]?.id;
     if (!resolvedCourseId) return setErrorMessage("Please select a course/program.");
     const resolvedTermId = termId || masterQuery.data?.academicTerms?.[0]?.id;
@@ -337,7 +355,6 @@ function SingleFormFields({
     if (isNaN(numAmount) || numAmount < 0) return setErrorMessage("Please enter a valid amount.");
 
     const payload: LedgerTransactionRequest = {
-      student_id: Number(studentId),
       course_id: Number(resolvedCourseId),
       academic_term_id: Number(resolvedTermId),
       entry_type: entryType,
@@ -350,6 +367,18 @@ function SingleFormFields({
       remarks: remarks.trim() || undefined,
       status: status || (ledger === "law" ? "Paid" : "posted"),
     };
+
+    if (studentMode === "new") {
+      payload.new_student = {
+        student_number: newStudent.student_number.trim() || undefined,
+        email: newStudent.email.trim() || undefined,
+        last_name: newStudent.last_name.trim(),
+        first_name: newStudent.first_name.trim(),
+        middle_name: newStudent.middle_name.trim() || undefined,
+      };
+    } else {
+      payload.student_id = Number(studentId);
+    }
 
     // Graduate AR: membership scholarship
     if (isGraduate && entryType === "ar" && mode === "create" && membership) {
@@ -384,9 +413,13 @@ function SingleFormFields({
             onSuccess(msg);
             onClose();
           },
-          onError: (err) => setErrorMessage(
-            err instanceof ApiError ? err.message : "Failed to create transaction.",
-          ),
+          onError: (err) => {
+            if (!(err instanceof ApiError)) {
+              setErrorMessage("Failed to create transaction.");
+              return;
+            }
+            setErrorMessage(Object.values(err.errors).flat()[0] ?? err.message);
+          },
         },
       );
     }
@@ -406,8 +439,51 @@ function SingleFormFields({
 
       {/* Student Picker */}
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold">Student Account</Label>
-        {studentId ? (
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-xs font-semibold">Student Account</Label>
+          {mode === "create" && !defaultStudentId && (
+            <div className="flex rounded-lg border bg-muted/40 p-0.5" aria-label="Student account mode">
+              <button
+                type="button"
+                onClick={() => setStudentMode("existing")}
+                className={`rounded-md px-2.5 py-1 text-[11px] font-semibold ${studentMode === "existing" ? "bg-background shadow-xs" : "text-muted-foreground"}`}
+              >
+                Select Existing
+              </button>
+              <button
+                type="button"
+                onClick={() => { setStudentMode("new"); setStudentId(""); setStudentLabel(""); }}
+                className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold ${studentMode === "new" ? "bg-background shadow-xs" : "text-muted-foreground"}`}
+              >
+                <UserPlus className="h-3 w-3" /> Register New
+              </button>
+            </div>
+          )}
+        </div>
+        {studentMode === "new" && mode === "create" ? (
+          <div className="grid gap-3 rounded-xl border bg-muted/20 p-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="new-student-number" className="text-[11px]">Student ID</Label>
+              <Input id="new-student-number" value={newStudent.student_number} onChange={(e) => setNewStudent((v) => ({ ...v, student_number: e.target.value }))} placeholder="Optional" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-student-email" className="text-[11px]">Email</Label>
+              <Input id="new-student-email" type="email" value={newStudent.email} onChange={(e) => setNewStudent((v) => ({ ...v, email: e.target.value }))} placeholder="Optional" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-student-last-name" className="text-[11px]">Last Name <span className="text-destructive">*</span></Label>
+              <Input id="new-student-last-name" required value={newStudent.last_name} onChange={(e) => setNewStudent((v) => ({ ...v, last_name: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-student-first-name" className="text-[11px]">First Name <span className="text-destructive">*</span></Label>
+              <Input id="new-student-first-name" required value={newStudent.first_name} onChange={(e) => setNewStudent((v) => ({ ...v, first_name: e.target.value }))} />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="new-student-middle-name" className="text-[11px]">Middle Name</Label>
+              <Input id="new-student-middle-name" value={newStudent.middle_name} onChange={(e) => setNewStudent((v) => ({ ...v, middle_name: e.target.value }))} placeholder="Optional" />
+            </div>
+          </div>
+        ) : studentId ? (
           <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-3.5 py-2.5">
             <div className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
@@ -924,6 +1000,7 @@ export function LedgerTransactionForm({
   initialData,
   defaultStudentId,
   defaultStudentName,
+  defaultEntryType,
 }: LedgerTransactionFormProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
@@ -1007,12 +1084,13 @@ export function LedgerTransactionForm({
           <>
             {entryMode === "single" && (
               <SingleFormFields
-                key={`single-${mode}-${initialData?.id ?? defaultStudentId ?? "new"}`}
+                key={`single-${mode}-${initialData?.id ?? defaultStudentId ?? "new"}-${defaultEntryType ?? "ar"}`}
                 ledger={ledger}
                 mode={mode}
                 initialData={initialData}
                 defaultStudentId={defaultStudentId}
                 defaultStudentName={defaultStudentName}
+                defaultEntryType={defaultEntryType}
                 onClose={handleClose}
                 onSuccess={handleSuccess}
               />
@@ -1027,7 +1105,7 @@ export function LedgerTransactionForm({
               />
             )}
 
-            {entryMode === "cohort" && ledger === "graduate" && (
+            {entryMode === "cohort" && (
               <CohortEntryPanel
                 key="cohort"
                 ledger={ledger}

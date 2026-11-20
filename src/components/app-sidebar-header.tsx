@@ -6,7 +6,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCurrentUser } from "@/features/auth/queries";
 import { getAssessment } from "@/features/assessments/api";
-import { getCashierReferenceNumber, getCashierRequest } from "@/features/cashier/api";
+import {
+  getCashierReferenceNumber,
+  getCashierRequest,
+} from "@/features/cashier/api";
+import { getStaffRequest } from "@/features/staff/api";
 
 export interface BreadcrumbItem {
   title: string;
@@ -46,6 +50,8 @@ export function AppSidebarHeader({
   const { data } = useCurrentUser();
   const userName = data?.data?.name ?? "";
   const location = useLocation();
+
+  // Assessment detail route: /staff/assessments/:id
   const assessmentId = location.pathname.match(/^\/staff\/assessments\/(\d+)(?:\/|$)/)?.[1];
   const cashierRequestId = location.pathname.match(/^\/cashier\/requests\/(\d+)(?:\/|$)/)?.[1];
   const assessmentQuery = useQuery({
@@ -57,6 +63,14 @@ export function AppSidebarHeader({
     queryKey: ["cashier", "request", cashierRequestId],
     queryFn: ({ signal }) => getCashierRequest(Number(cashierRequestId), signal),
     enabled: Boolean(cashierRequestId),
+  });
+
+  // Staff request detail route: /staff/requests/:id
+  const requestId = location.pathname.match(/^\/staff\/requests\/(\d+)(?:\/|$)/)?.[1];
+  const requestQuery = useQuery({
+    queryKey: ["staffRequest", requestId],
+    queryFn: ({ signal }) => getStaffRequest(Number(requestId), signal),
+    enabled: Boolean(requestId),
   });
 
   const resolvedBreadcrumbs: BreadcrumbItem[] = React.useMemo(() => {
@@ -92,21 +106,28 @@ export function AppSidebarHeader({
       // The edit route is an implementation detail; the assessment reference
       // is the meaningful final breadcrumb for this page.
       if (assessmentId && segments[i] === "edit") continue;
+      // Skip the request ID segment - we'll show reference_number instead
+      if (requestId && segments[i] === requestId) continue;
 
       currentPath += `/${segments[i]}`;
-       const isAssessmentId = assessmentId && segments[i] === assessmentId;
-       const isCashierRequestId = cashierRequestId && segments[i] === cashierRequestId;
-       const title = isAssessmentId
-         ? assessmentQuery.data?.data.reference_number ?? segments[i]
-         : isCashierRequestId
-           ? cashierRequestQuery.data?.data
-             ? getCashierReferenceNumber(cashierRequestQuery.data.data)
-             : segments[i]
-           : routeTitleMap[currentPath] ||
-             segments[i].charAt(0).toUpperCase() + segments[i].slice(1).replace(/-/g, " ");
+      const isAssessmentId = assessmentId && segments[i] === assessmentId;
+      const isCashierRequestId =
+        cashierRequestId && segments[i] === cashierRequestId;
+      const isRequestId = requestId && segments[i] === requestId;
+      const title = isAssessmentId
+        ? assessmentQuery.data?.data.reference_number ?? segments[i]
+        : isCashierRequestId
+          ? cashierRequestQuery.data?.data
+            ? getCashierReferenceNumber(cashierRequestQuery.data.data)
+            : segments[i]
+          : isRequestId
+            ? requestQuery.data?.data.reference_number ?? segments[i]
+            : routeTitleMap[currentPath] ||
+              segments[i].charAt(0).toUpperCase() +
+                segments[i].slice(1).replace(/-/g, " ");
       crumbs.push({
         title,
-        href: i < segments.length - 1 && !isAssessmentId ? currentPath : undefined,
+        href: i < segments.length - 1 && !isAssessmentId && !isRequestId ? currentPath : undefined,
       });
     }
 
@@ -118,6 +139,8 @@ export function AppSidebarHeader({
     cashierRequestId,
     cashierRequestQuery.data,
     location.pathname,
+    requestId,
+    requestQuery.data,
   ]);
 
   return (

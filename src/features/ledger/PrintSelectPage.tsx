@@ -216,7 +216,7 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
   };
 
   return (
-    <div className="min-h-screen w-full min-w-0 space-y-4 bg-page-background">
+    <div className="w-full space-y-6 pb-12">
       {/* Header */}
       <Card className="rounded-2xl border border-border bg-card px-2! py-2! shadow-sm">
         <CardHeader className="flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between">

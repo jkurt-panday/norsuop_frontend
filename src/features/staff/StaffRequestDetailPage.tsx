@@ -1,71 +1,669 @@
-import { Link, useParams } from "react-router";
+import { useParams, Link } from "react-router";
 import {
-  ArrowLeft,
-  FileText,
-  User,
-  Building,
-  GraduationCap,
-  Calendar,
-  CreditCard,
-  Download,
-  ExternalLink,
-  CheckCircle2,
   AlertTriangle,
-  FolderOpen,
+  CheckCircle2,
+  Eye,
+  Mail,
+  Search,
+  UserPlus,
+  Download,
+  Trash2,
+  Edit2,
 } from "lucide-react";
-import { ApiError } from "../../api/client";
-import { useStaffRequest } from "./detailQueries";
-import { ProcessingForm } from "./ProcessingForm";
-import { StudentMatcher } from "./StudentMatcher";
-import { StatusBadge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { api } from "../../api/client";
+import {
+  getStaffRequest,
+  processStaffRequest,
+  updateStaffProcessing,
+  updateStaffDetails,
+  searchOpStudents,
+  linkOpStudent,
+  emailOpRequest,
+  getOpPdfUrl,
+  type BankAccount,
+  type UacsItem,
+  type PaymentDetailOption,
+  type AcademicTerm,
+  type SupportingDocument,
+  type StaffStudent,
+} from "./api";
 
-const currencyFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-});
-
-function formatPayorFullName(req: {
+interface FormInput {
+  id: number;
+  reference_number: string;
   firstname_or_office: string;
-  middlename_or_project?: string | null;
+  middlename_or_project: string | null;
   lastname_or_agency: string;
-}) {
-  return [
-    req.firstname_or_office,
-    req.middlename_or_project,
-    req.lastname_or_agency,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+  office_or_college: string;
+  position_or_designation: string;
+  email: string;
+  contact_num: string;
+  address: string;
+  request_type: string;
+  amount: number;
+  created_at: string;
+  membership: { member_code: string; member_desc: string } | null;
+  payment_detail_option: PaymentDetailOption | null;
+  staff_input: StaffInputData | null;
+  staffInput: StaffInputData | null;
+  supporting_documents: SupportingDocument[];
+  supportingDocuments: SupportingDocument[];
+  student_num: number | null;
+  submitted_student_number: string | null;
+  student: StaffStudent | null;
+  course: { id: number; course_code: string; course_desc: string; course_college: string } | null;
+  academic_term: number | null;
 }
 
-function formatDate(dateStr?: string | null) {
-  if (!dateStr) return "—";
-  try {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return dateStr;
-  }
+interface StaffInputData {
+  id: number;
+  status: "pending" | "processed" | "paid" | "cancelled" | "unprocessed";
+  ref_date: string | null;
+  bank_account: BankAccount | null;
+  uacs: UacsItem | null;
+  reference_document: SupportingDocument | null;
+  created_at: string;
+  purpose: string | null;
+  or_no: string | null;
+  or_date: string | null;
+  emailed_at: string | null;
 }
+
+interface PageData {
+  data: FormInput;
+  bankAccounts: BankAccount[];
+  uacsList: UacsItem[];
+  paymentOptions: PaymentDetailOption[];
+  academicTerms: AcademicTerm[];
+}
+
+const statusBadgeClass = (status: string) => {
+  switch (status) {
+    case "processed":
+      return "bg-green-100 text-green-800";
+    case "paid":
+      return "bg-green-50 text-green-700";
+    case "cancelled":
+      return "bg-red-50 text-red-700";
+    case "pending":
+    case "unprocessed":
+    default:
+      return "bg-amber-50 text-amber-700";
+  }
+};
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
+
+const formatDateTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-US", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const formatDateOnly = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
+const todayIso = (): string => {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+};
+
+const formatFileSize = (bytes?: number) => {
+  if (!bytes || bytes <= 0) return "N/A";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = bytes;
+  let index = 0;
+  while (size >= 1024 && index < units.length - 1) {
+    size /= 1024;
+    index += 1;
+  }
+  return `${size.toFixed(2)} ${units[index]}`;
+};
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&")
+    .replace(/</g, "<")
+    .replace(/>/g, ">")
+    .replace(/"/g, "");
+
+const buildEmailPreviewHtml = (
+  formInput: FormInput,
+  recipientName: string,
+  note: string
+) => {
+  const noteHtml = note.trim()
+    ? `<p>${escapeHtml(note).replace(/\n/g, "<br>")}</p>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color: #1e293b; margin:0; padding:16px;">
+    <p>Dear ${escapeHtml(recipientName || "\u2014")},</p>
+    <p>
+        Please find attached your Order of Payment
+        (Reference No. <strong>${formInput.reference_number}</strong>)
+        for the amount of <strong>${formatCurrency(formInput.amount)}</strong>.
+    </p>
+    ${noteHtml}
+    <p>Two copies are attached:</p>
+    <ul>
+        <li>A5 portrait \u2014 for individual filing</li>
+        <li>Legal landscape \u2014 3-up copies (Payor's / Cash Unit's / Accounting Unit's)</li>
+    </ul>
+    <p>Please present this at the Cash / Treasury Unit to complete payment.</p>
+    <p>Regards,<br>NORSU Accounting Office</p>
+</body>
+</html>`;
+};
+
+const ReadOnlyRow = ({
+  label,
+  value,
+  valueClass = "text-foreground",
+  stacked = false,
+}: {
+  label: string;
+  value: string | number | null;
+  valueClass?: string;
+  stacked?: boolean;
+}) => {
+  const stringValue = value == null ? "" : String(value);
+  const valueContent = (
+    <p className={`min-w-0 flex-1 text-sm ${valueClass} wrap-break-word whitespace-pre-wrap`}>
+      {stringValue || "\u2014"}
+    </p>
+  );
+
+  return stacked ? (
+    <div className="border-b border-border py-2 last:border-0">
+      <label className="mb-1 block text-sm font-medium text-muted-foreground">{label}</label>
+      {valueContent}
+    </div>
+  ) : (
+    <div className="flex min-w-0 items-start gap-6 border-b border-border py-2 last:border-0">
+      <label className="w-40 shrink-0 text-sm font-medium text-muted-foreground">{label}</label>
+      {valueContent}
+    </div>
+  );
+};
 
 export function StaffRequestDetailPage() {
   const params = useParams();
   const id = Number(params.id);
-  const query = useStaffRequest(Number.isFinite(id) ? id : undefined);
 
-  if (query.isPending) {
+  const { data, isPending, isError, error, refetch } = useQuery({
+    queryKey: ["staff", "request", id],
+    queryFn: ({ signal }) => getStaffRequest(id, signal),
+    enabled: Number.isFinite(id),
+  });
+
+  const pageData = data as PageData | undefined;
+  const formInput = pageData?.data;
+  const bankAccounts = pageData?.bankAccounts ?? [];
+  const uacsList = pageData?.uacsList ?? [];
+  const paymentOptions = pageData?.paymentOptions ?? [];
+  const courses = pageData?.courses ?? [];
+  const memberships = pageData?.memberships ?? [];
+  const supportingDocuments = formInput?.supporting_documents ?? formInput?.supportingDocuments ?? [];
+  const rawStatus = formInput?.staff_input?.status ?? formInput?.staffInput?.status ?? "unprocessed";
+  const staffInput = formInput?.staff_input ?? formInput?.staffInput;
+  const isProcessedOrPaid = rawStatus === "processed" || rawStatus === "paid";
+
+  // --- State ---
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [isEditingStaffInput, setIsEditingStaffInput] = useState(false);
+  const [isEditingOr, setIsEditingOr] = useState(false);
+  const [isEditingPaymentInfo, setIsEditingPaymentInfo] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
+  const [isStudentMatchOpen, setIsStudentMatchOpen] = useState(false);
+  const [studentMatchMode, setStudentMatchMode] = useState<"existing" | "create">("existing");
+  const [studentSearch, setStudentSearch] = useState(formInput?.submitted_student_number ?? "");
+  const [studentCandidates, setStudentCandidates] = useState<StaffStudent[]>([]);
+  const [isSearchingStudents, setIsSearchingStudents] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailRecipientName, setEmailRecipientName] = useState("");
+  const [emailNote, setEmailNote] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  // --- Forms state ---
+  const [detailsData, setDetailsData] = useState<{
+    firstname_or_office: string;
+    middlename_or_project: string;
+    lastname_or_agency: string;
+    office_or_college: string;
+    position_or_designation: string;
+    email: string;
+    contact_num: string;
+    address: string;
+    amount: string;
+    payment_detail_option_id: string;
+    course_id: string;
+    new_payment_option: string;
+  }>({
+    firstname_or_office: formInput?.firstname_or_office ?? "",
+    middlename_or_project: formInput?.middlename_or_project ?? "",
+    lastname_or_agency: formInput?.lastname_or_agency ?? "",
+    office_or_college: formInput?.office_or_college ?? "",
+    position_or_designation: formInput?.position_or_designation ?? "",
+    email: formInput?.email ?? "",
+    contact_num: formInput?.contact_num ?? "",
+    address: formInput?.address ?? "",
+    amount: String(formInput?.amount ?? ""),
+    payment_detail_option_id: formInput?.payment_detail_option?.id
+      ? String(formInput.payment_detail_option.id)
+      : "",
+    course_id: formInput?.course?.id ? String(formInput.course.id) : "",
+    new_payment_option: "",
+  });
+
+  const [paymentInfoData, setPaymentInfoData] = useState<{
+    membership_id: string;
+    payment_detail_option_id: string;
+    submission_date: string;
+  }>({
+    membership_id: formInput?.membership?.id ? String(formInput.membership.id) : "",
+    payment_detail_option_id: formInput?.payment_detail_option?.id
+      ? String(formInput.payment_detail_option.id)
+      : "",
+    submission_date: formInput?.created_at ? formInput.created_at.split("T")[0] : "",
+  });
+
+  // Sync form state when formInput loads
+  useEffect(() => {
+    if (formInput) {
+      setDetailsData({
+        firstname_or_office: formInput.firstname_or_office ?? "",
+        middlename_or_project: formInput.middlename_or_project ?? "",
+        lastname_or_agency: formInput.lastname_or_agency ?? "",
+        office_or_college: formInput.office_or_college ?? "",
+        position_or_designation: formInput.position_or_designation ?? "",
+        email: formInput.email ?? "",
+        contact_num: formInput.contact_num ?? "",
+        address: formInput.address ?? "",
+        amount: String(formInput.amount ?? ""),
+        payment_detail_option_id: formInput.payment_detail_option?.id
+          ? String(formInput.payment_detail_option.id)
+          : "",
+        course_id: formInput.course?.id ? String(formInput.course.id) : "",
+        new_payment_option: "",
+      });
+    }
+  }, [formInput]);
+
+  // Sync payment info form state when formInput loads
+  useEffect(() => {
+    if (formInput) {
+      setPaymentInfoData({
+        membership_id: formInput.membership?.id ? String(formInput.membership.id) : "",
+        payment_detail_option_id: formInput.payment_detail_option?.id
+          ? String(formInput.payment_detail_option.id)
+          : "",
+        submission_date: formInput.created_at ? formInput.created_at.split("T")[0] : "",
+      });
+    }
+  }, [formInput]);
+
+  const [staffInputData, setStaffInputData] = useState<{
+    fundcluster_id: string;
+    ref_document_id: string;
+    ref_date: string;
+    uacs_id: string;
+    status: "pending" | "processed" | "paid" | "cancelled" | "unprocessed";
+    purpose: string;
+  }>({
+    fundcluster_id: staffInput?.bank_account ? String(staffInput.bank_account.id) : "",
+    ref_document_id: staffInput?.reference_document ? String(staffInput.reference_document.id) : "",
+    ref_date: staffInput?.ref_date ? staffInput.ref_date.split("T")[0] : "",
+    uacs_id: staffInput?.uacs ? String(staffInput.uacs.id) : "",
+    status: rawStatus,
+    purpose: staffInput?.purpose ?? "",
+  });
+
+  // Sync staff input form state when staffInput loads
+  useEffect(() => {
+    if (staffInput) {
+      setStaffInputData({
+        fundcluster_id: staffInput.bank_account ? String(staffInput.bank_account.id) : "",
+        ref_document_id: staffInput.reference_document ? String(staffInput.reference_document.id) : "",
+        ref_date: staffInput.ref_date ? staffInput.ref_date.split("T")[0] : "",
+        uacs_id: staffInput.uacs ? String(staffInput.uacs.id) : "",
+        status: rawStatus,
+        purpose: staffInput.purpose ?? "",
+      });
+    }
+  }, [staffInput, rawStatus]);
+
+  const [orData, setOrData] = useState<{
+    or_no: string;
+    or_date: string;
+  }>({
+    or_no: staffInput?.or_no ?? "",
+    or_date: staffInput?.or_date ? staffInput.or_date.split("T")[0] : "",
+  });
+
+  // Sync OR form state when staffInput loads
+  useEffect(() => {
+    if (staffInput) {
+      setOrData({
+        or_no: staffInput.or_no ?? "",
+        or_date: staffInput.or_date ? staffInput.or_date.split("T")[0] : "",
+      });
+    }
+  }, [staffInput]);
+
+  const [processData, setProcessData] = useState<{
+    form_input_id: number;
+    fundcluster_id: string;
+    ref_document_id: string;
+    ref_date: string;
+    uacs_id: string;
+    status: "processed" | "pending" | "paid" | "cancelled";
+    purpose: string;
+  }>({
+    form_input_id: id,
+    fundcluster_id: "",
+    ref_document_id: "",
+    ref_date: todayIso(),
+    uacs_id: "",
+    status: "processed",
+    purpose: "",
+  });
+
+  // --- Mutations ---
+  const processMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
+      processStaffRequest(id, payload),
+    onSuccess: () => {
+      refetch();
+      setIsProcessing(false);
+    },
+  });
+
+  const updateProcessingMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
+      updateStaffProcessing(id, payload),
+    onSuccess: () => {
+      refetch();
+      setIsEditingStaffInput(false);
+    },
+  });
+
+  const updateDetailsMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
+      updateStaffDetails(id, payload),
+    onSuccess: () => {
+      refetch();
+      setIsEditingDetails(false);
+      setIsEditingPaymentInfo(false);
+    },
+    onError: (error) => {
+      console.error('Update details failed:', error);
+      alert('Failed to save changes: ' + (error as Error).message);
+    },
+  });
+
+  const updateOrMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
+      api(`/api/v1/staff/requests/${id}/or`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      refetch();
+      setIsEditingOr(false);
+    },
+  });
+
+  const searchStudentsMutation = useMutation({
+    mutationFn: ({ q }: { q: string }) => searchOpStudents(q),
+  });
+
+  const linkStudentMutation = useMutation({
+    mutationFn: ({ id, student_id }: { id: number; student_id: number }) =>
+      linkOpStudent(id, student_id),
+    onSuccess: () => {
+      refetch();
+      setIsStudentMatchOpen(false);
+    },
+  });
+
+  const emailMutation = useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: { subject: string; recipient_name: string; note?: string };
+    }) => emailOpRequest(id, payload),
+    onSuccess: () => {
+      refetch();
+      setIsEmailPreviewOpen(false);
+    },
+  });
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: (documentId: number) =>
+      api(`/api/v1/staff/documents/${documentId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      refetch();
+      setDeleteTargetId(null);
+    },
+  });
+
+  // --- Student search effect ---
+  useEffect(() => {
+    if (!isStudentMatchOpen || studentMatchMode !== "existing") return;
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setIsSearchingStudents(true);
+      try {
+        const result = await searchStudentsMutation.mutateAsync({ q: studentSearch });
+        setStudentCandidates(result.students ?? []);
+      } catch {
+        setStudentCandidates([]);
+      } finally {
+        setIsSearchingStudents(false);
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [isStudentMatchOpen, studentMatchMode, studentSearch]);
+
+  // --- Handlers ---
+  const openStudentMatch = () => {
+    setStudentSearch(formInput?.submitted_student_number ?? "");
+    setStudentMatchMode("existing");
+    setStudentCandidates([]);
+    setIsStudentMatchOpen(true);
+  };
+
+  const buildDefaultEmailSubject = () => `Order of Payment - ${formInput?.reference_number}`;
+  const buildDefaultRecipientName = () =>
+    `${formInput?.firstname_or_office} ${formInput?.lastname_or_agency}`;
+
+  const openEmailPreview = () => {
+    setEmailSubject(buildDefaultEmailSubject());
+    setEmailRecipientName(buildDefaultRecipientName());
+    setEmailNote("");
+    setIsEmailPreviewOpen(true);
+  };
+
+  const handleConfirmSendEmail = () => {
+    if (!formInput) return;
+    setIsSendingEmail(true);
+    emailMutation.mutate(
+      { id: formInput.id, payload: { subject: emailSubject, recipient_name: emailRecipientName, note: emailNote } },
+      {
+        onSuccess: () => {
+          alert("Order of Payment emailed successfully.");
+          setIsEmailPreviewOpen(false);
+        },
+        onError: () => alert("Failed to send the email. Please try again."),
+        onSettled: () => setIsSendingEmail(false),
+      }
+    );
+  };
+
+  const confirmDelete = (documentId: number) => setDeleteTargetId(documentId);
+  const handleDelete = () => {
+    if (deleteTargetId !== null) deleteDocumentMutation.mutate(deleteTargetId);
+  };
+
+  const handleDetailsSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formInput) return;
+    updateDetailsMutation.mutate({ id: formInput.id, payload: detailsData });
+  };
+
+  const cancelDetailsEdit = () => {
+    setDetailsData({
+      firstname_or_office: formInput?.firstname_or_office ?? "",
+      middlename_or_project: formInput?.middlename_or_project ?? "",
+      lastname_or_agency: formInput?.lastname_or_agency ?? "",
+      office_or_college: formInput?.office_or_college ?? "",
+      position_or_designation: formInput?.position_or_designation ?? "",
+      email: formInput?.email ?? "",
+      contact_num: formInput?.contact_num ?? "",
+      address: formInput?.address ?? "",
+      amount: String(formInput?.amount ?? ""),
+      payment_detail_option_id: formInput?.payment_detail_option?.id
+        ? String(formInput.payment_detail_option.id)
+        : "",
+      course_id: formInput?.course?.id ? String(formInput.course.id) : "",
+      new_payment_option: "",
+    });
+    setIsEditingDetails(false);
+  };
+
+  const handleStaffInputSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffInput) return;
+    updateProcessingMutation.mutate({ id: staffInput.id, payload: staffInputData });
+  };
+
+  const cancelStaffInputEdit = () => {
+    setStaffInputData({
+      fundcluster_id: staffInput?.bank_account ? String(staffInput.bank_account.id) : "",
+      ref_document_id: staffInput?.reference_document ? String(staffInput.reference_document.id) : "",
+      ref_date: staffInput?.ref_date ? staffInput.ref_date.split("T")[0] : "",
+      uacs_id: staffInput?.uacs ? String(staffInput.uacs.id) : "",
+      status: rawStatus,
+      purpose: staffInput?.purpose ?? "",
+    });
+    setIsEditingStaffInput(false);
+  };
+
+  const handleOrSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffInput) return;
+    updateOrMutation.mutate({ id: staffInput.id, payload: orData });
+  };
+
+  const handlePaymentInfoSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formInput) return;
+    // Merge payment info with required fields from details to satisfy validation
+    const payload = {
+      ...detailsData,
+      ...paymentInfoData,
+    };
+    updateDetailsMutation.mutate({ id: formInput.id, payload });
+  };
+
+  const cancelOrEdit = () => {
+    setOrData({
+      or_no: staffInput?.or_no ?? "",
+      or_date: staffInput?.or_date ? staffInput.or_date.split("T")[0] : "",
+    });
+    setIsEditingOr(false);
+  };
+
+  const cancelPaymentInfoEdit = () => {
+    setPaymentInfoData({
+      membership_id: formInput?.membership?.id ? String(formInput.membership.id) : "",
+      payment_detail_option_id: formInput?.payment_detail_option?.id
+        ? String(formInput.payment_detail_option.id)
+        : "",
+      submission_date: formInput?.created_at ? formInput.created_at.split("T")[0] : "",
+    });
+    setIsEditingPaymentInfo(false);
+  };
+
+  const handleProcessSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    processMutation.mutate({ id, payload: processData });
+  };
+
+  if (isPending) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-8 w-24" />
-        </div>
+        <Skeleton className="h-8 w-24" />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             <Skeleton className="h-64 w-full rounded-xl" />
@@ -79,7 +677,7 @@ export function StaffRequestDetailPage() {
     );
   }
 
-  if (query.isError) {
+  if (isError || !formInput) {
     return (
       <Card className="border-destructive/30 bg-destructive/5 my-8">
         <CardContent className="pt-6 text-center space-y-4">
@@ -87,341 +685,955 @@ export function StaffRequestDetailPage() {
             <AlertTriangle className="size-6" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">
-              Unable to load order of payment
-            </h1>
+            <h1 className="text-lg font-semibold text-foreground">Unable to load order of payment</h1>
             <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-              {query.error instanceof ApiError
-                ? query.error.message
-                : "The requested order of payment record could not be loaded."}
+              {error instanceof Error ? error.message : "The requested order of payment record could not be loaded."}
             </p>
           </div>
-          <div>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/staff/requests">Back to requests</Link>
-            </Button>
-          </div>
+          <Link
+            to="/staff/requests"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted"
+          >
+            Back to requests
+          </Link>
         </CardContent>
       </Card>
     );
   }
 
-  const { data: request, bankAccounts, uacsList } = query.data;
-  const rawStatus = request.staff_input?.status ?? request.staffInput?.status ?? "unprocessed";
-  const fullName = formatPayorFullName(request);
-  const supportingDocs = request.supporting_documents ?? request.supportingDocuments ?? [];
-  const staffInput = request.staff_input ?? request.staffInput;
-  const isProcessedOrPaid = rawStatus === "processed" || rawStatus === "paid";
-
   return (
-    <div className="space-y-6">
-      {/* Back button and page title banner */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon-xs" asChild>
-            <Link to="/staff/requests" aria-label="Back to requests">
-              <ArrowLeft className="size-4" />
-            </Link>
-          </Button>
+    <div className="min-h-screen bg-gray-50 px-4 py-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
-                {request.reference_number}
-              </h1>
-              <StatusBadge status={rawStatus} />
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Submitted on {formatDate(request.created_at)}
+            <h2 className="text-3xl font-bold bg-blue-600 bg-clip-text text-transparent">
+              Request Details: {formInput.reference_number}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Reference: <span className="font-semibold text-blue-600">{formInput.reference_number}</span>
             </p>
           </div>
+          <div className="flex gap-2">
+            <Link
+              to="/staff/requests"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-gray-100"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </Link>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left Column: Request Details & Supporting Documents */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Main Information Card */}
-          <Card className="border-border shadow-sm">
-            <CardHeader className="pb-3 border-b">
-              <div className="flex items-center justify-between">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="space-y-6">
+            {/* Personal Information */}
+            <Card className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
                 <div>
-                  <CardTitle className="text-base font-semibold">Payor Details</CardTitle>
-                  <CardDescription className="text-xs">
-                    Client contact and billing classification
-                  </CardDescription>
+                  <CardTitle className="text-base font-semibold">Personal / Office Information</CardTitle>
+                  <CardDescription className="text-xs">Client contact and billing classification</CardDescription>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs text-muted-foreground">Amount Due</span>
-                  <p className="text-xl font-bold text-foreground tabular-nums">
-                    {currencyFormatter.format(Number(request.amount || 0))}
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-sm">
-                <div>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <User className="size-3" /> Payor Name / Office
-                  </span>
-                  <p className="font-medium text-foreground mt-0.5">{fullName || "—"}</p>
-                </div>
-
-                <div>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Building className="size-3" /> Office / College
-                  </span>
-                  <p className="font-medium text-foreground mt-0.5">
-                    {request.office_or_college || "—"}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-xs text-muted-foreground">Email Address</span>
-                  <p className="font-medium text-foreground mt-0.5">{request.email || "—"}</p>
-                </div>
-
-                <div>
-                  <span className="text-xs text-muted-foreground">Contact Number</span>
-                  <p className="font-medium text-foreground mt-0.5">
-                    {request.contact_num || "—"}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-xs text-muted-foreground">Membership</span>
-                  <p className="font-medium text-foreground mt-0.5">
-                    {request.membership?.member_desc ?? "—"}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-xs text-muted-foreground">Payment Nature / Detail</span>
-                  <p className="font-medium text-foreground mt-0.5">
-                    {request.payment_detail_option?.payment_desc ?? "—"}
-                  </p>
-                </div>
-
-                {request.course && (
-                  <div className="sm:col-span-2">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <GraduationCap className="size-3" /> Course Program
-                    </span>
-                    <p className="font-medium text-foreground mt-0.5">
-                      {request.course.course_code} — {request.course.course_desc}
-                    </p>
-                  </div>
+                {!isEditingDetails && formInput && (
+                  <Button variant="ghost" size="icon" onClick={() => setIsEditingDetails(true)} aria-label="Edit payor details">
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Student Matching Section */}
-          <Card className="border-border shadow-sm">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-base font-semibold">Student Verification</CardTitle>
-              <CardDescription className="text-xs">
-                Link to university student master ledger
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              {request.student ? (
-                <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900/50 dark:bg-emerald-950/20">
-                  <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
-                    <div>
-                      <p className="text-sm font-semibold text-emerald-950 dark:text-emerald-200">
-                        {request.student.full_name}
-                      </p>
-                      <p className="text-xs text-emerald-700 dark:text-emerald-400 font-mono">
-                        Student ID: {request.student.student_number}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-medium text-emerald-700 bg-emerald-100 dark:bg-emerald-900/50 px-2.5 py-1 rounded-full">
-                    Linked
-                  </span>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
-                    <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                    <div className="text-xs text-amber-800 dark:text-amber-300">
-                      <p className="font-medium">No student linked to this request</p>
-                      {request.submitted_student_number && (
-                        <p className="mt-0.5">
-                          Submitted student ID:{" "}
-                          <span className="font-mono font-semibold">
-                            {request.submitted_student_number}
-                          </span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <StudentMatcher
-                    id={request.id}
-                    initialQuery={request.submitted_student_number ?? request.lastname_or_agency}
-                    onSuccess={() => void query.refetch()}
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Supporting Documents Section */}
-          <Card className="border-border shadow-sm">
-            <CardHeader className="pb-3 border-b">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base font-semibold">Supporting Documents</CardTitle>
-                  <CardDescription className="text-xs">
-                    Uploaded verification requirements and attachments
-                  </CardDescription>
-                </div>
-                <span className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full">
-                  {supportingDocs.length} file{supportingDocs.length === 1 ? "" : "s"}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {supportingDocs.length === 0 ? (
-                <div className="py-6 text-center text-xs text-muted-foreground">
-                  <FolderOpen className="mx-auto size-8 text-muted-foreground/60 mb-1" />
-                  No supporting documents attached to this order of payment.
-                </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {supportingDocs.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <FileText className="size-4 shrink-0 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground truncate max-w-sm">
-                          {doc.original_filename}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="xs"
-                          asChild
-                          className="gap-1 text-xs"
-                        >
-                          <a
-                            href={`/api/v1/supporting-documents/${doc.id}/view`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <ExternalLink className="size-3" />
-                            <span>View</span>
-                          </a>
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="xs"
-                          asChild
-                          className="gap-1 text-xs"
-                        >
-                          <a
-                            href={`/api/v1/supporting-documents/${doc.id}/download`}
-                            download
-                          >
-                            <Download className="size-3" />
-                            <span>Download</span>
-                          </a>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column: Processing & Accounting Assignment */}
-        <div className="space-y-6">
-          {isProcessedOrPaid && staffInput ? (
-            <Card className="border-border shadow-sm">
-              <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-base font-semibold">Processing Record</CardTitle>
-                <CardDescription className="text-xs">
-                  Assigned accounting classification and date
-                </CardDescription>
               </CardHeader>
-              <CardContent className="pt-4 space-y-3.5 text-sm">
-                <div>
-                  <span className="text-xs text-muted-foreground">Status</span>
-                  <div className="mt-1">
-                    <StatusBadge status={rawStatus} />
-                  </div>
-                </div>
+              <CardContent className="pt-4">
+                {isEditingDetails ? (
+                  <form onSubmit={handleDetailsSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">First Name / Office <span className="text-red-500">*</span></label>
+                        <Input
+                          value={detailsData.firstname_or_office}
+                          onChange={(e) => setDetailsData({ ...detailsData, firstname_or_office: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Middle Name / Project</label>
+                        <Input
+                          value={detailsData.middlename_or_project}
+                          onChange={(e) => setDetailsData({ ...detailsData, middlename_or_project: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Last Name / Agency <span className="text-red-500">*</span></label>
+                        <Input
+                          value={detailsData.lastname_or_agency}
+                          onChange={(e) => setDetailsData({ ...detailsData, lastname_or_agency: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Office / College</label>
+                        <Input
+                          value={detailsData.office_or_college}
+                          onChange={(e) => setDetailsData({ ...detailsData, office_or_college: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Position / Designation</label>
+                        <Input
+                          value={detailsData.position_or_designation}
+                          onChange={(e) => setDetailsData({ ...detailsData, position_or_designation: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Email</label>
+                        <Input
+                          type="email"
+                          value={detailsData.email}
+                          onChange={(e) => setDetailsData({ ...detailsData, email: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Contact Number</label>
+                        <Input
+                          value={detailsData.contact_num}
+                          onChange={(e) => setDetailsData({ ...detailsData, contact_num: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Address</label>
+                        <Input
+                          value={detailsData.address}
+                          onChange={(e) => setDetailsData({ ...detailsData, address: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Course Program</label>
+                        <Select
+                          value={detailsData.course_id}
+                          onValueChange={(value) => setDetailsData({ ...detailsData, course_id: value ?? "" })}
+                        >
+                          <SelectTrigger>
+                            {detailsData.course_id ? (
+                              <span className="flex flex-1 text-left line-clamp-1">
+                                {(() => {
+                                  const selected = courses.find((c) => String(c.id) === detailsData.course_id);
+                                  return selected ? `${selected.course_code} — ${selected.course_desc}` : "Select Course Program";
+                                })()}
+                              </span>
+                            ) : (
+                              <SelectValue placeholder="Select Course Program" />
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            {courses.map((course) => (
+                              <SelectItem key={course.id} value={String(course.id)}>
+                                {course.course_code} — {course.course_desc}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-                <div>
-                  <span className="text-xs text-muted-foreground">Reference Date</span>
-                  <p className="font-medium text-foreground mt-0.5">
-                    {formatDate(staffInput.ref_date)}
-                  </p>
-                </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Amount <span className="text-red-500">*</span></label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={detailsData.amount}
+                        onChange={(e) => setDetailsData({ ...detailsData, amount: e.target.value })}
+                        required
+                      />
+                    </div>
 
-                <div>
-                  <span className="text-xs text-muted-foreground">Bank Account / Fund Cluster</span>
-                  <p className="font-medium text-foreground mt-0.5">
-                    {staffInput.bank_account
-                      ? `${staffInput.bank_account.bank_name} — ${staffInput.bank_account.account_name} (${staffInput.bank_account.account_num})`
-                      : "—"}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-xs text-muted-foreground">UACS Object Code</span>
-                  <p className="font-medium text-foreground mt-0.5 font-mono text-xs">
-                    {staffInput.uacs
-                      ? `${staffInput.uacs.uacs_object_code} — ${staffInput.uacs.account_title}`
-                      : "—"}
-                  </p>
-                </div>
-
-                {staffInput.purpose && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">Purpose / Remarks</span>
-                    <p className="text-xs text-foreground mt-0.5 bg-muted/40 p-2.5 rounded-lg border">
-                      {staffInput.purpose}
-                    </p>
-                  </div>
-                )}
-
-                {staffInput.or_no && (
-                  <div className="border-t pt-3">
-                    <span className="text-xs text-muted-foreground">Official Receipt #</span>
-                    <p className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
-                      {staffInput.or_no}
-                    </p>
-                    {staffInput.or_date && (
-                      <span className="text-xs text-muted-foreground">
-                        Date: {formatDate(staffInput.or_date)}
-                      </span>
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button type="button" variant="outline" onClick={cancelDetailsEdit}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={updateDetailsMutation.isPending}>
+                        {updateDetailsMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-3">
+                    <ReadOnlyRow label="First Name / Office" value={formInput.firstname_or_office} valueClass="font-medium" />
+                    <ReadOnlyRow label="Middle Name / Project" value={formInput.middlename_or_project} />
+                    <ReadOnlyRow label="Last Name / Agency" value={formInput.lastname_or_agency} valueClass="font-medium" />
+                    <ReadOnlyRow label="Office / College" value={formInput.office_or_college} />
+                    <ReadOnlyRow label="Position / Designation" value={formInput.position_or_designation} />
+                    <ReadOnlyRow label="Email" value={formInput.email} valueClass="text-blue-600" />
+                    <ReadOnlyRow label="Contact Number" value={formInput.contact_num} valueClass="text-blue-600" />
+                    <ReadOnlyRow label="Address" value={formInput.address} />
+                    <ReadOnlyRow label="Amount" value={formatCurrency(formInput.amount)} valueClass="font-bold text-blue-600" />
+                    {formInput.course && (
+                      <ReadOnlyRow
+                        label="Course Program"
+                        value={`${formInput.course.course_code} \u2014 ${formInput.course.course_desc}`}
+                      />
                     )}
                   </div>
                 )}
               </CardContent>
             </Card>
-          ) : (
-            <ProcessingForm
-              id={request.id}
-              bankAccounts={bankAccounts}
-              uacsList={uacsList}
-              initialValues={{
-                status: "processed",
-                ref_date: staffInput?.ref_date,
-                purpose: staffInput?.purpose,
-              }}
-              onComplete={() => void query.refetch()}
-            />
-          )}
+
+            {/* Payment Information */}
+            <Card className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                <div>
+                  <CardTitle className="text-base font-semibold">Payment Information</CardTitle>
+                  <CardDescription className="text-xs">Request type, membership, and payment option</CardDescription>
+                </div>
+                {!isEditingPaymentInfo && formInput && (
+                  <Button variant="ghost" size="icon" onClick={() => setIsEditingPaymentInfo(true)} aria-label="Edit payment info">
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="pt-4">
+                {isEditingPaymentInfo ? (
+                  <form onSubmit={handlePaymentInfoSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Membership</label>
+                        <Select
+                          value={paymentInfoData.membership_id}
+                          onValueChange={(value) => setPaymentInfoData({ ...paymentInfoData, membership_id: value ?? "" })}
+                        >
+                          <SelectTrigger>
+                            {paymentInfoData.membership_id ? (
+                              <span className="flex flex-1 text-left line-clamp-1">
+                                {(() => {
+                                  const selected = memberships.find((m) => String(m.id) === paymentInfoData.membership_id);
+                                  return selected ? `${selected.member_code} - ${selected.member_desc}` : "Select Membership";
+                                })()}
+                              </span>
+                            ) : (
+                              <SelectValue placeholder="Select Membership" />
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">None</SelectItem>
+                            {memberships.map((m) => (
+                              <SelectItem key={m.id} value={String(m.id)}>
+                                {m.member_code} - {m.member_desc}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Payment Option <span className="text-red-500">*</span></label>
+                        <Select
+                          value={paymentInfoData.payment_detail_option_id}
+                          onValueChange={(value) => setPaymentInfoData({ ...paymentInfoData, payment_detail_option_id: value ?? "" })}
+                        >
+                          <SelectTrigger>
+                            {paymentInfoData.payment_detail_option_id ? (
+                              <span className="flex flex-1 text-left line-clamp-1">
+                                {(() => {
+                                  const selected = paymentOptions.find((o) => String(o.id) === paymentInfoData.payment_detail_option_id);
+                                  return selected ? selected.payment_desc : "Select Payment Option";
+                                })()}
+                              </span>
+                            ) : (
+                              <SelectValue placeholder="Select Payment Option" />
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            {paymentOptions.map((option) => (
+                              <SelectItem key={option.id} value={String(option.id)}>
+                                {option.payment_desc}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Submission Date <span className="text-red-500">*</span></label>
+                        <Input
+                          type="date"
+                          value={paymentInfoData.submission_date}
+                          onChange={(e) => setPaymentInfoData({ ...paymentInfoData, submission_date: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button type="button" variant="outline" onClick={cancelPaymentInfoEdit}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={updateDetailsMutation.isPending}>
+                        {updateDetailsMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-3">
+                    <ReadOnlyRow
+                      label="Membership"
+                      value={formInput.membership ? `${formInput.membership.member_code} - ${formInput.membership.member_desc}` : "N/A"}
+                    />
+                    <ReadOnlyRow
+                      label="Payment Option"
+                      value={formInput.payment_detail_option?.payment_desc ?? "N/A"}
+                    />
+                    <ReadOnlyRow label="Submission Date" value={formatDateTime(formInput.created_at)} />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Supporting Documents */}
+            <Card className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                <div>
+                  <CardTitle className="text-base font-semibold">Supporting Documents</CardTitle>
+                  <CardDescription className="text-xs">Uploaded verification requirements and attachments</CardDescription>
+                </div>
+                <Badge variant="secondary">{supportingDocuments.length} file(s)</Badge>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {supportingDocuments.length > 0 ? (
+                  <div className="divide-y divide-border">
+                    {supportingDocuments.map((document) => (
+                      <div key={document.id} className="flex items-center justify-between px-2 py-3">
+                        <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className={`h-4 w-4 ${document.file_extension === "pdf" ? "text-red-500" : "text-blue-500"}`}
+                          >
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <path d="M14 2v6h6" />
+                          </svg>
+                          <TooltipProvider delay={150}>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <a
+                                    href={`/api/v1/staff/documents/${document.id}/download`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block max-w-65 min-w-0 truncate text-blue-600 hover:underline"
+                                  >
+                                    {document.original_filename}
+                                  </a>
+                                }
+                              >
+                                {document.original_filename}
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="start" className="max-w-sm break-all">
+                                {document.original_filename}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {document.file_extension?.toUpperCase() ?? "FILE"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {document.formatted_file_size ?? formatFileSize(document.file_size)}
+                          </span>
+                          <a
+                            href={`/api/v1/staff/documents/${document.id}/view`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 text-blue-600 hover:bg-blue-50"
+                            title="View"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </a>
+                          <a
+                            href={`/api/v1/staff/documents/${document.id}/download`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100"
+                            title="Download"
+                          >
+                            <Download className="h-4 w-4" />
+                          </a>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger render={
+                                <button
+                                  onClick={() => confirmDelete(document.id)}
+                                  className="flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-500 hover:bg-red-50"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              }>
+                                <TooltipContent>Delete this document</TooltipContent>
+                              </TooltipTrigger>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="py-4 text-center text-sm text-muted-foreground">No supporting documents uploaded.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            {/* Staff Processing Information */}
+            <Card className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                <div>
+                  <CardTitle className="text-base font-semibold">Staff Processing</CardTitle>
+                  <CardDescription className="text-xs">Processing record and cashier details</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  {staffInput && (
+                    <Badge className={statusBadgeClass(rawStatus)}>{rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1)}</Badge>
+                  )}
+                  {staffInput?.emailed_at && (
+                    <Badge variant="secondary" className="bg-green-50 text-green-700">
+                      <Mail className="h-3 w-3 mr-1" /> Sent email
+                    </Badge>
+                  )}
+                  {!staffInput && !isProcessing && (
+                    <Button variant="outline" size="sm" onClick={() => setIsProcessing(true)}>
+                      Process Now
+                    </Button>
+                  )}
+                  {staffInput && !isEditingStaffInput && (
+                    <Button variant="ghost" size="icon" onClick={() => setIsEditingStaffInput(true)} aria-label="Edit processing">
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {isProcessing ? (
+                  <form onSubmit={handleProcessSubmit} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Bank Account <span className="text-red-500">*</span></label>
+                      <Select value={processData.fundcluster_id} onValueChange={(v) => setProcessData({ ...processData, fundcluster_id: v ?? "" })}>
+                        <SelectTrigger>
+                          {processData.fundcluster_id ? (
+                            <>
+                              {(() => {
+                                const selected = bankAccounts.find((a) => String(a.id) === processData.fundcluster_id);
+                                return selected ? `${selected.fund_cluster} - ${selected.account_name} - ${selected.bank_name} (${selected.account_num})` : "Select Bank Account";
+                              })()}
+                            </>
+                          ) : (
+                            <SelectValue placeholder="Select Bank Account" />
+                          )}
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bankAccounts.map((acc) => (
+                            <SelectItem key={acc.id} value={String(acc.id)}>
+                              {acc.fund_cluster} - {acc.account_name} - {acc.bank_name} ({acc.account_num})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Reference Document</label>
+                      <Select value={processData.ref_document_id} onValueChange={(v) => setProcessData({ ...processData, ref_document_id: v ?? "" })}>
+                        <SelectTrigger><SelectValue placeholder="Select Reference Document (Optional)" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {supportingDocuments.map((doc) => (
+                            <SelectItem key={doc.id} value={String(doc.id)}>{doc.original_filename}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Reference Date <span className="text-red-500">*</span></label>
+                      <Input
+                        type="date"
+                        value={processData.ref_date}
+                        onChange={(e) => setProcessData({ ...processData, ref_date: e.target.value })}
+                        max={todayIso()}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">UACS <span className="text-red-500">*</span></label>
+                      <Select value={processData.uacs_id} onValueChange={(v) => setProcessData({ ...processData, uacs_id: v ?? "" })}>
+                        <SelectTrigger>
+                          {processData.uacs_id ? (
+                            <>
+                              {(() => {
+                                const selected = uacsList.find((u) => String(u.id) === processData.uacs_id);
+                                return selected ? `${selected.uacs_sub_object_code ? `${selected.uacs_object_code}-${selected.uacs_sub_object_code}` : selected.uacs_object_code} - ${selected.account_title}` : "Select UACS";
+                              })()}
+                            </>
+                          ) : (
+                            <SelectValue placeholder="Select UACS" />
+                          )}
+                        </SelectTrigger>
+                        <SelectContent>
+                          {uacsList.map((u) => (
+                            <SelectItem key={u.id} value={String(u.id)}>
+                              {u.uacs_sub_object_code ? `${u.uacs_object_code}-${u.uacs_sub_object_code}` : u.uacs_object_code} - {u.account_title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Status</label>
+                      <Select value={processData.status} onValueChange={(v) => setProcessData({ ...processData, status: (v ?? "processed") as "processed" | "pending" | "paid" | "cancelled" })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="processed">Processed</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="paid">Paid</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Purpose</label>
+                      <Textarea
+                        value={processData.purpose}
+                        onChange={(e) => setProcessData({ ...processData, purpose: e.target.value })}
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button type="button" variant="outline" onClick={() => setIsProcessing(false)}>Cancel</Button>
+                      <Button type="submit" disabled={processMutation.isPending}>
+                        {processMutation.isPending ? "Processing..." : "Process"}
+                      </Button>
+                    </div>
+                  </form>
+                ) : staffInput ? (
+                  isEditingStaffInput ? (
+                    <form onSubmit={handleStaffInputSubmit} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Bank Account <span className="text-red-500">*</span></label>
+                        <Select value={staffInputData.fundcluster_id} onValueChange={(v) => setStaffInputData({ ...staffInputData, fundcluster_id: v ?? "" })}>
+                          <SelectTrigger>
+                            {staffInputData.fundcluster_id ? (
+                              <>
+                                {(() => {
+                                  const selected = bankAccounts.find((a) => String(a.id) === staffInputData.fundcluster_id);
+                                  return selected ? `${selected.fund_cluster} - ${selected.account_name} - ${selected.bank_name} (${selected.account_num})` : "Select Bank Account";
+                                })()}
+                              </>
+                            ) : (
+                              <SelectValue placeholder="Select Bank Account" />
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            {bankAccounts.map((acc) => (
+                              <SelectItem key={acc.id} value={String(acc.id)}>
+                                {acc.fund_cluster} - {acc.account_name} - {acc.bank_name} ({acc.account_num})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Reference Document</label>
+                        <Select value={staffInputData.ref_document_id} onValueChange={(v) => setStaffInputData({ ...staffInputData, ref_document_id: v ?? "" })}>
+                          <SelectTrigger><SelectValue placeholder="Select Reference Document (Optional)" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">None</SelectItem>
+                            {supportingDocuments.map((doc) => (
+                              <SelectItem key={doc.id} value={String(doc.id)}>{doc.original_filename}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Reference Date <span className="text-red-500">*</span></label>
+                        <Input
+                          type="date"
+                          value={staffInputData.ref_date}
+                          onChange={(e) => setStaffInputData({ ...staffInputData, ref_date: e.target.value })}
+                          max={todayIso()}
+                          required
+                        />
+                      </div>
+<div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">UACS <span className="text-red-500">*</span></label>
+                        <Select value={staffInputData.uacs_id} onValueChange={(v) => setStaffInputData({ ...staffInputData, uacs_id: v ?? "" })}>
+                          <SelectTrigger>
+                            {staffInputData.uacs_id ? (
+                              <>
+                                {(() => {
+                                  const selected = uacsList.find((u) => String(u.id) === staffInputData.uacs_id);
+                                  return selected ? `${selected.uacs_sub_object_code ? `${selected.uacs_object_code}-${selected.uacs_sub_object_code}` : selected.uacs_object_code} - ${selected.account_title}` : "Select UACS";
+                                })()}
+                              </>
+                            ) : (
+                              <SelectValue placeholder="Select UACS" />
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            {uacsList.map((u) => (
+                              <SelectItem key={u.id} value={String(u.id)}>
+                                {u.uacs_sub_object_code ? `${u.uacs_object_code}-${u.uacs_sub_object_code}` : u.uacs_object_code} - {u.account_title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Status</label>
+                        <Select value={staffInputData.status} onValueChange={(v) => setStaffInputData({ ...staffInputData, status: (v ?? "unprocessed") as "pending" | "processed" | "paid" | "cancelled" | "unprocessed" })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="processed">Processed</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="paid">Paid</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-foreground">Purpose</label>
+                        <Textarea
+                          value={staffInputData.purpose}
+                          onChange={(e) => setStaffInputData({ ...staffInputData, purpose: e.target.value })}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-4 border-t">
+                        <Button type="button" variant="outline" onClick={cancelStaffInputEdit}>Cancel</Button>
+                        <Button type="submit" disabled={updateProcessingMutation.isPending}>
+                          {updateProcessingMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-3">
+                      <ReadOnlyRow label="Bank Account" value={staffInput.bank_account ? `${staffInput.bank_account.fund_cluster} - ${staffInput.bank_account.account_name} - ${staffInput.bank_account.bank_name} (${staffInput.bank_account.account_num})` : "N/A"} />
+                      <ReadOnlyRow label="Reference Document" value={staffInput.reference_document?.original_filename ?? "N/A"} />
+                      <ReadOnlyRow label="Reference Date" value={staffInput.ref_date ? formatDateOnly(staffInput.ref_date) : "N/A"} />
+                      <ReadOnlyRow label="UACS" value={staffInput.uacs ? `${staffInput.uacs.uacs_sub_object_code ? `${staffInput.uacs.uacs_object_code}-${staffInput.uacs.uacs_sub_object_code}` : staffInput.uacs.uacs_object_code} - ${staffInput.uacs.account_title}` : "N/A"} />
+                      <ReadOnlyRow label="Status" value={rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1)} valueClass="font-medium" />
+                      <ReadOnlyRow label="Purpose" value={staffInput.purpose ?? "N/A"} stacked />
+                      <ReadOnlyRow label="Processed By" value="Staff User" />
+                      <ReadOnlyRow label="Processed Date" value={staffInput.created_at ? formatDateTime(staffInput.created_at) : "N/A"} />
+                      {staffInput.or_no && (
+                        <ReadOnlyRow label="OR Number" value={staffInput.or_no} valueClass="font-mono font-medium" />
+                      )}
+                      {staffInput.or_date && (
+                        <ReadOnlyRow label="OR Date" value={formatDateOnly(staffInput.or_date)} />
+                      )}
+                    </div>
+                  )
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No processing record yet.</p>
+                    <Button variant="outline" className="mt-4" onClick={() => setIsProcessing(true)}>
+                      Process Now
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* OR Information (Cashier) */}
+            {(staffInput && (isProcessedOrPaid || true)) && (
+              <Card className="shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                  <div>
+                    <CardTitle className="text-base font-semibold">Official Receipt</CardTitle>
+                    <CardDescription className="text-xs">Official receipt details</CardDescription>
+                  </div>
+{!isEditingOr && staffInput && (
+                  <Button variant="ghost" size="icon" onClick={() => setIsEditingOr(true)} aria-label="Edit OR">
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                )}
+                </CardHeader>
+                <CardContent className="pt-4">
+                  {isEditingOr ? (
+                    <form onSubmit={handleOrSubmit} className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium text-foreground">OR Number <span className="text-red-500">*</span></label>
+                          <Input
+                            value={orData.or_no}
+                            onChange={(e) => setOrData({ ...orData, or_no: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium text-foreground">OR Date <span className="text-red-500">*</span></label>
+                          <Input
+                            type="date"
+                            value={orData.or_date}
+                            onChange={(e) => setOrData({ ...orData, or_date: e.target.value })}
+                            max={todayIso()}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-4 border-t">
+                        <Button type="button" variant="outline" onClick={cancelOrEdit}>Cancel</Button>
+                        <Button type="submit" disabled={updateOrMutation.isPending}>
+                          {updateOrMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-3">
+                      <ReadOnlyRow label="OR Number" value={staffInput.or_no ?? "Not issued"} valueClass={staffInput.or_no ? "font-mono font-medium" : "text-muted-foreground"} />
+                      <ReadOnlyRow label="OR Date" value={staffInput.or_date ? formatDateOnly(staffInput.or_date) : "Not issued"} />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Student Verification */}
+            <Card className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                <div>
+                  <CardTitle className="text-base font-semibold">Student Verification</CardTitle>
+                  <CardDescription className="text-xs">Link to university student master ledger</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {formInput.student ? (
+                  <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900/50 dark:bg-green-950/20">
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="font-semibold text-green-900">{formInput.student.full_name}</p>
+                        <p className="text-xs text-green-700 font-mono">Student ID: {formInput.student.student_number}</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-green-100 text-green-700">Linked</Badge>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="text-xs text-amber-800 flex-1">
+                        <p className="font-medium">No student linked to this request</p>
+                        {formInput.submitted_student_number && (
+                          <p className="mt-0.5">Submitted student ID: <span className="font-mono font-semibold">{formInput.submitted_student_number}</span></p>
+                        )}
+                      </div>
+                    </div>
+                    <Button variant="outline" onClick={openStudentMatch}>
+                      <UserPlus className="h-4 w-4 mr-2" /> Match Student
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* PDF Actions */}
+            <Card className="shadow-sm">
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-semibold">PDF Copies</CardTitle>
+                <CardDescription className="text-xs">View or download generated PDF receipts</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4 flex items-center gap-2">
+                <Select
+                  onValueChange={(value) => {
+                    if (value) window.open(getOpPdfUrl(formInput.id, value as "portrait" | "landscape"), "_blank");
+                  }}
+                  defaultValue="portrait"
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select PDF format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="portrait">Portrait (3 Pages)</SelectItem>
+                    <SelectItem value="landscape">Landscape (1 Page)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  onClick={openEmailPreview}
+                >
+                  <Mail className="h-4 w-4 mr-2" /> Email OP
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
+        {/* Email Preview Dialog */}
+        <Dialog open={isEmailPreviewOpen} onOpenChange={setIsEmailPreviewOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Preview Email</DialogTitle>
+              <DialogDescription>
+                Review before sending to <span className="font-medium">{formInput.email}</span>. Two PDF copies (A5 + Legal) will be attached automatically.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-6 md:grid-cols-2 py-4">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Subject</label>
+                  <Input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Recipient Name</label>
+                  <Input value={emailRecipientName} onChange={(e) => setEmailRecipientName(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">How they're greeted \u2014 edit if the name needs correcting.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Additional Note (Optional)</label>
+                  <Textarea
+                    value={emailNote}
+                    onChange={(e) => setEmailNote(e.target.value)}
+                    rows={4}
+                    placeholder="Add a personal note to the email..."
+                  />
+                </div>
+              </div>
+              <div className="border rounded-lg bg-gray-50 p-4 overflow-auto max-h-[60vh]">
+                <div dangerouslySetInnerHTML={{ __html: buildEmailPreviewHtml(formInput, emailRecipientName, emailNote) }} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEmailPreviewOpen(false)}>Cancel</Button>
+              <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+                {isSendingEmail ? "Sending..." : "Send Email"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Student Match Dialog */}
+        <Dialog open={isStudentMatchOpen} onOpenChange={setIsStudentMatchOpen}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Match Student</DialogTitle>
+              <DialogDescription>Link this request to a student in the university ledger</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="flex gap-2 border-b pb-4">
+                <Button
+                  variant={studentMatchMode === "existing" ? "default" : "outline"}
+                  onClick={() => setStudentMatchMode("existing")}
+                >
+                  Existing Student
+                </Button>
+                <Button
+                  variant={studentMatchMode === "create" ? "default" : "outline"}
+                  onClick={() => setStudentMatchMode("create")}
+                >
+                  Create New
+                </Button>
+              </div>
+
+              {studentMatchMode === "existing" ? (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">Search Student</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by name or student number..."
+                        value={studentSearch}
+                        onChange={(e) => setStudentSearch(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  {isSearchingStudents && <div className="text-center text-sm text-muted-foreground">Searching...</div>}
+                  {!isSearchingStudents && studentCandidates.length === 0 && studentSearch && (
+                    <div className="text-center text-sm text-muted-foreground">No students found.</div>
+                  )}
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {studentCandidates.map((student) => (
+                      <Button
+                        key={student.id}
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => linkStudentMutation.mutate({ id: formInput.id, student_id: student.id })}
+                        disabled={linkStudentMutation.isPending}
+                      >
+                        {student.full_name} \u2014 <span className="font-mono">{student.student_number}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Create a new student record and link it to this request.</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Student Number *</label>
+                      <Input value={formInput.submitted_student_number ?? ""} readOnly />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">First Name *</label>
+                      <Input defaultValue={formInput.firstname_or_office} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Middle Name</label>
+                      <Input defaultValue={formInput.middlename_or_project ?? ""} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Last Name *</label>
+                      <Input defaultValue={formInput.lastname_or_agency} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Email *</label>
+                      <Input type="email" defaultValue={formInput.email} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Contact Number</label>
+                      <Input defaultValue={formInput.contact_num} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsStudentMatchOpen(false)}>Cancel</Button>
+              <Button
+                onClick={
+                  studentMatchMode === "existing"
+                    ? () => {} // linkStudentMutation.mutate({ id: formInput.id, student_id: selectedId })
+                    : () => {} // createAndLinkStudent mutation not implemented yet
+                }
+                disabled={
+                  studentMatchMode === "existing"
+                    ? false // !selectedId || linkStudentMutation.isPending
+                    : false // createStudentForm.processing
+                }
+              >
+                {studentMatchMode === "existing"
+                  ? linkStudentMutation.isPending
+                    ? "Linking..."
+                    : "Confirm Match"
+                  : "Create and Match"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Document Confirmation Dialog */}
+        <Dialog open={deleteTargetId !== null} onOpenChange={() => setDeleteTargetId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Document</DialogTitle>
+              <DialogDescription>Are you sure you want to delete this document? This action cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteTargetId(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={deleteDocumentMutation.isPending}>
+                {deleteDocumentMutation.isPending ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

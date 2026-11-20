@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -139,16 +140,18 @@ export function AdminActivityLogPage() {
     direction: "desc",
   });
 
-  // Reload cooldown timer
-  const [cooldown, setCooldown] = useState(0);
+  // Reset cooldown
+  const [resetCooldown, setResetCooldown] = useState(0);
 
   useEffect(() => {
-    if (cooldown <= 0) return;
+    if (resetCooldown <= 0) return;
     const timer = setInterval(() => {
-      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      setResetCooldown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
-  }, [cooldown]);
+  }, [resetCooldown]);
+
+  const canReset = resetCooldown === 0;
 
   const query = useAdminActivityLogs(activeFilters);
 
@@ -194,6 +197,7 @@ export function AdminActivityLogPage() {
   };
 
   const handleReset = () => {
+    if (!canReset) return;
     setSearchInput("");
     setActionInput("");
     setDateFromInput("");
@@ -210,13 +214,15 @@ export function AdminActivityLogPage() {
         direction: "desc",
       });
     });
+    query.refetch();
+    setResetCooldown(5);
   };
 
-  const handleReload = () => {
-    if (cooldown > 0) return;
-    void query.refetch();
-    setCooldown(5);
-  };
+  const hasFilters =
+    activeFilters.activity_search ||
+    activeFilters.activity_action ||
+    activeFilters.date_from ||
+    activeFilters.date_to;
 
   const handleSortClick = (columnKey: string) => {
     startTransition(() => {
@@ -300,17 +306,29 @@ export function AdminActivityLogPage() {
               <Input
                 type="search"
                 placeholder="Search action, name, role, description..."
-                className="h-9 pl-8 text-xs"
+                className="h-9 pl-8 pr-8 text-xs"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
               />
+              {searchInput && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onClick={() => setSearchInput("")}
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
 
             {/* Action / Sort Filter Select */}
-            <div className="w-full sm:w-40">
+            <div className="relative w-full sm:w-40">
               <select
                 aria-label="Activity filter"
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 pr-8 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={
                   actionInput ||
                   (activeFilters.sort === "created_at" &&
@@ -336,6 +354,21 @@ export function AdminActivityLogPage() {
                   <option value="Newest">Newest first</option>
                 </optgroup>
               </select>
+              {activeFilters.activity_action && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setActionInput("");
+                    handleActionChange("All");
+                  }}
+                  aria-label="Clear action filter"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
 
             {/* Date Range Inputs */}
@@ -355,6 +388,24 @@ export function AdminActivityLogPage() {
                 value={dateToInput}
                 onChange={(e) => setDateToInput(e.target.value)}
               />
+              {(activeFilters.date_from || activeFilters.date_to) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="h-9 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setDateFromInput("");
+                    setDateToInput("");
+                    startTransition(() => {
+                      setActiveFilters((prev) => ({ ...prev, date_from: "", date_to: "", page: 1 }));
+                    });
+                  }}
+                  aria-label="Clear date range"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
 
             <Button
@@ -371,30 +422,17 @@ export function AdminActivityLogPage() {
               variant="outline"
               size="sm"
               className="h-9 gap-1.5 text-xs"
-              onClick={handleReload}
-              disabled={cooldown > 0 || query.isFetching}
-              title={
-                cooldown > 0
-                  ? `Wait ${cooldown}s to reload`
-                  : "Reload activity logs"
-              }
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${query.isFetching ? "animate-spin" : ""}`}
-              />
-              <span>{cooldown > 0 ? `Reload (${cooldown}s)` : "Reload"}</span>
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 text-xs"
               onClick={handleReset}
-              title="Reset search, filter and sorting"
+              disabled={query.isFetching || !canReset}
             >
-              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-              Reset
+              <RotateCcw className={`h-3.5 w-3.5 ${query.isFetching ? "animate-spin" : ""}`} />
+              <span>
+                {query.isFetching
+                  ? "Resetting..."
+                  : !canReset
+                    ? `Reset (${resetCooldown}s)`
+                    : "Reset"}
+              </span>
             </Button>
           </form>
         </CardHeader>

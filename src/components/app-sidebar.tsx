@@ -15,6 +15,7 @@ import {
   School,
   ChevronRight,
   LogOut,
+  Loader2,
   FileSpreadsheet,
   FileSearchIcon,
 } from "lucide-react";
@@ -360,12 +361,17 @@ export function AppSidebar() {
             render={
               <button
                 type="button"
-                className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-white/30 bg-primary px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none dark:border-white/10 dark:bg-primary dark:hover:bg-red-700"
+                disabled={logoutMutation.isPending}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-white/30 bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-red-700 hover:text-white focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-70 dark:border-sidebar-border dark:bg-primary dark:text-primary-foreground dark:hover:bg-red-700 dark:hover:text-white"
               />
             }
           >
-            <LogOut className="h-4 w-4" />
-            Logout
+            {logoutMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <LogOut className="h-4 w-4" />
+            )}
+            {logoutMutation.isPending ? "Logging out..." : "Logout"}
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -375,9 +381,21 @@ export function AppSidebar() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleLogout}>
-                Logout
+              <AlertDialogCancel disabled={logoutMutation.isPending}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleLogout}
+                disabled={logoutMutation.isPending}
+              >
+                {logoutMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Logging out...
+                  </>
+                ) : (
+                  "Logout"
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

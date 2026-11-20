@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createLedgerRecord,
+  createCohortLedger,
   deleteLedgerRecord,
   exportLedger,
   getLedgerBalance,
@@ -93,6 +94,50 @@ describe("ledger API", () => {
     });
   });
 
+  it("creates a first transaction with an inline student registration", async () => {
+    vi.mocked(api).mockResolvedValue({ message: "Created", data: { id: 11 } });
+    const payload = {
+      new_student: {
+        student_number: "2026-NEW",
+        email: "new@example.com",
+        last_name: "Student",
+        first_name: "New",
+      },
+      course_id: 2,
+      academic_term_id: 3,
+      entry_type: "ar" as const,
+      transaction_date: "2026-11-20",
+      particulars: "First Assessment",
+      rate: 500,
+      amount: 1500,
+    };
+    await createLedgerRecord("law", payload);
+    expect(api).toHaveBeenCalledWith("/api/v1/law-ledger", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  });
+
+  it("posts Law cohort rows with Latin Honor overrides", async () => {
+    vi.mocked(api).mockResolvedValue({ message: "Created", created_count: 2 });
+    const payload = {
+      course_id: 2,
+      academic_term_id: 3,
+      entry_type: "ar" as const,
+      transaction_date: "2026-11-20",
+      particulars: "Law Cohort Tuition",
+      cohort_rows: [
+        { student_id: 10, amount: 2000, latin_honor: "MAGNA" as const, discount_amount: 1500 },
+        { student_id: 11, amount: 2000, latin_honor: null, discount_amount: null },
+      ],
+    };
+    await createCohortLedger("law", payload);
+    expect(api).toHaveBeenCalledWith("/api/v1/law-ledger/cohort-store", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  });
+
   it("updates a ledger transaction", async () => {
     vi.mocked(api).mockResolvedValue({ message: "Updated", data: { id: 10 } });
     const payload = {
@@ -176,4 +221,5 @@ describe("ledger API", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
 });
