@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import App from "./App";
 import { LoginForm } from "./features/auth/LoginForm";
 import { OpFormPage } from "./features/public/opform/OpFormPage";
@@ -12,7 +12,6 @@ import { AssessmentSuccessPage } from "./features/public/assessmentform/Assessme
 import { StaffDashboardPage } from "./features/staff/StaffDashboardPage";
 import { StaffRequestsPage } from "./features/staff/StaffRequestsPage";
 import { StaffRequestDetailPage } from "./features/staff/StaffRequestDetailPage";
-import { StaffActivityLogPage } from "./features/staff/StaffActivityLogPage";
 import { CashierRequestsPage } from "./features/cashier/CashierRequestsPage";
 import { CashierRequestDetailPage } from "./features/cashier/CashierRequestDetailPage";
 import { DocumentsPage } from "./features/documents/DocumentsPage";
@@ -40,9 +39,9 @@ export const router = createBrowserRouter([
   { path: "/opform", element: <OpFormPage /> },
   { path: "/opform/result", element: <OpFormSuccessPage /> },
   { path: "/public/success/:reference", element: <OpFormSuccessPage /> },
-  { path: "/assessment", element: <AssessmentPage /> },
-  { path: "/assessment/result", element: <AssessmentResultPage /> },
-  { path: "/assessment/success", element: <AssessmentSuccessPage /> },
+  { path: "/assessmentform", element: <AssessmentPage /> },
+  { path: "/assessmentform/result", element: <AssessmentResultPage /> },
+  { path: "/assessmentform/success", element: <AssessmentSuccessPage /> },
   {
     element: <ProtectedRoute />,
     children: [
@@ -145,19 +144,18 @@ export const router = createBrowserRouter([
                 path: "/staff/assessments/:id/edit",
                 element: <AssessmentEdit />,
               },
-              {
-                path: "/staff/activity-log",
-                element: <StaffActivityLogPage />,
-              },
             ],
           },
 
           // Cashier
-          {
-            element: <RoleRoute roles={["cashier"]} />,
-            children: [
-              { path: "/cashier", element: <App /> },
-              { path: "/cashier/requests", element: <CashierRequestsPage /> },
+           {
+             element: <RoleRoute roles={["cashier"]} />,
+             children: [
+               {
+                 path: "/cashier",
+                 element: <Navigate to="/cashier/requests" replace />,
+               },
+               { path: "/cashier/requests", element: <CashierRequestsPage /> },
               {
                 path: "/cashier/requests/:id",
                 element: <CashierRequestDetailPage />,

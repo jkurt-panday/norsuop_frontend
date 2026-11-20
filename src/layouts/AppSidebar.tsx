@@ -237,8 +237,8 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className={itemClass}
-              onClick={() => logout.mutate()}
+              className={`${itemClass} dark:bg-blue-500! dark:text-white! hover:bg-red-500! hover:text-white! dark:hover:bg-red-600! dark:hover:text-white!`}
+               onClick={() => logout.mutate()}
               disabled={logout.isPending}
               tooltip="Logout"
             >

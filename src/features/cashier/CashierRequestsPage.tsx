@@ -1,20 +1,20 @@
-import { useState, useTransition } from "react";
+import { useState, useTransition, type SubmitEvent } from "react";
 import { Link } from "react-router";
+import { format, parseISO } from "date-fns";
 import {
-  Search,
-  Filter,
-  RotateCcw,
-  Calendar,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  CalendarIcon,
   CreditCard,
-  Inbox,
-  Receipt,
   Eye,
+  Inbox,
+  RefreshCw,
+  Search,
 } from "lucide-react";
 import { ApiError } from "../../api/client";
 import {
   getCashierAmount,
-  getCashierEmail,
-  // getCashierOrDate,
   getCashierOrNo,
   getCashierPayorName,
   getCashierReferenceNumber,
@@ -23,10 +23,18 @@ import {
   type CashierRequest,
 } from "./api";
 import { useCashierRequests } from "./queries";
+import { CashierRequestSkeleton } from "./CashierRequestSkeleton";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -43,321 +51,388 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 
 const currencyFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
 });
+const statuses = ["processed", "paid", "cancelled"];
+const statusLabel = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1);
 
-function formatDate(dateStr?: string | null) {
-  if (!dateStr) return "—";
-  try {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return dateStr;
-  }
+function toDate(value: string) {
+  return value ? parseISO(value) : undefined;
+}
+function toDateInput(value: Date | undefined) {
+  return value ? format(value, "yyyy-MM-dd") : "";
+}
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+}
+
+function DateFilter({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  min?: Date;
+  max?: Date;
+}) {
+  const date = toDate(value);
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 w-40 justify-start gap-2 rounded-lg font-normal"
+            aria-label={label}
+          />
+        }
+      >
+        <CalendarIcon className="size-4 text-muted-foreground" />
+        {date ? format(date, "MMM d, yyyy") : label}
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={(selected) => onChange(toDateInput(selected))}
+          disabled={(day) => Boolean((min && day < min) || (max && day > max))}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function StatusFilter({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const selected = statuses.find((status) => status === value);
+  return (
+    <Combobox
+      items={statuses}
+      value={selected ? statusLabel(selected) : ""}
+      onValueChange={(next) =>
+        onChange(statuses.find((status) => statusLabel(status) === next) ?? "")
+      }
+    >
+      <ComboboxInput
+        placeholder="Status"
+        aria-label="Status"
+        showClear={Boolean(value)}
+        className="h-10 w-44 rounded-lg"
+      />
+      <ComboboxContent>
+        <ComboboxEmpty>No options found.</ComboboxEmpty>
+        <ComboboxList>
+          {(status) => (
+            <ComboboxItem key={status} value={statusLabel(status)}>
+              {statusLabel(status)}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
+}
+
+function getSortIcon(column: string, filters: CashierFilters) {
+  if (filters.sort !== column)
+    return <ArrowUpDown className="ml-1 size-3.5 opacity-50" />;
+  return filters.direction === "asc" ? (
+    <ArrowUp className="ml-1 size-3.5 text-primary" />
+  ) : (
+    <ArrowDown className="ml-1 size-3.5 text-primary" />
+  );
 }
 
 export function CashierRequestsPage() {
   const [, startTransition] = useTransition();
-
-  const [searchInput, setSearchInput] = useState("");
-  const [statusInput, setStatusInput] = useState("");
-  const [dateFromInput, setDateFromInput] = useState("");
-  const [dateToInput, setDateToInput] = useState("");
-
-  const [activeFilters, setActiveFilters] = useState<CashierFilters>({
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [filters, setFilters] = useState<CashierFilters>({
     page: 1,
     per_page: 10,
     search: "",
     status: "",
     date_from: "",
     date_to: "",
+    sort: "created_at",
+    direction: "desc",
   });
-
-  const query = useCashierRequests(activeFilters);
-
-  const handleApplyFilters = (e: React.FormEvent) => {
-    e.preventDefault();
-    startTransition(() => {
-      setActiveFilters((prev) => ({
-        ...prev,
-        page: 1,
-        search: searchInput.trim(),
-        status: statusInput,
-        date_from: dateFromInput,
-        date_to: dateToInput,
-      }));
+  const query = useCashierRequests(filters);
+  const updateFilters = (next: Partial<CashierFilters>) =>
+    startTransition(() => setFilters((current) => ({ ...current, ...next })));
+  const applyFilters = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    updateFilters({
+      page: 1,
+      search: search.trim(),
+      status,
+      date_from: dateFrom,
+      date_to: dateTo,
     });
   };
-
-  const handleResetFilters = () => {
-    setSearchInput("");
-    setStatusInput("");
-    setDateFromInput("");
-    setDateToInput("");
-    startTransition(() => {
-      setActiveFilters({
-        page: 1,
-        per_page: 10,
-        search: "",
-        status: "",
-        date_from: "",
-        date_to: "",
-      });
+  const resetFilters = () => {
+    setSearch("");
+    setStatus("");
+    setDateFrom("");
+    setDateTo("");
+    setFilters({
+      page: 1,
+      per_page: 10,
+      search: "",
+      status: "",
+      date_from: "",
+      date_to: "",
+      sort: "created_at",
+      direction: "desc",
     });
   };
-
-  const setPage = (pageNumber: number) => {
-    startTransition(() => {
-      setActiveFilters((prev) => ({ ...prev, page: pageNumber }));
+  const toggleSort = (sort: string) =>
+    updateFilters({
+      page: 1,
+      sort,
+      direction:
+        filters.sort === sort && filters.direction === "asc" ? "desc" : "asc",
     });
-  };
+  const isFiltered = Boolean(
+    filters.search || filters.status || filters.date_from || filters.date_to,
+  );
+  const requests = query.data?.data ?? [];
 
-  const isFiltered =
-    !!activeFilters.search ||
-    !!activeFilters.status ||
-    !!activeFilters.date_from ||
-    !!activeFilters.date_to;
+  if (query.isPending) return <CashierRequestSkeleton />;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+    <div className="min-h-screen w-full min-w-0 space-y-4 bg-page-background">
+      <title>Cashier Payment Requests</title>
+      <Card className="rounded-2xl bg-card px-2! py-2! shadow-sm">
+        <CardHeader className="p-3">
+          <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
             Cashier Payment Requests
-          </h1>
-          <p className="text-sm text-muted-foreground">
+          </CardTitle>
+          <CardDescription className="mt-1">
             Review approved orders of payment and record official receipts.
-          </p>
-        </div>
-      </div>
-
-      {/* Filter Card */}
-      <Card className="border-border shadow-sm">
-        <CardContent className="pt-4">
-          <form onSubmit={handleApplyFilters} className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          </CardDescription>
+        </CardHeader>
+      </Card>
+      <Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <CardContent className="p-0">
+          <form
+            onSubmit={applyFilters}
+            className="flex items-center justify-between gap-3 px-4 py-4"
+          >
+            <div className="flex w-full flex-col gap-3">
+              <div className="flex w-full items-center gap-2">
                 <Input
-                  className="pl-8 text-sm"
-                  placeholder="Search OR #, reference, name, email..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Search OR #, reference, or name"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="h-10 min-w-0 flex-1 rounded-xl px-4 text-sm sm:w-150 sm:flex-none"
+                />
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 shrink-0 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
                   aria-label="Search requests"
-                />
-              </div>
-
-              {/* Status Select */}
-              <div>
-                <select
-                  value={statusInput}
-                  onChange={(e) => setStatusInput(e.target.value)}
-                  aria-label="Filter by status"
-                  className="flex h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
-                  <option value="">All Statuses</option>
-                  <option value="processed">Ready for Payment (Processed)</option>
-                  <option value="paid">Paid</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-
-              {/* Date From */}
-              <div className="relative">
-                <Calendar className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="date"
-                  className="pl-8 text-sm"
-                  placeholder="Date From"
-                  value={dateFromInput}
-                  onChange={(e) => setDateFromInput(e.target.value)}
-                  aria-label="Date from"
-                />
-              </div>
-
-              {/* Date To */}
-              <div className="relative">
-                <Calendar className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="date"
-                  className="pl-8 text-sm"
-                  placeholder="Date To"
-                  value={dateToInput}
-                  onChange={(e) => setDateToInput(e.target.value)}
-                  aria-label="Date to"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-1">
-              {isFiltered && (
+                  <Search className="size-4" />
+                </Button>
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetFilters}
-                  className="gap-1 text-xs text-muted-foreground"
+                  variant="outline"
+                  size="icon"
+                  onClick={resetFilters}
+                  title="Reset table"
+                  className="h-10 w-10 shrink-0 rounded-xl"
                 >
-                  <RotateCcw className="size-3.5" />
-                  <span>Reset</span>
+                  <RefreshCw className="size-4" />
                 </Button>
-              )}
-              <Button type="submit" size="sm" className="gap-1 text-xs">
-                <Filter className="size-3.5" />
-                <span>Apply Filters</span>
-              </Button>
+              </div>
+              <div className="flex w-full flex-col gap-3 rounded-xl border border-border/70 bg-muted/20 p-3 sm:flex-row sm:items-end">
+                <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      Date range
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <DateFilter
+                        label="From date"
+                        value={dateFrom}
+                        max={toDate(dateTo)}
+                        onChange={setDateFrom}
+                      />
+                      <span className="text-sm text-muted-foreground">to</span>
+                      <DateFilter
+                        label="To date"
+                        value={dateTo}
+                        min={toDate(dateFrom)}
+                        onChange={setDateTo}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      Filters
+                    </span>
+                    <StatusFilter value={status} onChange={setStatus} />
+                  </div>
+
+                </div>
+              </div>
             </div>
           </form>
         </CardContent>
       </Card>
-
-      {/* Table Card */}
-      <Card className="border-border shadow-sm">
-        {query.isPending ? (
-          <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-6 w-24" />
-            </div>
-            <div className="space-y-2">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <Skeleton key={index} className="h-12 w-full rounded-md" />
-              ))}
-            </div>
-          </div>
-        ) : query.isError ? (
-          <div className="py-12 text-center space-y-3">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-              <Inbox className="size-6" />
-            </div>
-            <h2 className="text-base font-semibold text-foreground">
-              Failed to load cashier requests
-            </h2>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              {query.error instanceof ApiError
-                ? query.error.message
-                : "A network or server error occurred while retrieving payment requests."}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void query.refetch()}
-              className="text-xs"
-            >
-              Try again
-            </Button>
-          </div>
-        ) : query.data.data.length === 0 ? (
-          <div className="py-14 text-center space-y-3">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <Receipt className="size-6" />
-            </div>
-            <h2 className="text-base font-semibold text-foreground">
-              No payment requests found
-            </h2>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              {isFiltered
-                ? "No requests match your current filters. Try adjusting your search query or date range."
-                : "There are no pending or paid cashier requests at this time."}
-            </p>
-            {isFiltered && (
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          {query.isError ? (
+            <div className="space-y-3 py-12 text-center">
+              <Inbox className="mx-auto size-10 text-destructive" />
+              <p className="text-destructive">
+                Failed to load cashier requests
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {query.error instanceof ApiError
+                  ? query.error.message
+                  : "A network or server error occurred."}
+              </p>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleResetFilters}
-                className="text-xs gap-1"
+                onClick={() => void query.refetch()}
               >
-                <RotateCcw className="size-3" />
-                <span>Clear filters</span>
+                Try again
               </Button>
-            )}
-          </div>
-        ) : (
-          <div>
+            </div>
+          ) : requests.length === 0 ? (
+            <div className="space-y-3 py-14 text-center">
+              <Inbox className="mx-auto size-10 text-muted-foreground" />
+              <p className="font-medium">No payment requests found</p>
+              <p className="text-sm text-muted-foreground">
+                {isFiltered
+                  ? "No requests match your current filters."
+                  : "There are no pending or paid cashier requests at this time."}
+              </p>
+            </div>
+          ) : (
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-45">Reference #</TableHead>
+                <TableRow>
+                  <TableHead className="pl-4!">
+                    <button
+                      className="inline-flex items-center"
+                      onClick={() => toggleSort("reference_number")}
+                    >
+                      Reference # {getSortIcon("reference_number", filters)}
+                    </button>
+                  </TableHead>
                   <TableHead>Payor</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>OR Number</TableHead>
-                  <TableHead>Processed Date</TableHead>
-                  <TableHead className="text-right pr-4">Action</TableHead>
+                  <TableHead>
+                    <button
+                      className="inline-flex items-center"
+                      onClick={() => toggleSort("created_at")}
+                    >
+                      Processed Date {getSortIcon("created_at", filters)}
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-center">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {query.data.data.map((request: CashierRequest) => {
-                  const refNum = getCashierReferenceNumber(request);
-                  const payorName = getCashierPayorName(request);
-                  const email = getCashierEmail(request);
-                  const amount = getCashierAmount(request);
-                  const status = getCashierStatus(request);
-                  const orNo = getCashierOrNo(request);
-
+                {requests.map((request: CashierRequest) => {
+                  const statusValue = getCashierStatus(request);
+                  const paid = statusValue === "paid";
                   return (
-                    <TableRow key={request.id}>
-                      <TableCell className="font-medium">
+                    <TableRow
+                      key={request.id}
+                      className="even:bg-gray-100 hover:bg-gray-600/20 dark:even:bg-muted/30 dark:hover:bg-muted/50"
+                    >
+                      <TableCell className="px-3! py-2! pl-4! font-medium text-primary">
                         <Link
                           to={`/cashier/requests/${request.id}`}
-                          className="font-semibold text-primary hover:underline font-mono"
+                          className="font-semibold text-primary hover:underline"
                         >
-                          {refNum}
+                          {getCashierReferenceNumber(request)}
                         </Link>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-2!">
                         <div className="min-w-0">
-                          <p className="font-medium text-foreground truncate max-w-xs">
-                            {payorName || "—"}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate max-w-xs">
-                            {email}
+                          <p className="max-w-xs truncate font-medium text-foreground">
+                            {getCashierPayorName(request) || "—"}
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums font-medium text-foreground">
-                        {currencyFormatter.format(amount)}
+                      <TableCell className="py-2! text-right font-medium tabular-nums text-foreground">
+                        {currencyFormatter.format(getCashierAmount(request))}
                       </TableCell>
-                      <TableCell>
-                        <StatusBadge status={status} />
+                      <TableCell className="py-2!">
+                        <StatusBadge status={statusValue} />
                       </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {orNo ? (
-                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                            {orNo}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                      <TableCell className="py-2! tabular-nums text-foreground">
+                        {getCashierOrNo(request) || "—"}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      <TableCell className="py-2! text-xs text-muted-foreground whitespace-nowrap">
                         {formatDate(request.created_at ?? request.ref_date)}
                       </TableCell>
-                      <TableCell className="text-right pr-4">
+                      <TableCell className="py-2! text-center">
                         <Button
-                          variant={status === "paid" ? "ghost" : "default"}
-                          size="sm"
-                          className="h-7 text-xs gap-1"
+                          variant={paid ? "ghost" : "default"}
+                          size={paid ? "icon" : "sm"}
+                          className={
+                            paid
+                              ? "size-8 rounded-lg bg-blue-500 text-white hover:bg-blue-600 hover:text-white"
+                              : "h-8 gap-1 rounded-lg text-xs"
+                          }
+                          title={paid ? "View payment request" : undefined}
+                          aria-label={paid ? "View payment request" : undefined}
                         >
                           <Link to={`/cashier/requests/${request.id}`}>
-                            {status === "paid" ? (
-                              <>
-                                <Eye className="size-3.5" />
-                                <span>View</span>
-                              </>
+                            {paid ? (
+                              <Eye className="size-4" />
                             ) : (
                               <>
                                 <CreditCard className="size-3.5" />
-                                <span>Record Payment</span>
+                                Record Payment
                               </>
                             )}
                           </Link>
@@ -368,70 +443,61 @@ export function CashierRequestsPage() {
                 })}
               </TableBody>
             </Table>
-
-            {/* Pagination */}
-            {query.data.meta && query.data.meta.last_page > 0 && (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t px-4 py-3 bg-muted/20">
-                <div className="text-xs text-muted-foreground">
-                  Showing{" "}
-                  <span className="font-medium text-foreground">
-                    {(query.data.meta.current_page - 1) * query.data.meta.per_page + 1}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-medium text-foreground">
-                    {Math.min(
-                      query.data.meta.current_page * query.data.meta.per_page,
-                      query.data.meta.total
-                    )}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-medium text-foreground">
-                    {query.data.meta.total}
-                  </span>{" "}
-                  entries
-                </div>
-
-                <Pagination className="mx-0 w-auto justify-end">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        disabled={query.data.meta.current_page <= 1}
-                        onClick={() => setPage(query.data.meta.current_page - 1)}
-                      />
-                    </PaginationItem>
-
-                    {Array.from({ length: query.data.meta.last_page }).map((_, i) => {
-                      const pageNum = i + 1;
-                      if (
-                        pageNum === 1 ||
-                        pageNum === query.data.meta.last_page ||
-                        Math.abs(pageNum - query.data.meta.current_page) <= 1
-                      ) {
-                        return (
-                          <PaginationItem key={pageNum}>
-                            <PaginationLink
-                              isActive={pageNum === query.data.meta.current_page}
-                              onClick={() => setPage(pageNum)}
-                            >
-                              {pageNum}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      }
-                      return null;
-                    })}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        disabled={query.data.meta.current_page >= query.data.meta.last_page}
-                        onClick={() => setPage(query.data.meta.current_page + 1)}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            )}
-          </div>
+          )}
+        </CardContent>
+        {query.data && (
+          <CardFooter className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              Showing{" "}
+              {(query.data.meta.current_page - 1) * query.data.meta.per_page +
+                (requests.length ? 1 : 0)}
+              –
+              {Math.min(
+                query.data.meta.current_page * query.data.meta.per_page,
+                query.data.meta.total,
+              )}{" "}
+              of {query.data.meta.total}
+            </p>
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    disabled={query.data.meta.current_page <= 1}
+                    onClick={() =>
+                      updateFilters({ page: query.data!.meta.current_page - 1 })
+                    }
+                  />
+                </PaginationItem>
+                {Array.from({ length: query.data.meta.last_page }).map(
+                  (_, index) => {
+                    const page = index + 1;
+                    return page === 1 ||
+                      page === query.data!.meta.last_page ||
+                      Math.abs(page - query.data!.meta.current_page) <= 1 ? (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          isActive={page === query.data!.meta.current_page}
+                          onClick={() => updateFilters({ page })}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ) : null;
+                  },
+                )}
+                <PaginationItem>
+                  <PaginationNext
+                    disabled={
+                      query.data.meta.current_page >= query.data.meta.last_page
+                    }
+                    onClick={() =>
+                      updateFilters({ page: query.data!.meta.current_page + 1 })
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </CardFooter>
         )}
       </Card>
     </div>
