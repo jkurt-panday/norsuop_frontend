@@ -263,7 +263,7 @@ export function AdminActivityLogPage() {
       {/* Header Banner */}
       <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm md:flex-row md:items-center md:justify-between">
         <div>
-          <CardTitle className="bg-gradient-to-r from-[#3399FF] to-[#1677d2] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl dark:from-sky-400 dark:to-cyan-300">
+          <CardTitle className="bg-linear-to-r from-[#3399FF] to-[#1677d2] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl dark:from-sky-400 dark:to-cyan-300">
             Activity Log
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -295,7 +295,7 @@ export function AdminActivityLogPage() {
             className="flex w-full flex-wrap items-center gap-2"
           >
             {/* Search Input */}
-            <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+            <div className="relative min-w-50 flex-1 sm:max-w-xs">
               <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
