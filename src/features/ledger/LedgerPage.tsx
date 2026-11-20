@@ -429,14 +429,21 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
 
   return (
     <div className="w-full space-y-6 pb-12">
+      <Card className="rounded-2xl border border-border bg-card px-2! py-2! shadow-sm">
+        <CardHeader className="p-3">
+          <div>
+            <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+              {title}
+            </CardTitle>
+            <CardDescription className="mt-1">{subtitle}</CardDescription>
+          </div>
+        </CardHeader>
+      </Card>
+
       {/* Top Header / Action Bar */}
       <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="bg-primary bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
-              {title}
-            </h1>
-          </div>
+          <p className="text-sm text-muted-foreground">Ledger actions</p>
           <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
         </div>
 

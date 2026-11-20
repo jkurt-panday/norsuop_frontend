@@ -1,4 +1,9 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function AssessmentIndexSkeleton() {
@@ -10,7 +15,10 @@ export function AssessmentIndexSkeleton() {
     >
       <Card className="rounded-2xl bg-card px-2! py-2! shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between p-3">
-          <Skeleton className="h-10 w-64 rounded-lg" />
+          <div>
+            <Skeleton className="h-10 w-64 rounded-lg" />
+            <Skeleton className="mt-2 h-4 w-72 max-w-full rounded-lg" />
+          </div>
         </CardHeader>
       </Card>
 
@@ -66,17 +74,16 @@ export function AssessmentIndexSkeleton() {
             ))}
           </div>
         </CardContent>
+        <CardFooter className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3">
+          <Skeleton className="h-4 w-44" />
+          <div className="flex items-center gap-1">
+            <Skeleton className="h-8 w-20 rounded-lg" />
+            <Skeleton className="size-8 rounded-lg" />
+            <Skeleton className="size-8 rounded-lg" />
+            <Skeleton className="size-20 rounded-lg" />
+          </div>
+        </CardFooter>
       </Card>
-
-      <div className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3">
-        <Skeleton className="h-4 w-44" />
-        <div className="flex items-center gap-1">
-          <Skeleton className="h-8 w-20 rounded-lg" />
-          <Skeleton className="size-8 rounded-lg" />
-          <Skeleton className="size-8 rounded-lg" />
-          <Skeleton className="size-20 rounded-lg" />
-        </div>
-      </div>
     </div>
   );
 }

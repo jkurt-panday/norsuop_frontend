@@ -59,7 +59,8 @@ export function useSearchLedgerStudents(
   return useQuery({
     queryKey: ["ledger", ledger, "students-search", query.trim()],
     queryFn: ({ signal }) => searchLedgerStudents(ledger, query.trim(), 50, signal),
-    enabled,
+    enabled: enabled && query.trim().length > 0,
+    staleTime: 1000 * 60 * 2,
   });
 }
 

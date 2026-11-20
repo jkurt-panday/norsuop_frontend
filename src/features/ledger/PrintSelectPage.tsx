@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Ledger } from "./api";
-import { useLedgerBalance, useLedgerStudents } from "./queries";
+import { useLedgerBalance, useLedgerRoster } from "./queries";
 
 interface PrintSelectPageProps {
   ledger: Ledger;
@@ -40,7 +40,11 @@ function getEntryTypeBadgeClass(type?: string | null): string {
 function isDeduction(type?: string | null) {
   const normalized = (type ?? "").trim().toLowerCase();
 
-  return normalized === "payment" || normalized === "p" || normalized.includes("adjust");
+  return (
+    normalized === "payment" ||
+    normalized === "p" ||
+    normalized.includes("adjust")
+  );
 }
 
 function entryTypeLabel(type?: string | null) {
@@ -83,9 +87,17 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState<"latest" | "oldest">("latest");
 
-  // Query all eligible students for selector
-  const studentsQuery = useLedgerStudents(ledger, studentSearch);
-  const students = studentsQuery.data?.data ?? [];
+  // Load the complete roster immediately; the local input filters the list.
+  const studentsQuery = useLedgerRoster(ledger);
+  const allStudents = studentsQuery.data?.data ?? [];
+  const normalizedSearch = studentSearch.trim().toLowerCase();
+  const students = normalizedSearch
+    ? allStudents.filter(
+        (student) =>
+          student.name.toLowerCase().includes(normalizedSearch) ||
+          student.student_number.toLowerCase().includes(normalizedSearch),
+      )
+    : allStudents;
 
   // Query selected student's balance and transactions
   const balanceQuery = useLedgerBalance(ledger, selectedStudentId ?? 0);
@@ -124,9 +136,7 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
   const recordTypes = useMemo(() => {
     return Array.from(
       new Set(
-        records
-          .map((r) => r.entry_type)
-          .filter((v): v is string => Boolean(v)),
+        records.map((r) => r.entry_type).filter((v): v is string => Boolean(v)),
       ),
     ).sort();
   }, [records]);
@@ -192,27 +202,32 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
   const handleOpenPdf = () => {
     if (!selectedStudentId) return;
     const baseUrl = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
-    const params = new URLSearchParams({ student_id: String(selectedStudentId) });
+    const params = new URLSearchParams({
+      student_id: String(selectedStudentId),
+    });
     if (schoolYearFilter !== "all") params.set("school_year", schoolYearFilter);
     if (semesterFilter !== "all") params.set("semester", semesterFilter);
     if (typeFilter !== "all") params.set("type", typeFilter);
 
-    window.open(`${baseUrl}/api/v1/${ledger}-ledger/pdf?${params.toString()}`, "_blank");
+    window.open(
+      `${baseUrl}/api/v1/${ledger}-ledger/pdf?${params.toString()}`,
+      "_blank",
+    );
   };
 
   return (
     <div className="w-full space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
-            Student Statement Printer
-          </CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Select a {collegeName} student to review their transaction breakdown
-            and print a formal SOA PDF.
-          </p>
-        </div>
+      <Card className="rounded-2xl border border-border bg-card px-2! py-2! shadow-sm">
+        <CardHeader className="flex flex-col gap-4 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="bg-[#3399FF] bg-clip-text font-['Poppins'] text-3xl font-black tracking-tight text-transparent sm:text-4xl">
+              Student Statement Printer
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Select a {collegeName} student to review ledger transactions and print a sample statement.
+            </CardDescription>
+          </div>
         <div className="flex items-center sm:self-start">
           <Link
             to={backHref}
@@ -220,8 +235,9 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
           >
             <ArrowLeft className="mr-1 h-4 w-4" /> Back
           </Link>
-        </div>
-      </div>
+          </div>
+        </CardHeader>
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {/* Left: Interactive List Search */}
@@ -243,6 +259,7 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
                 value={studentSearch}
                 onChange={(e) => setStudentSearch(e.target.value)}
                 className="pr-8 pl-9"
+                aria-label="Filter students"
               />
               {studentSearch && (
                 <button
@@ -269,14 +286,14 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
                 <option value="">-- Choose Student --</option>
                 {students.map((s) => (
                   <option key={s.id} value={String(s.id)}>
-                    {s.name}
+                    {s.student_number} - {s.name}
                   </option>
                 ))}
               </select>
             </div>
 
             {/* List for Desktop */}
-            <div className="hidden max-h-[380px] overflow-y-auto rounded-md border border-border md:block">
+            <div className="hidden max-h-95 overflow-y-auto rounded-md border border-border md:block">
               {studentsQuery.isPending ? (
                 <div className="space-y-2 p-3">
                   <Skeleton className="h-4 w-full" />
@@ -303,7 +320,7 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
                             : "text-foreground"
                         }`}
                       >
-                        {s.name}
+                        {s.student_number} - {s.name}
                       </button>
                     );
                   })}
