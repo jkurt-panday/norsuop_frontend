@@ -14,6 +14,7 @@ import {
   updateLedgerRecord,
 } from "./api";
 import { api, binary } from "../../api/client";
+import { latinHonorDiscount } from "./BatchLinesEditor";
 
 vi.mock("../../api/client", () => ({ api: vi.fn(), binary: vi.fn() }));
 
@@ -138,6 +139,13 @@ describe("ledger API", () => {
     });
   });
 
+  it("calculates monolith-equivalent Latin Honor discounts", () => {
+    expect(latinHonorDiscount(10000, "SUMMA")).toBe(10000);
+    expect(latinHonorDiscount(10000, "MAGNA")).toBe(7500);
+    expect(latinHonorDiscount(10000, "CUM_LAUDE")).toBe(5000);
+    expect(latinHonorDiscount(10000, "")).toBe(0);
+  });
+
   it("updates a ledger transaction", async () => {
     vi.mocked(api).mockResolvedValue({ message: "Updated", data: { id: 10 } });
     const payload = {
@@ -195,11 +203,12 @@ describe("ledger API", () => {
       4,
       8,
     );
-    const [, init] = vi.mocked(api).mock.calls[0];
+    const [, init, timeoutMs] = vi.mocked(api).mock.calls[0];
     expect(init?.method).toBe("POST");
     expect(init?.body).toBeInstanceOf(FormData);
     expect((init?.body as FormData).get("preset_course_id")).toBe("4");
     expect((init?.body as FormData).get("preset_academic_term_id")).toBe("8");
+    expect(timeoutMs).toBe(360_000);
   });
 
   it("downloads ledger exports and PDFs as blobs for both ledgers", async () => {
@@ -207,8 +216,40 @@ describe("ledger API", () => {
     vi.mocked(binary).mockResolvedValue(blob);
     await expect(exportLedger("graduate")).resolves.toBe(blob);
     await expect(exportLedger("law")).resolves.toBe(blob);
+    expect(binary).toHaveBeenCalledWith(
+      "/api/v1/graduate-ledger/export",
+      {},
+      360_000,
+    );
+    expect(binary).toHaveBeenCalledWith(
+      "/api/v1/law-ledger/export",
+      {},
+      360_000,
+    );
+  });
+
+  it("serializes active filters into the ledger export URL", async () => {
+    const blob = new Blob(["xlsx"]);
+    vi.mocked(binary).mockResolvedValue(blob);
+    await expect(
+      exportLedger("graduate", {
+        search: "reyes",
+        school_year: "2025-2026",
+        entry_type: "ar",
+        balance_status: "with_balance",
+      }),
+    ).resolves.toBe(blob);
+    expect(binary).toHaveBeenCalledWith(
+      "/api/v1/graduate-ledger/export?search=reyes&entry_type=ar&school_year=2025-2026&balance_status=with_balance",
+      {},
+      360_000,
+    );
     await expect(getLedgerPdf("law", 42)).resolves.toBe(blob);
-    expect(binary).toHaveBeenCalledWith("/api/v1/law-ledger/pdf?student_id=42");
+    expect(binary).toHaveBeenCalledWith(
+      "/api/v1/law-ledger/pdf?student_id=42",
+      {},
+      360_000,
+    );
   });
 
   it("queues ledger statement emails", async () => {

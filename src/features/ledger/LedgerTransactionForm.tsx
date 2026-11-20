@@ -13,7 +13,15 @@ import { ApiError } from "../../api/client";
 import type { Ledger, LedgerRecord, LedgerTransactionRequest } from "./api";
 import { useCreateLedgerRecord, useUpdateLedgerRecord } from "./mutations";
 import { useLedgerMasterData, useSearchLedgerStudents } from "./queries";
-import { BatchLinesEditor, batchLineAmount, emptyBatchLine, type BatchLine } from "./BatchLinesEditor";
+import {
+  BatchLinesEditor,
+  batchLineAmount,
+  emptyBatchLine,
+  latinHonorDiscount,
+  LATIN_HONOR_OPTIONS,
+  type BatchLatinHonor,
+  type BatchLine,
+} from "./BatchLinesEditor";
 import { CohortEntryPanel } from "./CohortEntryPanel";
 import { formatCurrency } from "./controls";
 import { Button } from "@/components/ui/button";
@@ -293,11 +301,9 @@ function SingleFormFields({
       : "posted",
   );
 
-  // ── Graduate-only fields ───────────────────────────────────────────────────
+  // ── Ledger-specific scholarship fields ────────────────────────────────────
   const [membership, setMembership] = useState<Membership>("");
-  const [latinHonor, setLatinHonor] = useState(
-    mode === "edit" && initialData?.latin_honor ? initialData.latin_honor : "",
-  );
+  const [latinHonor, setLatinHonor] = useState<BatchLatinHonor>("");
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -329,7 +335,10 @@ function SingleFormFields({
   // Clear membership when switching away from AR
   const handleEntryTypeChange = (next: "ar" | "payment" | "adjustment") => {
     setEntryType(next);
-    if (next !== "ar") setMembership("");
+    if (next !== "ar") {
+      setMembership("");
+      setLatinHonor("");
+    }
   };
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -386,9 +395,10 @@ function SingleFormFields({
       payload.discount_amount = numAmount;
     }
 
-    // Graduate: latin honor
-    if (isGraduate && entryType === "ar" && latinHonor.trim()) {
-      payload.latin_honor = latinHonor.trim();
+    // Law AR: Latin Honor scholarship
+    if (!isGraduate && entryType === "ar" && mode === "create" && latinHonor) {
+      payload.latin_honor = latinHonor;
+      payload.discount_amount = latinHonorDiscount(numAmount, latinHonor);
     }
 
     if (mode === "edit" && initialData?.id) {
@@ -428,6 +438,7 @@ function SingleFormFields({
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const numAmount = parseFloat(amount) || 0;
   const isAR = entryType === "ar";
+  const honorDiscount = latinHonorDiscount(numAmount, latinHonor);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 pt-2">
@@ -692,16 +703,45 @@ function SingleFormFields({
         />
       )}
 
-      {/* Latin Honor — Graduate AR only */}
-      {isGraduate && isAR && (
-        <div className="space-y-1.5">
-          <Label className="text-xs font-semibold">Latin Honor (Optional)</Label>
-          <Input
-            placeholder="e.g. Magna Cum Laude, Cum Laude"
-            value={latinHonor}
-            onChange={(e) => setLatinHonor(e.target.value)}
-            className="h-10 rounded-xl text-xs"
-          />
+      {/* Latin Honor Scholarship — Law AR only, create mode */}
+      {!isGraduate && isAR && mode === "create" && (
+        <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              <div>
+                <p className="text-xs font-bold text-foreground">Apply Latin Honor Scholarship</p>
+                <p className="text-[11px] text-muted-foreground">Tags the AR and creates an automatic matching Adjustment entry.</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setLatinHonor("")}
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold ${!latinHonor ? "bg-slate-200 text-slate-800" : "text-slate-500 hover:bg-slate-100"}`}
+              >
+                None
+              </button>
+              {LATIN_HONOR_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setLatinHonor(option.value)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold ${latinHonor === option.value ? "bg-purple-600 text-white" : "border border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300"}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {latinHonor && (
+            <div className="flex flex-col gap-1 rounded-md bg-purple-50 p-2.5 text-xs text-purple-900 sm:flex-row sm:items-center sm:justify-between dark:bg-purple-950/30 dark:text-purple-300">
+              <span>
+                Will create: <strong>AR({LATIN_HONOR_OPTIONS.find((option) => option.value === latinHonor)?.label})</strong> ({formatCurrency(numAmount)}) + <strong>Scholarship Adjustment</strong> (−{formatCurrency(honorDiscount)})
+              </span>
+              <span className="font-bold text-purple-700 dark:text-purple-300">Net: {formatCurrency(numAmount - honorDiscount)}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -834,6 +874,12 @@ function BatchForm({
           remarks: line.remarks || undefined,
           ...(line.entry_type === "ar" && line.membership
             ? { membership: line.membership, discount_amount: amt }
+            : {}),
+          ...(ledger === "law" && line.entry_type === "ar" && line.latin_honor
+            ? {
+                latin_honor: line.latin_honor,
+                discount_amount: latinHonorDiscount(amt, line.latin_honor),
+              }
             : {}),
         };
       }),

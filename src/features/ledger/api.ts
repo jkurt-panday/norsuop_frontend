@@ -145,6 +145,8 @@ type LedgerEntryExtras = {
   discount_amount?: number;
 };
 
+const LEDGER_OPERATION_TIMEOUT_MS = 360_000;
+
 export type NewLedgerStudent = {
   student_number?: string;
   email?: string;
@@ -334,19 +336,38 @@ export function importLedger(
     body.append("preset_course_id", String(presetCourseId));
   if (presetAcademicTermId !== undefined)
     body.append("preset_academic_term_id", String(presetAcademicTermId));
-  return api<LedgerImportResult>(`/api/v1/${ledger}-ledger/import`, {
-    method: "POST",
-    body,
-  });
+  return api<LedgerImportResult>(
+    `/api/v1/${ledger}-ledger/import`,
+    { method: "POST", body },
+    LEDGER_OPERATION_TIMEOUT_MS,
+  );
 }
 
-export function exportLedger(ledger: Ledger) {
-  return binary(`/api/v1/${ledger}-ledger/export`);
+export function exportLedger(ledger: Ledger, filters: LedgerFilterParams = {}) {
+  const query = new URLSearchParams();
+  if (filters.search?.trim()) query.set("search", filters.search.trim());
+  if (filters.entry_type) query.set("entry_type", filters.entry_type);
+  if (filters.status) query.set("status", filters.status);
+  if (filters.student_id) query.set("student_id", String(filters.student_id));
+  if (filters.date_from) query.set("date_from", filters.date_from);
+  if (filters.date_to) query.set("date_to", filters.date_to);
+  if (filters.school_year) query.set("school_year", filters.school_year);
+  if (filters.semester) query.set("semester", filters.semester);
+  if (filters.course) query.set("course", filters.course);
+  if (filters.balance_status) query.set("balance_status", filters.balance_status);
+  const qs = query.toString();
+  return binary(
+    `/api/v1/${ledger}-ledger/export${qs ? `?${qs}` : ""}`,
+    {},
+    LEDGER_OPERATION_TIMEOUT_MS,
+  );
 }
 
 export function getLedgerPdf(ledger: Ledger, studentId: number) {
   return binary(
     `/api/v1/${ledger}-ledger/pdf?student_id=${encodeURIComponent(studentId)}`,
+    {},
+    LEDGER_OPERATION_TIMEOUT_MS,
   );
 }
 export function applyMembership(

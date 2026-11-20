@@ -5,6 +5,7 @@ import {
   GraduationCap,
   Wallet,
   AlertTriangle,
+  CheckCircle2,
   PlusCircle,
   Pencil,
   Trash2,
@@ -20,6 +21,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import {
+  exportLedger,
   type Ledger,
   type LedgerFilterParams,
   type LedgerRecord,
@@ -31,7 +33,6 @@ import {
   formatTransactionDate,
   getEntryTypeBadge,
   getRemarkBadge,
-  ledgerExportUrl,
 } from "./controls";
 import { StudentBalanceDrawer } from "./StudentBalanceDrawer";
 import { LedgerTransactionForm } from "./LedgerTransactionForm";
@@ -58,6 +59,7 @@ import {
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -80,6 +82,22 @@ const defaultVisibleColumns = {
 };
 
 type OptionalColumn = keyof typeof defaultVisibleColumns;
+
+type PaginationToken = number | "ellipsis";
+
+function ledgerPaginationPages(currentPage: number, lastPage: number): PaginationToken[] {
+  const windowPages = [currentPage, currentPage + 1, currentPage + 2].filter(
+    (page) => page >= 1 && page <= lastPage,
+  );
+  const pages = Array.from(new Set([1, ...windowPages, lastPage]))
+    .filter((page) => page >= 1 && page <= lastPage)
+    .sort((a, b) => a - b);
+
+  return pages.flatMap((page, index) => {
+    const previous = pages[index - 1];
+    return previous !== undefined && page - previous > 1 ? ["ellipsis", page] : [page];
+  });
+}
 
 const optionalColumnLabels: Record<OptionalColumn, string> = {
   studentNumber: "Student ID",
@@ -161,6 +179,20 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
   const [showFilters, setShowFilters] = useState(false);
   const [goToPage, setGoToPage] = useState("");
 
+  // Excel export feedback
+  const [isExporting, setIsExporting] = useState(false);
+  const [toastFeedback, setToastFeedback] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const showToast = (type: "success" | "error", text: string) => {
+    setToastFeedback({ type, text });
+    setTimeout(() => {
+      setToastFeedback((current) => (current?.text === text ? null : current));
+    }, 4000);
+  };
+
   // Query
   const query = useLedgerRecords(ledger, activeFilters);
   const deleteMutation = useDeleteLedgerRecord();
@@ -198,6 +230,33 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     setRefreshCooledAt(until);
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     refreshTimerRef.current = setTimeout(() => setRefreshCooledAt(0), 5_000);
+  };
+
+  const handleExport = async () => {
+    if (isExporting) return;
+    try {
+      setIsExporting(true);
+      const blob = await exportLedger(ledger, activeFilters);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      a.download = `${ledger}_ledger_export_${stamp}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      showToast("success", "Ledger export downloaded successfully.");
+    } catch (err) {
+      showToast(
+        "error",
+        err instanceof Error ? err.message : "Failed to export ledger.",
+      );
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Tick every second while cooldown is active so the button label stays accurate
@@ -428,7 +487,22 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
   }, [refreshCooldown]);
 
   return (
-    <div className="w-full space-y-6 pb-12">
+    <>
+      {toastFeedback && (
+        <div
+          role="status"
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+            toastFeedback.type === "success"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100"
+              : "border border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100"
+          }`}
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>{toastFeedback.text}</span>
+        </div>
+      )}
+
+      <div className="w-full space-y-6 pb-12">
       <Card className="rounded-2xl border border-border bg-card px-2! py-2! shadow-sm">
         <CardHeader className="p-3">
           <div>
@@ -479,19 +553,20 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
             Import Excel/CSV
           </Button>
 
-          <a
-            href={ledgerExportUrl(ledger, activeFilters)}
-            download
-            className="inline-flex"
+          <Button
+            variant="outline"
+            className="h-9 border-input text-foreground hover:bg-muted disabled:opacity-50"
+            onClick={handleExport}
+            disabled={isExporting}
+            aria-busy={isExporting}
           >
-            <Button
-              variant="outline"
-              className="h-9 border-input text-foreground hover:bg-muted"
-            >
+            {isExporting ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
               <Download className="mr-1.5 h-4 w-4" />
-              Export Excel
-            </Button>
-          </a>
+            )}
+            {isExporting ? "Exporting…" : "Export Excel"}
+          </Button>
 
           <Button
             className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -1272,11 +1347,27 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                       className={meta.current_page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
                   </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLink isActive className="font-mono">
-                      {meta.current_page}
-                    </PaginationLink>
-                  </PaginationItem>
+                  {ledgerPaginationPages(meta.current_page, meta.last_page).map((item, index) =>
+                    item === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${index}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink
+                          isActive={item === meta.current_page}
+                          className="cursor-pointer font-mono"
+                          aria-label={`Go to page ${item}`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            handlePageChange(item);
+                          }}
+                        >
+                          {item}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ),
+                  )}
                   <PaginationItem>
                     <PaginationNext
                       onClick={() => handlePageChange(Math.min(meta.last_page, meta.current_page + 1))}
@@ -1585,6 +1676,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
         onOpenChange={setEmailModalOpen}
         filters={activeFilters}
       />
-    </div>
+      </div>
+    </>
   );
 }
