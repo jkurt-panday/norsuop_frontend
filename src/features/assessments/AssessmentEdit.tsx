@@ -107,6 +107,7 @@ export function AssessmentEdit() {
   const [selectedLedgerStudentId, setSelectedLedgerStudentId] = useState<
     number | null
   >(null);
+  const [selectedLedgerStudentKey, setSelectedLedgerStudentKey] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
   const [isChangingStudent, setIsChangingStudent] = useState(false);
   const assessmentQuery = useQuery({
@@ -131,21 +132,32 @@ export function AssessmentEdit() {
     ledger ?? "graduate",
     selectedLedgerStudentId ?? undefined,
   );
+  const canonicalLedgerStudentKey =
+    assessmentQuery.data?.data.ledgerStatement?.selectedStudent?.key ?? "";
   const ledgerStudentKey =
-    selectedLedgerStudentId && ledger
+    selectedLedgerStudentKey ||
+    (selectedLedgerStudentId && ledger
       ? `${ledger}:${selectedLedgerStudentId}`
-      : "";
+      : canonicalLedgerStudentKey);
+  const availableCandidates =
+    assessmentQuery.data?.data.ledgerStatement?.candidates ?? [];
   const emailMutation = useMutation({
-    mutationFn: () =>
-      emailAssessmentSoa(id ?? "", {
+    mutationFn: () => {
+      if (!id || !ledgerStudentKey) {
+        throw new Error("Select a student with ledger records before emailing the statement.");
+      }
+
+      return emailAssessmentSoa(id, {
         subject,
         recipient_name: recipientName,
         note,
         ledger_student: ledgerStudentKey,
-      }),
+      });
+    },
     onSuccess: () => {
       setEmailOpen(false);
       void client.invalidateQueries({ queryKey: ["assessment", id] });
+      void client.invalidateQueries({ queryKey: ["assessments"] });
     },
   });
   useEffect(() => {
@@ -155,7 +167,18 @@ export function AssessmentEdit() {
       const matchingStudent = students.find(
         (student) => student.student_number === assessment.student_id,
       );
-      if (matchingStudent) setSelectedLedgerStudentId(matchingStudent.id);
+      if (matchingStudent) {
+        setSelectedLedgerStudentId(matchingStudent.id);
+        setSelectedLedgerStudentKey(`${ledger}:${matchingStudent.id}`);
+      }
+    }
+
+    const selectedCandidate = assessment?.ledgerStatement?.selectedStudent;
+    if (selectedCandidate && selectedLedgerStudentId === null) {
+      const numericId = Number(selectedCandidate.pdfQueryValue);
+      if (Number.isInteger(numericId) && numericId > 0) {
+        setSelectedLedgerStudentId(numericId);
+      }
     }
   }, [
     assessmentQuery.data,
@@ -200,6 +223,11 @@ export function AssessmentEdit() {
     .filter(Boolean)
     .join(" ");
   const openEmail = () => {
+    if (!ledgerStudentKey) {
+      emailMutation.reset();
+      return;
+    }
+
     setSubject(`Statement of Account - ${assessment.reference_number}`);
     setRecipientName(`${assessment.first_name} ${assessment.last_name}`);
     setNote("");
@@ -240,11 +268,20 @@ export function AssessmentEdit() {
     { total_charges: 0, total_payments: 0, outstanding_balance: 0 },
   );
   const studentCandidates = studentsQuery.data?.data ?? [];
-  const filteredStudentCandidates = studentCandidates.filter((student) => {
+  const statementCandidates = availableCandidates.length
+    ? availableCandidates
+    : studentCandidates.map((student) => ({
+        key: `${ledger}:${student.id}`,
+        name: student.name,
+        studentId: student.student_number,
+      }));
+  const filteredStudentCandidates = statementCandidates.filter((student) => {
     const term = studentSearch.trim().toLowerCase();
     return (
       !term ||
-      `${student.name} ${student.student_number}`.toLowerCase().includes(term)
+      `${student.name} ${student.studentId ?? ""}`
+        .toLowerCase()
+        .includes(term)
     );
   });
   const selectedStudent = balanceQuery.data?.student;
@@ -426,16 +463,17 @@ export function AssessmentEdit() {
                   ) : (
                     filteredStudentCandidates.map((student) => (
                       <button
-                        key={student.id}
+                        key={student.key}
                         type="button"
-                        className={`block w-full px-3 py-2 text-left text-sm hover:bg-muted ${student.id === selectedLedgerStudentId ? "bg-primary/10 font-medium text-primary" : ""}`}
+                        className={`block w-full px-3 py-2 text-left text-sm hover:bg-muted ${student.key === ledgerStudentKey ? "bg-primary/10 font-medium text-primary" : ""}`}
                         onClick={() => {
-                          setSelectedLedgerStudentId(student.id);
+                          setSelectedLedgerStudentKey(student.key);
+                          setSelectedLedgerStudentId(null);
                           setStudentSearch("");
                           setIsChangingStudent(false);
                         }}
                       >
-                        {student.name} · {student.student_number}
+                        {student.name} · {student.studentId ?? "—"}
                       </button>
                     ))
                   )}
@@ -619,6 +657,15 @@ export function AssessmentEdit() {
               </div>
             </div>
           </div>
+          {emailMutation.isError && (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              {emailMutation.error instanceof ApiError
+                ? emailMutation.error.message
+                : emailMutation.error instanceof Error
+                  ? emailMutation.error.message
+                  : "Unable to send the statement email."}
+            </p>
+          )}
           <DialogFooter className="gap-2">
             <Button
               variant="outline"

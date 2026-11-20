@@ -132,6 +132,8 @@ function toDateInput(value: Date | undefined) {
   return value ? format(value, "yyyy-MM-dd") : "";
 }
 
+// TODO make email work through the SPA
+
 function DateFilter({
   label,
   value,
@@ -530,7 +532,7 @@ export function AssessmentIndex() {
                 {query.data.data.map((assessment) => (
                   <TableRow
                     key={assessment.id}
-                    className=" even:bg-gray-100 hover:bg-gray-600/20"
+                     className="even:bg-gray-100 dark:even:bg-muted/30 hover:bg-gray-600/20 dark:hover:bg-muted/50"
                   >
                     <TableCell className="px-3! py-2! pl-4! font-medium text-primary">
                       {assessment.reference_number}
