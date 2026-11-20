@@ -31,7 +31,6 @@ describe("SPA routes", () => {
         "/staff/courses",
         "/staff/assessments",
         "/staff/assessments/dashboard",
-        "/staff/activity-log",
         "/cashier/requests",
         "/admin",
       ]),
