@@ -64,7 +64,6 @@ const adminNavItems: SidebarItem[] = [
 
 const staffNavItems: SidebarItem[] = [
   { title: "Dashboard", href: "/staff/staffdashboard", icon: Home },
-  { title: "Activity Log", href: "/staff/activity-log", icon: Activity },
 ];
 
 const cashierNavItems: SidebarItem[] = [
@@ -289,12 +288,7 @@ export function AppSidebar() {
           >
             {isCashier ? "Cashier" : "Staff"}
           </div>
-          {(isCashier ? cashierNavItems : staffNavItems)
-            .filter(
-              (item) =>
-                !isAdmin || item.href !== "/staff/activity-log",
-            )
-            .map((item, index) => (
+          {(isCashier ? cashierNavItems : staffNavItems).map((item, index) => (
               <SidebarMenuItem key={index}>
                 <SidebarMenuButton
                   render={
