@@ -169,6 +169,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
 
   // Modals & Drawer state
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedDrawerTransactionId, setSelectedDrawerTransactionId] = useState<number | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const [transactionModalOpen, setTransactionModalOpen] = useState(false);
@@ -176,6 +177,9 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
   const [editingRecord, setEditingRecord] = useState<LedgerRecord | null>(null);
   const [defaultStudentId, setDefaultStudentId] = useState<number | undefined>();
   const [defaultStudentName, setDefaultStudentName] = useState<string | undefined>();
+  const [defaultEntryType, setDefaultEntryType] = useState<"ar" | "payment" | "adjustment" | undefined>(
+    undefined,
+  );
 
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -294,16 +298,22 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     }
   };
 
-  const openStudentDrawer = (studentId: number) => {
+  const openStudentDrawer = (studentId: number, transactionId?: number | null) => {
     setSelectedStudentId(studentId);
+    setSelectedDrawerTransactionId(transactionId ?? null);
     setIsDrawerOpen(true);
   };
 
-  const handleOpenCreateTransaction = (stdId?: number, stdName?: string) => {
+  const handleOpenCreateTransaction = (
+    stdId?: number,
+    stdName?: string,
+    entryType?: "ar" | "payment" | "adjustment",
+  ) => {
     setTransactionMode("create");
     setEditingRecord(null);
     setDefaultStudentId(stdId);
     setDefaultStudentName(stdName);
+    setDefaultEntryType(entryType);
     setTransactionModalOpen(true);
   };
 
@@ -313,9 +323,10 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     setDefaultStudentId(record.student_id);
     setDefaultStudentName(
       record.student
-        ? `${record.student.last_name}, ${record.student.first_name}`
+        ? record.student.name || `${record.student.last_name}, ${record.student.first_name}`
         : undefined,
     );
+    setDefaultEntryType(undefined);
     setTransactionModalOpen(true);
   };
 
@@ -1020,12 +1031,12 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                           role="button"
                           tabIndex={r.student_id ? 0 : undefined}
                           onClick={() => {
-                            if (r.student_id) openStudentDrawer(r.student_id);
+                            if (r.student_id) openStudentDrawer(r.student_id, r.id);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              if (r.student_id) openStudentDrawer(r.student_id);
+                              if (r.student_id) openStudentDrawer(r.student_id, r.id);
                             }
                           }}
                           className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-hidden"
@@ -1100,12 +1111,33 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
 
                           {visibleColumns.entryType && (
                             <td className="py-2.5 pr-4">
-                              <Badge
-                                variant="outline"
-                                className={`text-[11px] ${getEntryTypeBadge(r.entry_type)}`}
-                              >
-                                {entryTypeLabel}
-                              </Badge>
+                              {!isLaw && r.entry_type === "ar" && !r.membership ? (
+                                <button
+                                  type="button"
+                                  title="Apply Membership Scholarship"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMembershipTarget(r);
+                                    setSelectedMembership("");
+                                    setMembershipError(null);
+                                  }}
+                                  className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                >
+                                  <Badge
+                                    variant="outline"
+                                    className={`cursor-pointer text-[11px] transition-colors ${getEntryTypeBadge(r.entry_type)} hover:border-purple-300 hover:bg-purple-100 hover:text-purple-800 dark:hover:border-purple-800 dark:hover:bg-purple-950/30 dark:hover:text-purple-300`}
+                                  >
+                                    {entryTypeLabel}
+                                  </Badge>
+                                </button>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[11px] ${getEntryTypeBadge(r.entry_type)}`}
+                                >
+                                  {entryTypeLabel}
+                                </Badge>
+                              )}
                             </td>
                           )}
 
@@ -1167,23 +1199,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
 
-                              {/* Apply Membership — Graduate AR rows with no membership yet */}
-                              {!isLaw && r.entry_type === "ar" && !r.membership && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0 text-muted-foreground hover:text-purple-600"
-                                  title="Apply Membership Scholarship"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setMembershipTarget(r);
-                                    setSelectedMembership("");
-                                    setMembershipError(null);
-                                  }}
-                                >
-                                  <Sparkles className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
+
 
                               {/* Apply Latin Honor — Law AR rows with no latin_honor yet */}
                               {isLaw && r.entry_type === "ar" && !r.latin_honor && (
@@ -1527,11 +1543,19 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
       <StudentBalanceDrawer
         ledger={ledger}
         studentId={selectedStudentId}
+        selectedTransactionId={selectedDrawerTransactionId}
         open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
+        onOpenChange={(open) => {
+          setIsDrawerOpen(open);
+          if (!open) setSelectedDrawerTransactionId(null);
+        }}
         onAddTransaction={(stdId, stdName) => {
           setIsDrawerOpen(false);
-          handleOpenCreateTransaction(stdId, stdName);
+          handleOpenCreateTransaction(stdId, stdName, "payment");
+        }}
+        onEditTransaction={(tx) => {
+          setIsDrawerOpen(false);
+          handleOpenEditTransaction(tx);
         }}
       />
 
@@ -1542,6 +1566,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
         initialData={editingRecord ?? undefined}
         defaultStudentId={defaultStudentId}
         defaultStudentName={defaultStudentName}
+        defaultEntryType={defaultEntryType}
         open={transactionModalOpen}
         onOpenChange={setTransactionModalOpen}
       />
@@ -1558,6 +1583,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
         ledger={ledger}
         open={emailModalOpen}
         onOpenChange={setEmailModalOpen}
+        filters={activeFilters}
       />
     </div>
   );

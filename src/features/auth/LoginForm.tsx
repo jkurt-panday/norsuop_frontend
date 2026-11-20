@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { SubmitEvent } from "react";
+import { Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { ApiError } from "../../api/client";
 import { Button } from "../../components/ui/button";
@@ -184,9 +185,16 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="min-h-[50px] w-full rounded-[9px] bg-[#0B5CAD] text-base font-semibold text-white hover:brightness-110 disabled:opacity-70 dark:bg-[#5AA9F5] dark:text-[#04152B]"
+          className="inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-[9px] bg-[#0B5CAD] text-base font-semibold text-white hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-[#5AA9F5] dark:text-[#04152B]"
         >
-          {mutation.isPending ? "Signing in…" : "Sign in"}
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            "Sign in"
+          )}
         </button>
       </form>
 

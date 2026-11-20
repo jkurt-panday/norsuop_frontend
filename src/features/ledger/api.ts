@@ -77,8 +77,11 @@ export type LedgerFilterOptions = {
 export type LedgerRecipient = {
   id: number;
   student_number: string;
-  name: string;
+  name?: string;
+  full_name?: string;
   email: string;
+  balance?: number;
+  balance_status?: "outstanding" | "settled" | string;
 };
 
 export type LedgerStudent = {
@@ -95,6 +98,7 @@ export type LedgerRosterStudent = LedgerStudent & {
 export type LedgerSummary = {
   total_charges: number;
   total_payments: number;
+  total_adjustments?: number;
   outstanding_balance: number;
 };
 
@@ -105,6 +109,10 @@ export type LedgerBalanceResponse = {
     name?: string;
     first_name?: string;
     last_name?: string;
+    email?: string | null;
+    contactNumber?: string | null;
+    contact_number?: string | null;
+    course?: string | null;
   };
   summary: LedgerSummary;
   transactions: LedgerRecord[];
@@ -137,6 +145,14 @@ type LedgerEntryExtras = {
   discount_amount?: number;
 };
 
+export type NewLedgerStudent = {
+  student_number?: string;
+  email?: string;
+  last_name: string;
+  first_name: string;
+  middle_name?: string;
+};
+
 type LedgerEntryBase = components["schemas"]["LedgerTransactionRequest"] &
   LedgerEntryExtras;
 
@@ -145,7 +161,10 @@ export type LedgerBatchItem = Omit<
   "student_id" | "course_id" | "academic_term_id" | "transaction_date"
 >;
 
-export type LedgerTransactionRequest = LedgerEntryBase & {
+export type LedgerTransactionRequest = Omit<LedgerEntryBase, "student_id"> & {
+  student_id?: number;
+  /** Single-create mode only: register the student and first transaction atomically. */
+  new_student?: NewLedgerStudent;
   /** Batch mode: 1–50 line items sharing the same student / term / date. */
   items?: LedgerBatchItem[];
 };
@@ -156,6 +175,7 @@ export type CohortRow = {
   rate?: number;
   amount: number;
   membership?: string | null;
+  latin_honor?: "SUMMA" | "MAGNA" | "CUM_LAUDE" | null;
   discount_amount?: number | null;
   remarks?: string | null;
 };
@@ -227,10 +247,24 @@ export function searchLedgerStudents(
 
 export function getLedgerEmailRecipients(
   ledger: Ledger,
+  filters: LedgerFilterParams = {},
   signal?: AbortSignal,
 ) {
+  const params = new URLSearchParams();
+  if (filters.search?.trim()) params.set("search", filters.search.trim());
+  if (filters.entry_type) params.set("entry_type", filters.entry_type);
+  if (filters.status) params.set("status", filters.status);
+  if (filters.student_id) params.set("student_id", String(filters.student_id));
+  if (filters.date_from) params.set("date_from", filters.date_from);
+  if (filters.date_to) params.set("date_to", filters.date_to);
+  if (filters.school_year) params.set("school_year", filters.school_year);
+  if (filters.semester) params.set("semester", filters.semester);
+  if (filters.course) params.set("course", filters.course);
+  if (filters.balance_status) params.set("balance_status", filters.balance_status);
+
+  const query = params.toString();
   return api<{ data: LedgerRecipient[] }>(
-    `/api/v1/${ledger}-ledger/email-recipients`,
+    `/api/v1/${ledger}-ledger/email-recipients${query ? `?${query}` : ""}`,
     { signal },
   );
 }
@@ -339,12 +373,15 @@ export function applyLatinHonor(
 
 export function sendLedgerEmails(
   ledger: Ledger,
-  payload: {
-    student_ids: number[];
+  payload: LedgerFilterParams & {
+    student_ids?: number[];
     school_year?: string;
     semester?: string;
+    semester_or_summer?: string;
     subject?: string;
     note?: string;
+    exam_period?: "Midterm" | "Final";
+    exam_deadline?: string;
   },
 ) {
   return api<{ message: string; queued_count: number }>(
