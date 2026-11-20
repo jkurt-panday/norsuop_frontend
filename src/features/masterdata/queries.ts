@@ -10,12 +10,13 @@ import {
 export function useMasterRecords<T = MasterRecord>(
   resource: MasterResource,
   pageOrOptions: number | MasterQueryOptions = 1,
-  search = "",
+  searchOrSort = "",
+  direction?: "asc" | "desc",
 ) {
   const options: MasterQueryOptions =
     typeof pageOrOptions === "object" && pageOrOptions !== null
       ? pageOrOptions
-      : { page: pageOrOptions, search };
+      : { page: pageOrOptions, search: searchOrSort, sort: "", direction };
 
   return useQuery<MasterList<T>>({
     queryKey: ["masterdata", resource, options],

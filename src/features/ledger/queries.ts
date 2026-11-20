@@ -64,18 +64,17 @@ export function useSearchLedgerStudents(
   });
 }
 
-export function useLedgerRoster(ledger: Ledger, enabled = true) {
-  return useQuery({
-    queryKey: ["ledger", ledger, "students-roster"],
-    queryFn: ({ signal }) => getLedgerRoster(ledger, signal),
-    enabled,
-  });
-}
-
 export function useLedgerEmailRecipients(ledger: Ledger) {
   return useQuery({
     queryKey: ["ledger", ledger, "email-recipients"],
     queryFn: ({ signal }) => getLedgerEmailRecipients(ledger, signal),
+  });
+}
+
+export function useLedgerRoster(ledger: Ledger) {
+  return useQuery({
+    queryKey: ["ledger", ledger, "roster"],
+    queryFn: ({ signal }) => getLedgerRoster(ledger, signal),
   });
 }
 

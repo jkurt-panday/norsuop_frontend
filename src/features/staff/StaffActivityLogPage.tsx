@@ -1,4 +1,4 @@
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -9,10 +9,10 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
-  RefreshCw,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -130,6 +130,19 @@ export function StaffActivityLogPage() {
     direction: "desc",
   });
 
+  // Reset cooldown
+  const [resetCooldown, setResetCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resetCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResetCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resetCooldown]);
+
+  const canReset = resetCooldown === 0;
+
   const query = useStaffActivityLogs(filters);
 
   const handleSearchChange = (val: string) => {
@@ -152,6 +165,30 @@ export function StaffActivityLogPage() {
     startTransition(() => {
       setFilters((prev) => ({ ...prev, [field]: val, page: 1 }));
     });
+  };
+
+  const hasFilters =
+    filters.activity_search ||
+    filters.activity_action ||
+    filters.date_from ||
+    filters.date_to;
+
+  const handleReset = () => {
+    if (!canReset) return;
+    startTransition(() => {
+      setFilters({
+        page: 1,
+        per_page: 10,
+        activity_search: "",
+        activity_action: "",
+        date_from: "",
+        date_to: "",
+        sort: "created_at",
+        direction: "desc",
+      });
+    });
+    query.refetch();
+    setResetCooldown(5);
   };
 
   const toggleSort = (col: string) => {
@@ -192,17 +229,23 @@ export function StaffActivityLogPage() {
               Audit trail of requests processed, student linkings, and ledger modifications.
             </p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => void query.refetch()}
-            disabled={query.isFetching}
-          >
-            <RefreshCw className={`h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`} />
-            <span>{query.isFetching ? "Reloading..." : "Reload"}</span>
-          </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={handleReset}
+              disabled={query.isFetching || !canReset}
+            >
+              <RotateCcw className={`h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`} />
+              <span>
+                {query.isFetching
+                  ? "Resetting..."
+                  : !canReset
+                    ? `Reset (${resetCooldown}s)`
+                    : "Reset"}
+              </span>
+            </Button>
         </CardHeader>
       </Card>
 
@@ -216,8 +259,20 @@ export function StaffActivityLogPage() {
                 placeholder="Search audit trail, actor, or description..."
                 value={filters.activity_search ?? ""}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-9"
+                className="pl-9 pr-9"
               />
+              {filters.activity_search && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onClick={() => handleSearchChange("")}
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -242,11 +297,12 @@ export function StaffActivityLogPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs text-muted-foreground"
+                  size="icon-xs"
+                  className="h-8 text-muted-foreground hover:text-foreground"
                   onClick={() => handleActionChange("")}
+                  aria-label="Clear action filter"
                 >
-                  Clear
+                  <X className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
@@ -276,13 +332,14 @@ export function StaffActivityLogPage() {
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                className="h-8 text-xs text-muted-foreground"
+                size="icon-xs"
+                className="h-8 text-muted-foreground hover:text-foreground"
                 onClick={() => {
                   setFilters((prev) => ({ ...prev, date_from: "", date_to: "", page: 1 }));
                 }}
+                aria-label="Clear date range"
               >
-                Reset Dates
+                <X className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>

@@ -11,6 +11,7 @@ export type BankAccount = {
 export type UacsItem = {
   id: number;
   uacs_object_code: string;
+  uacs_sub_object_code: string | null;
   account_title: string;
 };
 
@@ -31,6 +32,7 @@ export type SupportingDocument = {
   original_filename: string;
   file_extension?: string;
   file_size?: number;
+  formatted_file_size?: string;
   mime_type?: string;
   uploaded_at?: string;
 };
@@ -126,6 +128,8 @@ export type StaffRequestDetail = {
   uacsList: UacsItem[];
   paymentOptions: PaymentDetailOption[];
   academicTerms: AcademicTerm[];
+  courses: Array<{ id: number; course_code: string; course_desc: string; course_college: string }>;
+  memberships: Array<{ id: number; member_code: string; member_desc: string }>;
 };
 
 export function getStaffRequest(id: number, signal?: AbortSignal) {
@@ -180,6 +184,20 @@ export function linkOpStudent(id: number, student_id: number) {
     method: "PUT",
     body: JSON.stringify({ student_id }),
   });
+}
+
+export function emailOpRequest(
+  id: number,
+  payload: { subject: string; recipient_name: string; note?: string },
+) {
+  return api(`/api/v1/staff/requests/${id}/email`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getOpPdfUrl(id: number, format: "portrait" | "landscape" = "portrait"): string {
+  return `/api/v1/staff/requests/${id}/pdf?format=${format}`;
 }
 
 // ── Staff Dashboard & Activity Log ──────────────────────────────────────────
