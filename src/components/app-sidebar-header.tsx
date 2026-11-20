@@ -32,8 +32,8 @@ const routeTitleMap: Record<string, string> = {
   "/staff/authorized-officials": "Authorized Officials",
   "/staff/uacs": "UACS",
   "/staff/courses": "Courses",
-  "/staff/assessments/dashboard": "Assessments Dashboard",
-  "/staff/assessments": "Assessments",
+  "/staff/assessments/dashboard": "Assessment Dashboard",
+  "/staff/assessments": "Assessment Requests",
   "/cashier/requests": "Cashier Requests",
   "/documents": "Supporting Documents",
   "/graduate-ledger": "Graduate Ledger",
@@ -96,6 +96,13 @@ export function AppSidebarHeader({
 
     if (path === "/cashier/requests") {
       return [{ title: "Cashier Requests" }];
+    }
+
+    if (path === "/staff/assessments/dashboard") {
+      return [
+        { title: "Staff Dashboard", href: "/staff" },
+        { title: "Assessment Dashboard" },
+      ];
     }
 
     const segments = path.split("/").filter(Boolean);

@@ -89,7 +89,7 @@ const staffCollapsibleItems = [
     icon: FileSpreadsheet,
     items: [
       { title: "Dashboard", href: "/staff/assessments/dashboard" },
-      { title: "Assessments", href: "/staff/assessments" },
+      { title: "Requests", href: "/staff/assessments" },
     ],
   },
   {
