@@ -2,7 +2,10 @@ import { useState, type SubmitEvent } from "react";
 import { Mail, University, User } from "lucide-react";
 import { useNavigate } from "react-router";
 import { ApiError } from "../../../api/client";
-import { setExpiringLocalStorage } from "../../../lib/expiring-local-storage";
+import {
+  getExpiringLocalStorage,
+  setExpiringLocalStorage,
+} from "../../../lib/expiring-local-storage";
 import {
   Card,
   CardContent,
@@ -64,7 +67,13 @@ export function AssessmentPage() {
   const navigate = useNavigate();
   const options = useAssessmentOptions();
   const mutation = useSubmitAssessment();
-  const [values, setValues] = useState<FormValues>(initialValues);
+  const prefill = getExpiringLocalStorage<Partial<FormValues>>(
+    "assessment-form-prefill",
+  );
+  const [values, setValues] = useState<FormValues>({
+    ...initialValues,
+    ...prefill,
+  });
 
   if (options.isPending) {
     return <AssessmentPageFromSkeleton />;

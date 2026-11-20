@@ -110,6 +110,7 @@ describe("assessments API", () => {
       subject: "Your SOA",
       recipient_name: "Jane",
       note: "Please review",
+      ledger_student: "graduate:42",
     });
 
     expect(api).toHaveBeenCalledWith(
@@ -120,6 +121,7 @@ describe("assessments API", () => {
           subject: "Your SOA",
           recipient_name: "Jane",
           note: "Please review",
+          ledger_student: "graduate:42",
         }),
       }),
     );
