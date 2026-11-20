@@ -72,7 +72,7 @@ export type StaffRequest = {
   position_or_designation?: string;
   address?: string;
   request_type?: string;
-  membership?: { member_desc?: string; member_code?: string };
+  membership?: { id?: number; member_desc?: string; member_code?: string } | null;
   payment_detail_option?: PaymentDetailOption | null;
   staff_input?: StaffInputData | null;
   staffInput?: StaffInputData | null;
@@ -190,7 +190,7 @@ export function emailOpRequest(
   id: number,
   payload: { subject: string; recipient_name: string; note?: string },
 ) {
-  return api(`/api/v1/staff/requests/${id}/email`, {
+  return api(`/api/v1/staff/requests/${id}/email-op`, {
     method: "POST",
     body: JSON.stringify(payload),
   });

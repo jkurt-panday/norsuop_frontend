@@ -1,3 +1,4 @@
+import { LightModeWrapper } from "@/components/ui/LightModeWrapper";
 import { useState, type SubmitEvent } from "react";
 import { Mail, University, User } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -122,7 +123,7 @@ export function AssessmentPage() {
   const courses = options.data.data.courses;
 
   return (
-    <>
+    <LightModeWrapper>
       <title>Assessment Form</title>
       <main className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
         <div className="mx-auto max-w-4xl">
@@ -467,6 +468,6 @@ export function AssessmentPage() {
           </form>
         </div>
       </main>
-    </>
+    </LightModeWrapper>
   );
 }

@@ -18,7 +18,7 @@ export class ApiError extends Error {
 }
 
 const baseUrl = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
-const requestTimeoutMs = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 15_000);
+const requestTimeoutMs = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 30_000);
 let csrfPromise: Promise<void> | undefined;
 
 function timeoutError(): ApiError {

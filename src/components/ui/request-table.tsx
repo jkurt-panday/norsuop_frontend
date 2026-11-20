@@ -120,7 +120,7 @@ export interface RequestTableProps<T extends { id: number | string }> {
   onSortChange?: (sort: string, direction: "asc" | "desc") => void;
 }
 
-const STATUS_COLORS = {
+export const STATUS_COLORS = {
   green: "bg-emerald-500",
   "light-green": "bg-green-300",
   "dark-green": "bg-green-600",
@@ -130,6 +130,23 @@ const STATUS_COLORS = {
   orange: "bg-amber-500",
   grey: "bg-slate-400",
 } as const;
+
+export function StatusBadge({
+  label,
+  color,
+}: {
+  label: string;
+  color?: keyof typeof STATUS_COLORS | string;
+}) {
+  const dotColor = resolveStatusColor(color);
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:border dark:border-slate-700/40 dark:bg-slate-800/60 dark:text-slate-300">
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dotColor)} />
+      {label}
+    </span>
+  );
+}
 
 const statusColorMap: Record<string, string> = {
   paid: "light-green",

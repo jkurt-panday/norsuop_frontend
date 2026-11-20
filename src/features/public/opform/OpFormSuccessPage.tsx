@@ -1,3 +1,4 @@
+import { LightModeWrapper } from "@/components/ui/LightModeWrapper";
 import { Link, useParams, useSearchParams } from "react-router";
 import { useEffect } from "react";
 import {
@@ -152,9 +153,10 @@ export function OpFormSuccessPage() {
   const downloadUrl = opReceiptUrl(reference, token, true);
 
   return (
-    <main className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white px-3 py-6 sm:px-6 sm:py-12">
-      <title>Order of Payment Submission Successful</title>
-      <div className="mx-auto max-w-5xl">
+    <LightModeWrapper>
+      <main className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white px-3 py-6 sm:px-6 sm:py-12">
+        <title>Order of Payment Submission Successful</title>
+        <div className="mx-auto max-w-5xl">
         <Card className="pt-0! overflow-hidden rounded-2xl shadow-xl sm:rounded-3xl">
           <CardHeader className="rounded-2xl bg-linear-to-b from-blue-600 to-blue-400 px-4 text-center text-white sm:rounded-t-3xl sm:py-10">
             <img
@@ -356,6 +358,7 @@ export function OpFormSuccessPage() {
         </Card>
       </div>
     </main>
+  </LightModeWrapper>
   );
 }
 

@@ -1,3 +1,4 @@
+import { LightModeWrapper } from "@/components/ui/LightModeWrapper";
 import { Link, useSearchParams } from "react-router";
 import {
   CheckCircle,
@@ -139,9 +140,10 @@ export function AssessmentSuccessPage() {
   const downloadUrl = assessmentReceiptUrl(reference, token, true);
 
   return (
-    <main className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white px-3 py-6 sm:px-6 sm:py-12">
-      <title>Assessment Submission Successful</title>
-      <div className="mx-auto max-w-5xl">
+    <LightModeWrapper>
+      <main className="min-h-screen bg-linear-to-b from-blue-500 via-slate-100 to-white px-3 py-6 sm:px-6 sm:py-12">
+        <title>Assessment Submission Successful</title>
+        <div className="mx-auto max-w-5xl">
         <Card className="pt-0! overflow-hidden rounded-2xl shadow-xl sm:rounded-3xl">
           <CardHeader className="bg-linear-to-b rounded-2xl from-blue-600 to-blue-400 px-4 text-center text-white sm:py-10">
             <img
@@ -280,6 +282,7 @@ export function AssessmentSuccessPage() {
         </Card>
       </div>
     </main>
+  </LightModeWrapper>
   );
 }
 
