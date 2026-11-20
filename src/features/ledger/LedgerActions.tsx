@@ -118,7 +118,7 @@ export function LedgerActions({
         onSuccess: (data) => {
           setSuccessInfo(
             data.message ||
-              `Queued statement emails to ${data.queued_count} student(s).`,
+              `Emailed statements to ${data.queued_count} student(s).`,
           );
         },
       },
@@ -161,7 +161,7 @@ export function LedgerActions({
             Send Statement Emails
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Queue official ledger statements of account via email for students in the{" "}
+            Email official ledger statements of account to students in the{" "}
             {ledger === "graduate" ? "Graduate School" : "School of Law"}, based on the
             current ledger filters.
           </DialogDescription>
@@ -172,7 +172,7 @@ export function LedgerActions({
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
               <div className="flex items-center gap-2 font-semibold text-emerald-800 dark:text-emerald-300">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                Emails Queued Successfully
+                Email Results
               </div>
               <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
                 {successInfo}

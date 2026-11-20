@@ -145,6 +145,14 @@ type LedgerEntryExtras = {
   discount_amount?: number;
 };
 
+export type NewLedgerStudent = {
+  student_number?: string;
+  email?: string;
+  last_name: string;
+  first_name: string;
+  middle_name?: string;
+};
+
 type LedgerEntryBase = components["schemas"]["LedgerTransactionRequest"] &
   LedgerEntryExtras;
 
@@ -153,7 +161,10 @@ export type LedgerBatchItem = Omit<
   "student_id" | "course_id" | "academic_term_id" | "transaction_date"
 >;
 
-export type LedgerTransactionRequest = LedgerEntryBase & {
+export type LedgerTransactionRequest = Omit<LedgerEntryBase, "student_id"> & {
+  student_id?: number;
+  /** Single-create mode only: register the student and first transaction atomically. */
+  new_student?: NewLedgerStudent;
   /** Batch mode: 1–50 line items sharing the same student / term / date. */
   items?: LedgerBatchItem[];
 };
@@ -164,6 +175,7 @@ export type CohortRow = {
   rate?: number;
   amount: number;
   membership?: string | null;
+  latin_honor?: "SUMMA" | "MAGNA" | "CUM_LAUDE" | null;
   discount_amount?: number | null;
   remarks?: string | null;
 };
