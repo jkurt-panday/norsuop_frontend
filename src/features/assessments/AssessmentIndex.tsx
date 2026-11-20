@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useTransition, type SubmitEvent } from "react";
 import { Link } from "react-router";
 import { format, parseISO } from "date-fns";
+import { useCurrentUser } from "../auth/queries";
 import {
   ArrowDown,
   ArrowUp,
@@ -241,6 +242,8 @@ function FilterCombobox({
 
 export function AssessmentIndex() {
   const queryClient = useQueryClient();
+  const { data: authData } = useCurrentUser();
+  const isAdmin = authData?.data?.role === "admin";
   const [, startTransition] = useTransition();
   const [filters, setFilters] = useState(initialFilters);
   const [search, setSearch] = useState("");
@@ -587,15 +590,17 @@ export function AssessmentIndex() {
                         >
                           <Pencil className="size-4" />
                         </Link>
-                        <button
-                          type="button"
-                          className="inline-flex size-8 items-center justify-center rounded-lg bg-red-500 text-white transition-colors hover:bg-red-600"
-                          aria-label={`Delete ${assessment.reference_number}`}
-                          title={`Delete ${assessment.reference_number}`}
-                          onClick={() => void remove(assessment)}
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
+                         {isAdmin && (
+                           <button
+                             type="button"
+                             className="inline-flex size-8 items-center justify-center rounded-lg bg-red-500 text-white transition-colors hover:bg-red-600"
+                             aria-label={`Delete ${assessment.reference_number}`}
+                             title={`Delete ${assessment.reference_number}`}
+                             onClick={() => void remove(assessment)}
+                           >
+                             <Trash2 className="size-4" />
+                           </button>
+                         )}
                       </div>
                     </TableCell>
                   </TableRow>
