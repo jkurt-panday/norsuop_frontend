@@ -201,7 +201,7 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="w-full space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

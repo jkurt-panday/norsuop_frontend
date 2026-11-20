@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   FileSpreadsheet,
   FileUp,
@@ -11,9 +12,7 @@ import {
 import { ApiError } from "../../api/client";
 import type { Ledger } from "./api";
 import { useImportLedger } from "./mutations";
-import { useLedgerMasterData } from "./queries";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -48,10 +47,7 @@ export function LedgerImportForm({
 
   const [file, setFile] = useState<File | undefined>();
   const [isDragging, setIsDragging] = useState(false);
-  const [presetCourseId, setPresetCourseId] = useState<number | "">("");
-  const [presetTermId, setPresetTermId] = useState<number | "">("");
 
-  const masterQuery = useLedgerMasterData(ledger);
   const mutation = useImportLedger();
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -75,8 +71,6 @@ export function LedgerImportForm({
 
   const handleReset = () => {
     setFile(undefined);
-    setPresetCourseId("");
-    setPresetTermId("");
     mutation.reset();
   };
 
@@ -87,8 +81,6 @@ export function LedgerImportForm({
     mutation.mutate({
       ledger,
       file,
-      presetCourseId: presetCourseId !== "" ? Number(presetCourseId) : undefined,
-      presetAcademicTermId: presetTermId !== "" ? Number(presetTermId) : undefined,
     });
   };
 
@@ -118,8 +110,7 @@ export function LedgerImportForm({
             Import {ledger === "graduate" ? "Graduate" : "Law"} Ledger
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Upload an Excel (.xlsx, .xls) or CSV file with student ledgers. You can
-            optionally set a fallback course and academic term for unassigned rows.
+            Upload an Excel (.xlsx, .xls) or CSV file with student ledgers.
           </DialogDescription>
         </DialogHeader>
 
@@ -197,16 +188,16 @@ export function LedgerImportForm({
               }`}
             >
               {file ? (
-                <div className="flex items-center gap-3 w-full justify-between px-2">
+                <div className="flex w-full items-center justify-between gap-3 px-2">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                       <FileSpreadsheet className="h-5 w-5" />
                     </div>
                     <div className="text-left">
-                      <div className="text-sm font-semibold text-foreground truncate max-w-xs">
+                      <div className="max-w-xs truncate text-sm font-semibold text-foreground">
                         {file.name}
                       </div>
-                      <div className="text-xs text-muted-foreground font-mono">
+                      <div className="text-xs font-mono text-muted-foreground">
                         {(file.size / 1024).toFixed(1)} KB
                       </div>
                     </div>
@@ -223,7 +214,7 @@ export function LedgerImportForm({
                 </div>
               ) : (
                 <>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground mb-3">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
                     <UploadCloud className="h-6 w-6" />
                   </div>
                   <div className="text-sm font-semibold text-foreground">
@@ -235,7 +226,7 @@ export function LedgerImportForm({
                   <input
                     type="file"
                     accept=".csv,.xlsx,.xls"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    className="absolute inset-0 cursor-pointer opacity-0"
                     onChange={(e) => setFile(e.target.files?.[0])}
                     required
                   />
@@ -243,46 +234,19 @@ export function LedgerImportForm({
               )}
             </div>
 
-            {/* Presets Row */}
-            <div className="rounded-xl border bg-muted/20 p-3.5 space-y-3">
-              <div className="text-xs font-semibold text-muted-foreground">
-                Optional Presets (Applied when file columns are empty)
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Preset Course</Label>
-                  <select
-                    className="w-full h-9 rounded-lg border border-input bg-card px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    value={presetCourseId}
-                    onChange={(e) =>
-                      setPresetCourseId(e.target.value === "" ? "" : Number(e.target.value))
-                    }
-                  >
-                    <option value="">None (detect from file)</option>
-                    {masterQuery.data?.courses.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.course_code} - {c.course_desc}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Preset Academic Term</Label>
-                  <select
-                    className="w-full h-9 rounded-lg border border-input bg-card px-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    value={presetTermId}
-                    onChange={(e) =>
-                      setPresetTermId(e.target.value === "" ? "" : Number(e.target.value))
-                    }
-                  >
-                    <option value="">None (detect from file)</option>
-                    {masterQuery.data?.academicTerms.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        SY {t.school_year} — {t.semester}
-                      </option>
-                    ))}
-                  </select>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <div className="font-semibold">Check unassigned course and academic year</div>
+                  <p className="mt-0.5">
+                    Any unassigned course and academic year in the file will be assigned
+                    to the default unassigned course and school year during import.
+                    Please review your file before importing. After import, check for{" "}
+                    <span className="font-mono font-semibold">unassigned_grad</span> and{" "}
+                    <span className="font-mono font-semibold">unassigned_school year</span>{" "}
+                    in the filters to verify the imported records.
+                  </p>
                 </div>
               </div>
             </div>

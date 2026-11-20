@@ -40,6 +40,7 @@ interface LedgerTransactionFormProps {
   initialData?: LedgerRecord | null;
   defaultStudentId?: number;
   defaultStudentName?: string;
+  defaultEntryType?: "ar" | "payment" | "adjustment";
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -193,6 +194,7 @@ interface FormFieldsProps {
   initialData?: LedgerRecord | null;
   defaultStudentId?: number;
   defaultStudentName?: string;
+  defaultEntryType?: "ar" | "payment" | "adjustment";
   onClose: () => void;
   onSuccess: (msg: string) => void;
 }
@@ -203,6 +205,7 @@ function SingleFormFields({
   initialData,
   defaultStudentId,
   defaultStudentName,
+  defaultEntryType,
   onClose,
   onSuccess,
 }: FormFieldsProps) {
@@ -244,7 +247,7 @@ function SingleFormFields({
   const [entryType, setEntryType] = useState<"ar" | "payment" | "adjustment">(
     mode === "edit" && initialData
       ? ((initialData.entry_type as "ar" | "payment" | "adjustment") || "ar")
-      : "ar",
+      : (defaultEntryType ?? "ar"),
   );
   const [date, setDate] = useState(
     mode === "edit" && initialData?.transaction_date
@@ -924,6 +927,7 @@ export function LedgerTransactionForm({
   initialData,
   defaultStudentId,
   defaultStudentName,
+  defaultEntryType,
 }: LedgerTransactionFormProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
@@ -1007,12 +1011,13 @@ export function LedgerTransactionForm({
           <>
             {entryMode === "single" && (
               <SingleFormFields
-                key={`single-${mode}-${initialData?.id ?? defaultStudentId ?? "new"}`}
+                key={`single-${mode}-${initialData?.id ?? defaultStudentId ?? "new"}-${defaultEntryType ?? "ar"}`}
                 ledger={ledger}
                 mode={mode}
                 initialData={initialData}
                 defaultStudentId={defaultStudentId}
                 defaultStudentName={defaultStudentName}
+                defaultEntryType={defaultEntryType}
                 onClose={handleClose}
                 onSuccess={handleSuccess}
               />
