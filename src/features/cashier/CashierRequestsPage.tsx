@@ -6,9 +6,9 @@ import {
   ArrowUp,
   ArrowUpDown,
   CalendarIcon,
-  CreditCard,
   Eye,
   Inbox,
+  Pencil,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -415,28 +415,30 @@ export function CashierRequestsPage() {
                         {formatDate(request.created_at ?? request.ref_date)}
                       </TableCell>
                       <TableCell className="py-2! text-center">
-                        <Button
-                          variant={paid ? "ghost" : "default"}
-                          size={paid ? "icon" : "sm"}
+                        <Link
+                          to={`/cashier/requests/${request.id}`}
                           className={
                             paid
-                              ? "size-8 rounded-lg bg-blue-500 text-white hover:bg-blue-600 hover:text-white"
-                              : "h-8 gap-1 rounded-lg text-xs"
+                              ? "inline-flex size-8 items-center justify-center rounded-lg bg-blue-500 text-white transition-colors hover:bg-blue-600"
+                              : "inline-flex size-8 items-center justify-center rounded-lg bg-amber-500 text-white transition-colors hover:bg-amber-600"
                           }
-                          title={paid ? "View payment request" : undefined}
-                          aria-label={paid ? "View payment request" : undefined}
+                          aria-label={
+                            paid
+                              ? "View payment request"
+                              : "Edit payment request"
+                          }
+                          title={
+                            paid
+                              ? "View payment request"
+                              : "Edit payment request"
+                          }
                         >
-                          <Link to={`/cashier/requests/${request.id}`}>
-                            {paid ? (
-                              <Eye className="size-4" />
-                            ) : (
-                              <>
-                                <CreditCard className="size-3.5" />
-                                Record Payment
-                              </>
-                            )}
-                          </Link>
-                        </Button>
+                          {paid ? (
+                            <Eye className="size-4" />
+                          ) : (
+                            <Pencil className="size-4" />
+                          )}
+                        </Link>
                       </TableCell>
                     </TableRow>
                   );

@@ -181,6 +181,8 @@ export function CashierRequestDetailPage() {
   const payor = getCashierPayorName(request);
   const amount = getCashierAmount(request);
   const currentStatus = getCashierStatus(request);
+  const existingOrNo = getCashierOrNo(request)?.trim() ?? "";
+  const isPaidAndRecorded = currentStatus === "paid" && existingOrNo.length > 0;
   const formInput = request.form_input ?? request.formInput;
 
   return (
@@ -365,12 +367,13 @@ export function CashierRequestDetailPage() {
                 {/* Status Selection */}
                 <div className="space-y-1.5">
                   <Label htmlFor="payment_status">Payment Status</Label>
-                  <Select
-                    value={status}
-                    onValueChange={(value) => {
-                      if (value !== null) setStatus(value);
-                    }}
-                  >
+                    <Select
+                      value={status}
+                      onValueChange={(value) => {
+                        if (value !== null) setStatus(value);
+                      }}
+                      disabled={isPaidAndRecorded}
+                    >
                     <SelectTrigger
                       id="payment_status"
                       aria-label="Payment Status"
@@ -404,10 +407,11 @@ export function CashierRequestDetailPage() {
                       <span className="text-destructive">*</span>
                     )}
                   </Label>
-                  <Input
-                    id="or_no"
-                    placeholder="e.g. 1234567"
-                    value={orNo}
+                    <Input
+                      id="or_no"
+                      placeholder="e.g. 1234567"
+                      value={orNo}
+                      disabled={isPaidAndRecorded}
                     onChange={(e) => handleOrNoChange(e.target.value)}
                     aria-invalid={!!fieldErrors.or_no}
                     required={status === "paid"}
@@ -436,8 +440,9 @@ export function CashierRequestDetailPage() {
                           variant="outline"
                           className="h-10 w-full justify-start gap-2 rounded-lg px-4 font-normal text-sm"
                           aria-label="OR Date"
-                          aria-invalid={!!fieldErrors.or_date}
-                        />
+                           aria-invalid={!!fieldErrors.or_date}
+                           disabled={isPaidAndRecorded}
+                         />
                       }
                     >
                       <CalendarIcon className="size-4 text-muted-foreground" />
@@ -449,8 +454,9 @@ export function CashierRequestDetailPage() {
                       <Calendar
                         mode="single"
                         selected={parseDateInput(orDate)}
-                        onSelect={(selected) => {
-                          setOrDate(selected ? format(selected, "yyyy-MM-dd") : "");
+                         onSelect={(selected) => {
+                           if (isPaidAndRecorded) return;
+                           setOrDate(selected ? format(selected, "yyyy-MM-dd") : "");
                           if (fieldErrors.or_date) {
                             setFieldErrors((prev) => ({ ...prev, or_date: "" }));
                           }
@@ -466,15 +472,20 @@ export function CashierRequestDetailPage() {
                 </div>
 
                 <div className="pt-2">
-                  <Button
-                    type="submit"
-                    disabled={mutation.isPending}
+                   <Button
+                     type="submit"
+                     disabled={mutation.isPending || isPaidAndRecorded}
                     className="w-full gap-1.5 px-4 py-5!"
                   >
                     {mutation.isPending ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
                         <span>Saving Payment...</span>
+                      </>
+                    ) : isPaidAndRecorded ? (
+                      <>
+                        <CheckCircle2 className="size-4" />
+                        <span>Payment Locked</span>
                       </>
                     ) : (
                       <>
