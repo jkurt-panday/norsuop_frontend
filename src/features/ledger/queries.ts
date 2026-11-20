@@ -47,7 +47,7 @@ export function useLedgerStudents(
   return useQuery({
     queryKey: ["ledger", ledger, "students", query.trim()],
     queryFn: ({ signal }) => searchLedgerStudents(ledger, query.trim(), 50, signal),
-    enabled: enabled && query.trim().length > 0,
+    enabled,
   });
 }
 
@@ -64,10 +64,15 @@ export function useSearchLedgerStudents(
   });
 }
 
-export function useLedgerEmailRecipients(ledger: Ledger) {
+export function useLedgerEmailRecipients(
+  ledger: Ledger,
+  filters: LedgerFilterParams = {},
+  enabled = true,
+) {
   return useQuery({
-    queryKey: ["ledger", ledger, "email-recipients"],
-    queryFn: ({ signal }) => getLedgerEmailRecipients(ledger, signal),
+    queryKey: ["ledger", ledger, "email-recipients", filters],
+    queryFn: ({ signal }) => getLedgerEmailRecipients(ledger, filters, signal),
+    enabled,
   });
 }
 
@@ -111,6 +116,5 @@ export function useLedgerMasterData(ledger: Ledger) {
         academicTerms: termsRes.data ?? [],
       };
     },
-    staleTime: 1000 * 60 * 10,
   });
 }

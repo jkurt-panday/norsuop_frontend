@@ -11,13 +11,25 @@ import { Label } from "@/components/ui/label";
 
 type EntryType = "ar" | "payment" | "adjustment";
 type Membership = "" | "NAPU" | "NORSUFFA";
+type LatinHonor = "" | "SUMMA" | "MAGNA" | "CUM_LAUDE";
 
 interface RowOverride {
   units?: string;
   rate?: string;
   amount?: string;
   membership?: Membership;
+  latinHonor?: LatinHonor;
   remarks?: string;
+}
+
+const LATIN_HONORS: Array<{ value: Exclude<LatinHonor, "">; label: string; rate: number }> = [
+  { value: "SUMMA", label: "Summa (100%)", rate: 1 },
+  { value: "MAGNA", label: "Magna (75%)", rate: 0.75 },
+  { value: "CUM_LAUDE", label: "Cum Laude (50%)", rate: 0.5 },
+];
+
+function honorDiscount(amount: number, honor: LatinHonor): number {
+  return amount * (LATIN_HONORS.find((option) => option.value === honor)?.rate ?? 0);
 }
 
 const PARTICULARS: Record<EntryType, string[]> = {
@@ -85,6 +97,7 @@ export function CohortEntryPanel({
   const [rate, setRate] = useState("");
   const [amount, setAmount] = useState("");
   const [membership, setMembership] = useState<Membership>("");
+  const [latinHonor, setLatinHonor] = useState<LatinHonor>("");
   const [remarks, setRemarks] = useState("");
 
   const [search, setSearch] = useState("");
@@ -95,6 +108,7 @@ export function CohortEntryPanel({
 
   const isAR = entryType === "ar";
   const showMembership = isAR && ledger === "graduate";
+  const showLatinHonor = isAR && ledger === "law";
 
   const roster = rosterQuery.data?.data ?? [];
 
@@ -146,6 +160,8 @@ export function CohortEntryPanel({
             : templateAmount;
       const rowMembership =
         override.membership !== undefined ? override.membership : membership;
+      const rowLatinHonor =
+        override.latinHonor !== undefined ? override.latinHonor : latinHonor;
       const rowRemarks =
         override.remarks !== undefined ? override.remarks : remarks;
 
@@ -157,6 +173,8 @@ export function CohortEntryPanel({
         rate: override.rate ?? rate,
         amount: rowAmount,
         membership: rowMembership,
+        latinHonor: rowLatinHonor,
+        discount: showLatinHonor ? honorDiscount(rowAmount, rowLatinHonor) : 0,
         remarks: rowRemarks,
       };
     });
@@ -170,6 +188,8 @@ export function CohortEntryPanel({
     isAR,
     amount,
     membership,
+    latinHonor,
+    showLatinHonor,
     remarks,
     units,
     rate,
@@ -178,10 +198,11 @@ export function CohortEntryPanel({
   const totals = rows.reduce(
     (acc, row) => {
       acc.amount += row.amount;
-      if (row.membership) acc.scholarships += 1;
+      acc.discount += row.discount;
+      if (row.membership || row.latinHonor) acc.scholarships += 1;
       return acc;
     },
-    { amount: 0, scholarships: 0 },
+    { amount: 0, discount: 0, scholarships: 0 },
   );
 
   const toggleStudent = (id: number) => {
@@ -221,17 +242,20 @@ export function CohortEntryPanel({
           transaction_date: date,
           particulars: particulars.trim(),
           reference_number: reference.trim() || null,
-          status: "posted",
+          status: ledger === "law" ? "Paid" : "posted",
           cohort_rows: rows.map((row) => ({
             student_id: row.studentId,
             units: Number(row.units || 0),
             rate: Number(row.rate || 0),
             amount: Number(row.amount.toFixed(2)),
             membership: showMembership && row.membership ? row.membership : null,
+            latin_honor: showLatinHonor && row.latinHonor ? row.latinHonor : null,
             discount_amount:
               showMembership && row.membership
                 ? Number(row.amount.toFixed(2))
-                : null,
+                : showLatinHonor && row.latinHonor
+                  ? Number(row.discount.toFixed(2))
+                  : null,
             remarks: row.remarks || null,
           })),
         },
@@ -266,7 +290,10 @@ export function CohortEntryPanel({
               onClick={() => {
                 setEntryType(type.value);
                 setParticulars(PARTICULARS[type.value][0] ?? "Tuition Fee");
-                if (type.value !== "ar") setMembership("");
+                if (type.value !== "ar") {
+                  setMembership("");
+                  setLatinHonor("");
+                }
               }}
               className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all ${
                 entryType === type.value
@@ -410,6 +437,21 @@ export function CohortEntryPanel({
                 <option value="">None</option>
                 <option value="NAPU">NAPU</option>
                 <option value="NORSUFFA">NORSUFFA</option>
+              </select>
+            </div>
+          )}
+          {showLatinHonor && (
+            <div className="space-y-1">
+              <Label className="text-[11px]">Default Latin Honor</Label>
+              <select
+                value={latinHonor}
+                onChange={(e) => setLatinHonor(e.target.value as LatinHonor)}
+                className="h-9 w-full rounded-lg border border-input bg-card px-2 text-xs"
+              >
+                <option value="">None</option>
+                {LATIN_HONORS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </div>
           )}
@@ -590,6 +632,22 @@ export function CohortEntryPanel({
                         <option value="NAPU">NAPU</option>
                         <option value="NORSUFFA">NORSUFFA</option>
                       </select>
+                    ) : showLatinHonor ? (
+                      <select
+                        value={row.latinHonor}
+                        onChange={(e) =>
+                          updateOverride(row.studentId, {
+                            latinHonor: e.target.value as LatinHonor,
+                          })
+                        }
+                        className="h-8 w-full rounded-md border border-input bg-card px-1 text-[11px]"
+                        aria-label={`${row.name} Latin Honor`}
+                      >
+                        <option value="">No honor</option>
+                        {LATIN_HONORS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
                     ) : (
                       <span className="flex items-center font-mono text-[11px] text-muted-foreground">
                         {formatCurrency(row.amount)}
@@ -604,6 +662,9 @@ export function CohortEntryPanel({
             <span className="text-muted-foreground">
               {totals.scholarships} scholarship row
               {totals.scholarships === 1 ? "" : "s"}
+              {showLatinHonor && totals.discount > 0
+                ? ` · ${formatCurrency(totals.discount)} discount`
+                : ""}
             </span>
             <span className="font-bold">
               Total: {formatCurrency(totals.amount)}
