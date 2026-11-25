@@ -16,6 +16,8 @@ const badgeVariants = cva(
         outline: "border-border text-foreground hover:bg-muted/50",
         success:
           "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+        "dark-green":
+          "border-green-700 bg-green-950/30 text-green-200 dark:border-green-400 dark:bg-green-900/40 dark:text-green-100",
         warning:
           "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
         info:
@@ -36,7 +38,7 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+  VariantProps<typeof badgeVariants> { }
 
 function Badge({ className, variant, size, ...props }: BadgeProps) {
   return (
@@ -82,8 +84,8 @@ function StatusBadge({
       displayLabel = label ?? "Paid"
       break
     case "processed":
-      badgeVariant = "info"
-      dotColor = "bg-sky-500"
+      badgeVariant = "success"
+      dotColor = "bg-green-300"
       displayLabel = label ?? "Processed"
       break
     case "cancelled":

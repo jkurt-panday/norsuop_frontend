@@ -137,6 +137,10 @@ export function StaffRequestsPage() {
     });
   };
 
+  const handleReload = () => {
+    query.refetch();
+  };
+
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
   };
@@ -313,6 +317,7 @@ renderActions={(req) => (
         onDateToChange={setDateToInput}
         onFilterSubmit={handleFilterSubmit}
         onFilterReset={handleResetFilters}
+        onReload={handleReload}
         sortOptions={sortOptions}
         enableColumnSorting={true}
         highlightDuration={2000}
