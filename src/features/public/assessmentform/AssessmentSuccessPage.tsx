@@ -24,6 +24,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { assessmentReceiptUrl } from "./resultApi";
 import { useAssessmentResult } from "./resultQueries";
 
@@ -95,7 +104,7 @@ export function AssessmentSuccessPage() {
     return (
       <ResultMessage
         title="Receipt link incomplete"
-        message="Open the result link from your submission confirmation."
+        message="Try to submit another request."
       />
     );
   }
@@ -294,10 +303,32 @@ function ResultMessage({
   message?: string;
 }) {
   return (
-    <main className="bootstrap-card">
-      <h1>{title}</h1>
-      {message && <p>{message}</p>}
-      <Link to="/assessment">Submit another assessment</Link>
+    <main className="flex min-h-screen items-center justify-center bg-blue-500 p-4">
+      <Dialog open>
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-md border-0 bg-[#F8F9FA] text-slate-900 shadow-2xl"
+        >
+          <DialogHeader className="text-center sm:text-center">
+            <DialogTitle className="text-2xl font-bold text-blue-950">
+              {title}
+            </DialogTitle>
+            {message && (
+              <DialogDescription className="text-base text-slate-700">
+                {message}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <DialogFooter className="justify-center sm:justify-center">
+            <Button
+              render={<Link to="/assessment" />}
+              className="bg-blue-700 text-white hover:bg-blue-800"
+            >
+              Submit another assessment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

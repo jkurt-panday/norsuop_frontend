@@ -65,6 +65,11 @@ export type LedgerStats = {
   totalPayments?: number;
   totalAdjustments?: number;
   outstandingBalance?: number;
+  total_students?: number;
+  total_assessments?: number;
+  total_payments?: number;
+  total_adjustments?: number;
+  outstanding_balance?: number;
 };
 
 export type LedgerFilterOptions = {

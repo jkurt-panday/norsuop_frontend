@@ -18,7 +18,7 @@ export class ApiError extends Error {
 }
 
 const baseUrl = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
-const requestTimeoutMs = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 30_000);
+const requestTimeoutMs = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 60_000);
 let csrfPromise: Promise<void> | undefined;
 
 function timeoutError(): ApiError {
@@ -125,8 +125,8 @@ async function parseError(response: Response): Promise<never> {
     payload && typeof payload === "object"
       ? (payload as ApiErrorPayload)
       : {
-          message: String(payload || `API request failed (${response.status})`),
-        };
+        message: String(payload || `API request failed (${response.status})`),
+      };
   throw new ApiError(response.status, normalized);
 }
 

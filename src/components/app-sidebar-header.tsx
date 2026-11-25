@@ -6,6 +6,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCurrentUser } from "@/features/auth/queries";
 import { getAssessment } from "@/features/assessments/api";
+import {
+  getCashierReferenceNumber,
+  getCashierRequest,
+} from "@/features/cashier/api";
 import { getStaffRequest } from "@/features/staff/api";
 
 export interface BreadcrumbItem {
@@ -28,10 +32,8 @@ const routeTitleMap: Record<string, string> = {
   "/staff/authorized-officials": "Authorized Officials",
   "/staff/uacs": "UACS",
   "/staff/courses": "Courses",
-  "/staff/assessments/dashboard": "Assessments Dashboard",
-  "/staff/assessments": "Assessments",
-  "/staff/activity-log": "Activity Log",
-  "/cashier": "Cashier Dashboard",
+  "/staff/assessments/dashboard": "Assessment Dashboard",
+  "/staff/assessments": "Assessment Requests",
   "/cashier/requests": "Cashier Requests",
   "/documents": "Supporting Documents",
   "/graduate-ledger": "Graduate Ledger",
@@ -52,10 +54,16 @@ export function AppSidebarHeader({
 
   // Assessment detail route: /staff/assessments/:id
   const assessmentId = location.pathname.match(/^\/staff\/assessments\/(\d+)(?:\/|$)/)?.[1];
+  const cashierRequestId = location.pathname.match(/^\/cashier\/requests\/(\d+)(?:\/|$)/)?.[1];
   const assessmentQuery = useQuery({
     queryKey: ["assessment", assessmentId],
     queryFn: ({ signal }) => getAssessment(assessmentId!, signal),
     enabled: Boolean(assessmentId),
+  });
+  const cashierRequestQuery = useQuery({
+    queryKey: ["cashier", "request", cashierRequestId],
+    queryFn: ({ signal }) => getCashierRequest(Number(cashierRequestId), signal),
+    enabled: Boolean(cashierRequestId),
   });
 
   // Staff request detail route: /staff/requests/:id
@@ -81,6 +89,31 @@ export function AppSidebarHeader({
     }
     const path = location.pathname.replace(/\/$/, "");
     if (!path || path === "") return [];
+
+    if (cashierRequestId) {
+      return [
+        {
+          title: "Cashier Requests",
+          href: "/cashier/requests",
+        },
+        {
+          title: cashierRequestQuery.data?.data
+            ? getCashierReferenceNumber(cashierRequestQuery.data.data)
+            : cashierRequestId,
+        },
+      ];
+    }
+
+    if (path === "/cashier/requests") {
+      return [{ title: "Cashier Requests" }];
+    }
+
+    if (path === "/staff/assessments/dashboard") {
+      return [
+        { title: "Staff Dashboard", href: "/staff" },
+        { title: "Assessment Dashboard" },
+      ];
+    }
 
     const segments = path.split("/").filter(Boolean);
     const crumbs: BreadcrumbItem[] = [];
@@ -112,11 +145,20 @@ export function AppSidebarHeader({
 
       currentPath += `/${segments[i]}`;
       const isAssessmentId = assessmentId && segments[i] === assessmentId;
-      const isRequestId = requestIdStr && segments[i] === requestIdStr;
+      const isCashierRequestId =
+        cashierRequestId && segments[i] === cashierRequestId;
+      const isRequestId = requestId && segments[i] === requestId;
       const title = isAssessmentId
         ? assessmentQuery.data?.data.reference_number ?? segments[i]
-        : routeTitleMap[currentPath] ||
-          segments[i].charAt(0).toUpperCase() + segments[i].slice(1).replace(/-/g, " ");
+        : isCashierRequestId
+          ? cashierRequestQuery.data?.data
+            ? getCashierReferenceNumber(cashierRequestQuery.data.data)
+            : segments[i]
+          : isRequestId
+            ? requestQuery.data?.data.reference_number ?? segments[i]
+            : routeTitleMap[currentPath] ||
+            segments[i].charAt(0).toUpperCase() +
+            segments[i].slice(1).replace(/-/g, " ");
       crumbs.push({
         title,
         href: i < segments.length - 1 && !isAssessmentId ? currentPath : undefined,
@@ -124,7 +166,16 @@ export function AppSidebarHeader({
     }
 
     return crumbs;
-  }, [assessmentId, assessmentQuery.data, requestId, requestQuery.data, breadcrumbs, location.pathname]);
+  }, [
+    assessmentId,
+    assessmentQuery.data,
+    breadcrumbs,
+    cashierRequestId,
+    cashierRequestQuery.data,
+    location.pathname,
+    requestId,
+    requestQuery.data,
+  ]);
 
   return (
     <div className="flex h-16 items-center gap-4 border-b border-white/20 bg-primary px-6 text-primary-foreground dark:border-sidebar-border dark:bg-sidebar dark:text-sidebar-foreground">

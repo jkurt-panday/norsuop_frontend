@@ -67,10 +67,6 @@ export function getCashierPayorName(request: CashierRequest): string {
     .trim();
 }
 
-export function getCashierEmail(request: CashierRequest): string {
-  return request.form_input?.email ?? request.formInput?.email ?? request.email ?? "—";
-}
-
 export function getCashierAmount(request: CashierRequest): number {
   const val = request.form_input?.amount ?? request.formInput?.amount ?? request.amount;
   return Number(val ?? 0);

@@ -38,7 +38,7 @@ export type AssessmentItem = {
   semester: string;
   status: AssessmentStatus | null;
   created_at: string;
-  course: AssessmentCourse;
+  course: AssessmentCourse | null;
   ledgerStatement?: AssessmentLedgerStatement;
 };
 
