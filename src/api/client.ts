@@ -129,8 +129,8 @@ async function parseError(response: Response): Promise<never> {
     payload && typeof payload === "object"
       ? (payload as ApiErrorPayload)
       : {
-          message: String(payload || `API request failed (${response.status})`),
-        };
+        message: String(payload || `API request failed (${response.status})`),
+      };
   throw new ApiError(response.status, normalized);
 }
 

@@ -21,6 +21,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -62,6 +67,7 @@ import {
   type SupportingDocument,
   type StaffStudent,
 } from "./api";
+import { toast } from "sonner";
 
 interface FormInput {
   id: number;
@@ -77,7 +83,7 @@ interface FormInput {
   request_type: string;
   amount: number;
   created_at: string;
-  membership: { id?: number; member_code: string; member_desc: string } | null;
+  membership: { id: number; member_code: string; member_desc: string } | null;
   payment_detail_option: PaymentDetailOption | null;
   staff_input: StaffInputData | null;
   staffInput: StaffInputData | null;
@@ -117,15 +123,17 @@ interface PageData {
 const statusBadgeClass = (status: string) => {
   switch (status) {
     case "processed":
-      return "bg-green-100 text-green-800";
+      return "bg-green-900/20 text-green-700 dark:bg-green-900/30 dark:text-green-300";
     case "paid":
-      return "bg-green-50 text-green-700";
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
     case "cancelled":
-      return "bg-red-50 text-red-700";
+      return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
     case "pending":
+      return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
     case "unprocessed":
+      return "bg-slate-100 text-slate-700 dark:bg-slate-800/30 dark:text-slate-300";
     default:
-      return "bg-amber-50 text-amber-700";
+      return "bg-slate-100 text-slate-700 dark:bg-slate-800/30 dark:text-slate-300";
   }
 };
 
@@ -199,21 +207,24 @@ const buildEmailPreviewHtml = (
 
   return `<!DOCTYPE html>
 <html>
-<body style="font-family: Arial, sans-serif; color: #1e293b; margin:0; padding:16px;">
-    <p>Dear ${escapeHtml(recipientName || "\u2014")},</p>
-    <p>
-        Please find attached your Order of Payment
-        (Reference No. <strong>${escapeHtml(formInput.reference_number)}</strong>)
-        for the amount of <strong>${formatCurrency(formInput.amount)}</strong>.
-    </p>
-    ${noteHtml}
-    <p>Two copies are attached:</p>
-    <ul>
-        <li>A5 portrait \u2014 for individual filing</li>
-        <li>Legal landscape \u2014 3-up copies (Payor's / Cash Unit's / Accounting Unit's)</li>
-    </ul>
-    <p>Please present this at the Cash / Treasury Unit to complete payment.</p>
-    <p>Regards,<br>NORSU Accounting Office</p>
+<body style="font-family: Arial, sans-serif; color: #1e293b; margin:0; padding:24px;">
+    <div style="width: 100%; background: white; padding: 32px; border-radius: 8px; border: 1px solid #e2e8f0; box-sizing: border-box;">
+        <p style="margin: 0 0 16px;">Dear ${escapeHtml(recipientName || "\u2014")},</p>
+        <p style="margin: 0 0 16px; line-height: 1.6;">
+            Please find attached your Order of Payment
+            (Reference No. <strong>${formInput.reference_number}</strong>)
+            for the amount of <strong>${formatCurrency(formInput.amount)}</strong>.
+        </p>
+        ${noteHtml}
+        <p style="margin: 16px 0 8px; line-height: 1.6;">Two copies are attached:</p>
+        <ul style="margin: 0 0 16px; padding-left: 20px; line-height: 1.8;">
+            <li>A5 portrait \u2014 for individual filing</li>
+            <li>Legal landscape \u2014 3-up copies (Payor's / Cash Unit's / Accounting Unit's)</li>
+        </ul>
+        <p style="margin: 0 0 24px; line-height: 1.6;">Please present this at the Cash / Treasury Unit to complete payment.</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+        <p style="margin: 0; line-height: 1.6;">Regards,<br>NORSU Accounting Office</p>
+    </div>
 </body>
 </html>`;
 };
@@ -441,6 +452,7 @@ export function StaffRequestDetailPage() {
     onSuccess: () => {
       refetch();
       setIsProcessing(false);
+      toast.success('Request processed successfully.');
     },
   });
 
@@ -450,6 +462,7 @@ export function StaffRequestDetailPage() {
     onSuccess: () => {
       refetch();
       setIsEditingStaffInput(false);
+      toast.success('Processing record updated successfully.');
     },
   });
 
@@ -460,10 +473,11 @@ export function StaffRequestDetailPage() {
       refetch();
       setIsEditingDetails(false);
       setIsEditingPaymentInfo(false);
+      toast.success('Request details saved successfully.');
     },
     onError: (error) => {
       console.error('Update details failed:', error);
-      alert('Failed to save changes: ' + (error as Error).message);
+      toast.error('Failed to save changes: ' + (error as Error).message);
     },
   });
 
@@ -476,6 +490,7 @@ export function StaffRequestDetailPage() {
     onSuccess: () => {
       refetch();
       setIsEditingOr(false);
+      toast.success('OR number updated successfully.');
     },
   });
 
@@ -490,6 +505,7 @@ export function StaffRequestDetailPage() {
     onSuccess: () => {
       refetch();
       setIsStudentMatchOpen(false);
+      toast.success('Student linked successfully.');
     },
   });
 
@@ -513,6 +529,7 @@ export function StaffRequestDetailPage() {
     onSuccess: () => {
       refetch();
       setDeleteTargetId(null);
+      toast.success('Document deleted successfully.');
     },
   });
 
@@ -565,10 +582,10 @@ export function StaffRequestDetailPage() {
       { id: formInput.id, payload: { subject: emailSubject, recipient_name: emailRecipientName, note: emailNote } },
       {
         onSuccess: () => {
-          alert("Order of Payment emailed successfully.");
+          toast.success("Order of Payment emailed successfully.");
           setIsEmailPreviewOpen(false);
         },
-        onError: () => alert("Failed to send the email. Please try again."),
+        onError: (error) => toast.error("Failed to send email: " + (error as Error).message),
         onSettled: () => setIsSendingEmail(false),
       }
     );
@@ -625,8 +642,8 @@ export function StaffRequestDetailPage() {
 
   const handleOrSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!staffInput) return;
-    updateOrMutation.mutate({ id: staffInput.id, payload: orData });
+    if (!formInput) return;
+    updateOrMutation.mutate({ id: formInput.id, payload: orData });
   };
 
   const handlePaymentInfoSubmit = (e: React.FormEvent) => {
@@ -706,8 +723,8 @@ export function StaffRequestDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen bg-background px-4 py-8">
+      <div className="w-full min-w-0">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-3xl font-bold bg-blue-600 bg-clip-text text-transparent">
@@ -720,7 +737,7 @@ export function StaffRequestDetailPage() {
           <div className="flex gap-2">
             <Link
               to="/staff/requests"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-gray-100"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
                 <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -818,7 +835,7 @@ export function StaffRequestDetailPage() {
                             {detailsData.course_id ? (
                               <span className="flex flex-1 text-left line-clamp-1">
                                 {(() => {
-                                  const selected = courses.find((c) => String(c.id) === detailsData.course_id);
+                                  const selected = courses.find((c: { id: number; course_code: string; course_desc: string; course_college: string }) => String(c.id) === detailsData.course_id);
                                   return selected ? `${selected.course_code} — ${selected.course_desc}` : "Select Course Program";
                                 })()}
                               </span>
@@ -826,13 +843,13 @@ export function StaffRequestDetailPage() {
                               <SelectValue placeholder="Select Course Program" />
                             )}
                           </SelectTrigger>
-                          <SelectContent>
-                            {courses.map((course) => (
-                              <SelectItem key={course.id} value={String(course.id)}>
-                                {course.course_code} — {course.course_desc}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+<SelectContent>
+                             {courses.map((course: { id: number; course_code: string; course_desc: string; course_college: string }) => (
+                               <SelectItem key={course.id} value={String(course.id)}>
+                                 {course.course_code} — {course.course_desc}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
                         </Select>
                       </div>
                     </div>
@@ -907,7 +924,7 @@ export function StaffRequestDetailPage() {
                             {paymentInfoData.membership_id ? (
                               <span className="flex flex-1 text-left line-clamp-1">
                                 {(() => {
-                                  const selected = memberships.find((m) => String(m.id) === paymentInfoData.membership_id);
+                                  const selected = memberships.find((m: { id: number; member_code: string; member_desc: string }) => String(m.id) === paymentInfoData.membership_id);
                                   return selected ? `${selected.member_code} - ${selected.member_desc}` : "Select Membership";
                                 })()}
                               </span>
@@ -915,14 +932,14 @@ export function StaffRequestDetailPage() {
                               <SelectValue placeholder="Select Membership" />
                             )}
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">None</SelectItem>
-                            {memberships.map((m) => (
-                              <SelectItem key={m.id} value={String(m.id)}>
-                                {m.member_code} - {m.member_desc}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+<SelectContent>
+                             <SelectItem value="">None</SelectItem>
+                             {memberships.map((m: { id: number; member_code: string; member_desc: string }) => (
+                               <SelectItem key={m.id} value={String(m.id)}>
+                                 {m.member_code} - {m.member_desc}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-1.5">
@@ -981,7 +998,6 @@ export function StaffRequestDetailPage() {
                       label="Payment Option"
                       value={formInput.payment_detail_option?.payment_desc ?? "N/A"}
                     />
-                    <ReadOnlyRow label="Submission Date" value={formatDateTime(formInput.created_at)} />
                   </div>
                 )}
               </CardContent>
@@ -1055,7 +1071,7 @@ export function StaffRequestDetailPage() {
                             href={`/api/v1/staff/documents/${document.id}/download`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted"
                             title="Download"
                           >
                             <Download className="h-4 w-4" />
@@ -1099,7 +1115,7 @@ export function StaffRequestDetailPage() {
                     <Badge className={statusBadgeClass(rawStatus)}>{rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1)}</Badge>
                   )}
                   {staffInput?.emailed_at && (
-                    <Badge variant="secondary" className="bg-green-50 text-green-700">
+                    <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:bg-green-500/30 dark:text-green-400">
                       <Mail className="h-3 w-3 mr-1" /> Sent email
                     </Badge>
                   )}
@@ -1264,7 +1280,7 @@ export function StaffRequestDetailPage() {
                           required
                         />
                       </div>
-<div className="space-y-1.5">
+                      <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">UACS <span className="text-red-500">*</span></label>
                         <Select value={staffInputData.uacs_id} onValueChange={(v) => setStaffInputData({ ...staffInputData, uacs_id: v ?? "" })}>
                           <SelectTrigger>
@@ -1325,12 +1341,6 @@ export function StaffRequestDetailPage() {
                       <ReadOnlyRow label="Purpose" value={staffInput.purpose ?? "N/A"} stacked />
                       <ReadOnlyRow label="Processed By" value="Staff User" />
                       <ReadOnlyRow label="Processed Date" value={staffInput.created_at ? formatDateTime(staffInput.created_at) : "N/A"} />
-                      {staffInput.or_no && (
-                        <ReadOnlyRow label="OR Number" value={staffInput.or_no} valueClass="font-mono font-medium" />
-                      )}
-                      {staffInput.or_date && (
-                        <ReadOnlyRow label="OR Date" value={formatDateOnly(staffInput.or_date)} />
-                      )}
                     </div>
                   )
                 ) : (
@@ -1352,11 +1362,11 @@ export function StaffRequestDetailPage() {
                     <CardTitle className="text-base font-semibold">Official Receipt</CardTitle>
                     <CardDescription className="text-xs">Official receipt details</CardDescription>
                   </div>
-{!isEditingOr && staffInput && (
-                  <Button variant="ghost" size="icon" onClick={() => setIsEditingOr(true)} aria-label="Edit OR">
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                )}
+                  {!isEditingOr && staffInput && (
+                    <Button variant="ghost" size="icon" onClick={() => setIsEditingOr(true)} aria-label="Edit OR">
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent className="pt-4">
                   {isEditingOr ? (
@@ -1444,20 +1454,39 @@ export function StaffRequestDetailPage() {
                 <CardDescription className="text-xs">View or download generated PDF receipts</CardDescription>
               </CardHeader>
               <CardContent className="pt-4 flex items-center gap-2">
-                <Select
-                  onValueChange={(value) => {
-                    if (value) window.open(getOpPdfUrl(formInput.id, value as "portrait" | "landscape"), "_blank");
-                  }}
-                  defaultValue="portrait"
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select PDF format" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="portrait">Portrait (3 Pages)</SelectItem>
-                    <SelectItem value="landscape">Landscape (1 Page)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline">
+                      <Eye className="h-4 w-4 mr-2" /> View OP
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-3.5 w-3.5 ml-2"
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" side="bottom" className="w-52 p-1">
+                    <button
+                      onClick={() => window.open(getOpPdfUrl(formInput.id, "portrait"), "_blank")}
+                      className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm hover:bg-accent"
+                    >
+                      Portrait (A5, 3 Pages)
+                    </button>
+                    <button
+                      onClick={() => window.open(getOpPdfUrl(formInput.id, "landscape"), "_blank")}
+                      className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm hover:bg-accent"
+                    >
+                      Landscape (Legal, 1 Page)
+                    </button>
+                  </PopoverContent>
+                </Popover>
                 <Button
                   variant="outline"
                   onClick={openEmailPreview}
@@ -1471,14 +1500,14 @@ export function StaffRequestDetailPage() {
 
         {/* Email Preview Dialog */}
         <Dialog open={isEmailPreviewOpen} onOpenChange={setIsEmailPreviewOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[100vh] max-h-[100vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Preview Email</DialogTitle>
               <DialogDescription>
                 Review before sending to <span className="font-medium">{formInput.email}</span>. Two PDF copies (A5 + Legal) will be attached automatically.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-6 md:grid-cols-2 py-4">
+            <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-[3fr_5fr] py-6">
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground">Subject</label>
@@ -1499,7 +1528,7 @@ export function StaffRequestDetailPage() {
                   />
                 </div>
               </div>
-              <div className="border rounded-lg bg-gray-50 p-4 overflow-auto max-h-[60vh]">
+              <div className="border rounded-lg bg-muted p-4 overflow-auto max-h-[60vh]">
                 <div dangerouslySetInnerHTML={{ __html: buildEmailPreviewHtml(formInput, emailRecipientName, emailNote) }} />
               </div>
             </div>
@@ -1604,8 +1633,8 @@ export function StaffRequestDetailPage() {
               <Button
                 onClick={
                   studentMatchMode === "existing"
-                    ? () => {} // linkStudentMutation.mutate({ id: formInput.id, student_id: selectedId })
-                    : () => {} // createAndLinkStudent mutation not implemented yet
+                    ? () => { } // linkStudentMutation.mutate({ id: formInput.id, student_id: selectedId })
+                    : () => { } // createAndLinkStudent mutation not implemented yet
                 }
                 disabled={
                   studentMatchMode === "existing"

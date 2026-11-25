@@ -1,3 +1,4 @@
+import { LightModeWrapper } from "../../../components/ui/LightModeWrapper";
 import { useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { FileUpload } from "../../../components/application/file-upload/file-upload-base";
@@ -185,7 +186,7 @@ export function OpFormPage() {
   }
 
   return (
-    <>
+    <LightModeWrapper>
       <title>Order of Payment Form</title>
       <main className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12">
         <div className="mx-auto max-w-4xl">
@@ -863,6 +864,6 @@ export function OpFormPage() {
           </Card>
         </div>
       </main>
-    </>
+    </LightModeWrapper>
   );
 }

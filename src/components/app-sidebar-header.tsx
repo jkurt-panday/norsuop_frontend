@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -50,6 +50,7 @@ export function AppSidebarHeader({
   const { data } = useCurrentUser();
   const userName = data?.data?.name ?? "";
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   // Assessment detail route: /staff/assessments/:id
   const assessmentId = location.pathname.match(/^\/staff\/assessments\/(\d+)(?:\/|$)/)?.[1];
@@ -66,11 +67,20 @@ export function AppSidebarHeader({
   });
 
   // Staff request detail route: /staff/requests/:id
-  const requestId = location.pathname.match(/^\/staff\/requests\/(\d+)(?:\/|$)/)?.[1];
+  const requestIdStr = location.pathname.match(/^\/staff\/requests\/(\d+)(?:\/|$)/)?.[1];
+  const requestId = requestIdStr ? Number(requestIdStr) : undefined;
+
+  // Check cache first - StaffRequestDetailPage loads this data with key ["staff", "request", id]
+  // API returns StaffRequestDetail { data: StaffRequest, ... }, so cached data is { data: { data: { reference_number } } }
+  const cachedRequest = requestId
+    ? queryClient.getQueryData<{ data: { data: { reference_number?: string } } }>(["staff", "request", requestId])
+    : undefined;
+
   const requestQuery = useQuery({
-    queryKey: ["staffRequest", requestId],
-    queryFn: ({ signal }) => getStaffRequest(Number(requestId), signal),
+    queryKey: ["staff", "request", requestId],
+    queryFn: ({ signal }) => getStaffRequest(requestId!, signal),
     enabled: Boolean(requestId),
+    initialData: cachedRequest ? { data: cachedRequest.data } : undefined,
   });
 
   const resolvedBreadcrumbs: BreadcrumbItem[] = React.useMemo(() => {
@@ -108,13 +118,30 @@ export function AppSidebarHeader({
     const segments = path.split("/").filter(Boolean);
     const crumbs: BreadcrumbItem[] = [];
     let currentPath = "";
+    const requestIdStr = requestId?.toString();
 
     for (let i = 0; i < segments.length; i++) {
       // The edit route is an implementation detail; the assessment reference
       // is the meaningful final breadcrumb for this page.
       if (assessmentId && segments[i] === "edit") continue;
       // Skip the request ID segment - we'll show reference_number instead
-      if (requestId && segments[i] === requestId) continue;
+      const hasRequestRef = requestQuery.data?.data?.reference_number;
+      if (requestIdStr && segments[i] === requestIdStr) {
+        if (hasRequestRef) {
+          // Add the reference number as the final crumb
+          crumbs.push({
+            title: hasRequestRef,
+            href: undefined,
+          });
+        } else {
+          // No reference yet - show ID as fallback
+          crumbs.push({
+            title: segments[i],
+            href: undefined,
+          });
+        }
+        continue;
+      }
 
       currentPath += `/${segments[i]}`;
       const isAssessmentId = assessmentId && segments[i] === assessmentId;
@@ -130,11 +157,11 @@ export function AppSidebarHeader({
           : isRequestId
             ? requestQuery.data?.data.reference_number ?? segments[i]
             : routeTitleMap[currentPath] ||
-              segments[i].charAt(0).toUpperCase() +
-                segments[i].slice(1).replace(/-/g, " ");
+            segments[i].charAt(0).toUpperCase() +
+            segments[i].slice(1).replace(/-/g, " ");
       crumbs.push({
         title,
-        href: i < segments.length - 1 && !isAssessmentId && !isRequestId ? currentPath : undefined,
+        href: i < segments.length - 1 && !isAssessmentId ? currentPath : undefined,
       });
     }
 

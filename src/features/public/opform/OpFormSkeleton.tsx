@@ -1,10 +1,13 @@
+import { LightModeWrapper } from "@/components/ui/LightModeWrapper";
+
 export function OpFormSkeleton() {
   return (
-    <main
-      className="min-h-screen bg-linear-to-b from-blue-500 via-slate-300 to-white px-3 py-6 sm:px-6 sm:py-12"
-      aria-busy="true"
-      aria-label="Loading order of payment form"
-    >
+    <LightModeWrapper>
+      <main
+        className="min-h-screen bg-linear-to-b from-blue-500 via-slate-300 to-white px-3 py-6 sm:px-6 sm:py-12"
+        aria-busy="true"
+        aria-label="Loading order of payment form"
+      >
       <div className="mx-auto max-w-4xl animate-pulse">
         <div className="mb-6 rounded-2xl border border-blue-100 bg-white px-4 py-8 shadow-md sm:px-8">
           <div className="mx-auto h-20 max-w-md rounded bg-slate-200" />
@@ -40,6 +43,7 @@ export function OpFormSkeleton() {
         </section>
       </div>
     </main>
+    </LightModeWrapper>
   );
 }
 

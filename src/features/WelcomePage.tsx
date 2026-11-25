@@ -106,7 +106,7 @@ export function WelcomePage() {
               className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-sm font-medium hover:bg-white/20"
             >
               <LogIn className="size-4" />
-              Staff sign in
+              Sign in
             </Link>
           )}
         </div>

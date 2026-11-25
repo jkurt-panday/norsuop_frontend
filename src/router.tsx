@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router";
 import App from "./App";
 import { WelcomePage } from "./features/WelcomePage";
 import { LoginForm } from "./features/auth/LoginForm";
+import { LandingPage } from "./features/public/LandingPage";
 import { OpFormPage } from "./features/public/opform/OpFormPage";
 import { OpFormSuccessPage } from "./features/public/opform/OpFormSuccessPage";
 import { AssessmentPage } from "./features/public/assessmentform/AssessmentPage";

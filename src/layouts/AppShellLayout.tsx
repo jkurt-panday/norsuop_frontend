@@ -6,6 +6,7 @@ import {
   type BreadcrumbItem,
 } from "@/components/app-sidebar-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
 
 export interface AppShellLayoutProps {
   children?: React.ReactNode;
@@ -27,6 +28,7 @@ export function AppShellLayout({
           </main>
         </SidebarInset>
       </div>
+      <Toaster />
     </SidebarProvider>
   );
 }

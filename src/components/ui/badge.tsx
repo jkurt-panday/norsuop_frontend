@@ -98,8 +98,8 @@ function StatusBadge({
       break
     case "unprocessed":
     default:
-      badgeVariant = "warning"
-      dotColor = "bg-amber-500"
+      badgeVariant = "secondary"
+      dotColor = "bg-slate-400"
       displayLabel = label ?? "Unprocessed"
       break
   }

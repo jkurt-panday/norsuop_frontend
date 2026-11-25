@@ -72,7 +72,7 @@ export type StaffRequest = {
   position_or_designation?: string;
   address?: string;
   request_type?: string;
-  membership?: { member_desc?: string; member_code?: string };
+  membership?: { id?: number; member_desc?: string; member_code?: string } | null;
   payment_detail_option?: PaymentDetailOption | null;
   staff_input?: StaffInputData | null;
   staffInput?: StaffInputData | null;
@@ -190,7 +190,7 @@ export function emailOpRequest(
   id: number,
   payload: { subject: string; recipient_name: string; note?: string },
 ) {
-  return api(`/api/v1/staff/requests/${id}/email`, {
+  return api(`/api/v1/staff/requests/${id}/email-op`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -198,6 +198,12 @@ export function emailOpRequest(
 
 export function getOpPdfUrl(id: number, format: "portrait" | "landscape" = "portrait"): string {
   return `/api/v1/staff/requests/${id}/pdf?format=${format}`;
+}
+
+export function deleteStaffRequest(id: number) {
+  return api(`/api/v1/staff/requests/${id}`, {
+    method: "DELETE",
+  });
 }
 
 // ── Staff Dashboard & Activity Log ──────────────────────────────────────────
@@ -269,7 +275,7 @@ export type StaffActivityLogFilterParams = {
 };
 
 export function getStaffDashboard(signal?: AbortSignal) {
-  return api<{ data: StaffDashboardData }>("/api/v1/staff/dashboard", {
+  return api<{ data: StaffDashboardData }>("/api/v1/staff/requests/dashboard", {
     signal,
   });
 }

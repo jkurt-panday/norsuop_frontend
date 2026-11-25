@@ -60,6 +60,7 @@ export interface ColumnDef<T> {
   width?: string;
   render: (row: T, index: number) => React.ReactNode;
   className?: string;
+  headerClassName?: string;
   align?: "left" | "right" | "center";
   hideOnMobile?: boolean;
   sortable?: string | boolean;
@@ -113,7 +114,7 @@ export interface RequestTableProps<T extends { id: number | string }> {
   onSortChange?: (sort: string, direction: "asc" | "desc") => void;
 }
 
-const STATUS_COLORS = {
+export const STATUS_COLORS = {
   green: "bg-emerald-500",
   "light-green": "bg-green-300",
   "dark-green": "bg-green-600",
@@ -123,6 +124,23 @@ const STATUS_COLORS = {
   orange: "bg-amber-500",
   grey: "bg-slate-400",
 } as const;
+
+export function StatusBadge({
+  label,
+  color,
+}: {
+  label: string;
+  color?: keyof typeof STATUS_COLORS | string;
+}) {
+  const dotColor = resolveStatusColor(color);
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:border dark:border-slate-700/40 dark:bg-slate-800/60 dark:text-slate-300">
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dotColor)} />
+      {label}
+    </span>
+  );
+}
 
 const statusColorMap: Record<string, string> = {
   paid: "light-green",
@@ -423,7 +441,7 @@ export default function RequestTable<T extends { id: number | string }>({
           }
         `}</style>
         <CardContent className="min-w-0 overflow-x-auto p-0">
-          <Table className={`transition-opacity duration-150 ${isNavigating ? "opacity-60" : "opacity-100"}`}>
+          <Table className={`transition-opacity duration-150 ${isNavigating ? "opacity-60" : "opacity-100"} w-full`} style={{ tableLayout: "fixed" }}>
             <TableHeader>
               <TableRow className="border-b border-border hover:bg-transparent">
                 {columns.map((col, i) => {
@@ -457,17 +475,24 @@ export default function RequestTable<T extends { id: number | string }>({
                       className={cn(
                         "h-11 bg-muted/50 text-xs font-semibold tracking-wide whitespace-nowrap text-muted-foreground uppercase",
                         i === 0 && "pl-4 sm:pl-6",
-                        col.align && alignClass[col.align],
+                        col.align === "right" && "pr-4 sm:pr-6",
+                        col.align === "center" && "px-4 sm:px-6",
                         col.hideOnMobile && "hidden md:table-cell",
                         col.sortable && "select-none hover:text-foreground",
                         col.className,
+                        col.headerClassName,
                       )}
                     >
                       {col.sortable ? (
                         <button
                           type="button"
-                          onClick={() => handleSortClick(typeof col.sortable === 'string' ? col.sortable : '')}
-                          className="flex w-full items-center gap-1.5 rounded-sm py-1 text-left focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none"
+                          onClick={() => handleSortClick(col.sortable!)}
+                          className={cn(
+                            "flex w-full items-center gap-1.5 rounded-sm py-1 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none",
+                            col.align === "right" && "text-right",
+                            col.align === "center" && "text-center",
+                            col.align === "left" && "text-left",
+                          )}
                         >
                           {col.header}
                           {sortIcon}
@@ -513,7 +538,9 @@ export default function RequestTable<T extends { id: number | string }>({
                           className={cn(
                             "py-3 text-sm text-foreground",
                             j === 0 && "pl-4 font-medium text-foreground sm:pl-6",
-                            col.align && alignClass[col.align],
+                            col.align === "right" && "pr-4 sm:pr-6 text-right",
+                            col.align === "center" && "px-4 sm:px-6 text-center",
+                            col.align === "left" && "text-left",
                             col.hideOnMobile && "hidden md:table-cell",
                             col.className,
                           )}
@@ -534,75 +561,48 @@ export default function RequestTable<T extends { id: number | string }>({
           </Table>
         </CardContent>
 
-        {resource.last_page > 1 && (
+        {resource.data.length > 0 && (
           <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-5">
             <p className="shrink-0 text-xs text-muted-foreground sm:text-sm">
               Showing {resource.from ?? 0}-{resource.to ?? 0} of {resource.total} results
             </p>
 
-            {resource.last_page > 5 ? (
-              (() => {
-                const prevLink = resource.links.find((l) =>
-                  l.label.replace(/&laquo;|&raquo;/g, "").trim().toLowerCase().includes("previous"),
-                );
-                const nextLink = resource.links.find((l) =>
-                  l.label.replace(/&laquo;|&raquo;/g, "").trim().toLowerCase().includes("next"),
-                );
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                disabled={resource.current_page <= 1}
+                onClick={() => navigateToPage(resource.current_page - 1)}
+                aria-label="Previous page"
+                className="h-8 w-8 shrink-0 rounded-md text-sm"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
 
-                return (
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      disabled={!prevLink?.url}
-                      onClick={() => navigateToPage(resource.current_page - 1)}
-                      aria-label="Previous page"
-                      className="h-8 w-8 shrink-0 rounded-md text-sm"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-
-                    <Popover open={pageJumpOpen} onOpenChange={(open) => { setPageJumpOpen(open); if (open) setPageJumpInput(String(resource.current_page)); }}>
-                      <PopoverTrigger>
-                        <span role="button" tabIndex={0} className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted">
-                          Page {resource.current_page} of {resource.last_page}
-                        </span>
-                      </PopoverTrigger>
-                      <PopoverContent align="center" className="w-48 space-y-2 border-border bg-popover p-2">
-                        <form onSubmit={(e) => { e.preventDefault(); const parsed = Number(pageJumpInput); if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= resource.last_page) { navigateToPage(parsed); setPageJumpOpen(false); } }} className="flex items-center gap-1.5">
-                          <input type="number" min={1} max={resource.last_page} value={pageJumpInput} onChange={(e) => setPageJumpInput(e.target.value)} placeholder={`1–${resource.last_page}`} className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/20" autoFocus />
-                          <button type="submit" className="h-8 shrink-0 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90">Go</button>
-                        </form>
-                        <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-border pt-1.5">
-                          {Array.from({ length: resource.last_page }, (_, i) => i + 1).map((page) => (
-                            <button key={page} type="button" onClick={() => { navigateToPage(page); setPageJumpOpen(false); }} className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${page === resource.current_page ? "bg-primary/15 font-medium text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Page {page}</button>
-                          ))}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-
-                    <Button type="button" size="icon" variant="outline" disabled={!nextLink?.url} onClick={() => navigateToPage(resource.current_page + 1)} aria-label="Next page" className="h-8 w-8 shrink-0 rounded-md text-sm">
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+              <Popover open={pageJumpOpen} onOpenChange={(open) => { setPageJumpOpen(open); if (open) setPageJumpInput(String(resource.current_page)); }}>
+                <PopoverTrigger>
+                  <span role="button" tabIndex={0} className="inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+                    Page {resource.current_page} of {resource.last_page}
+                  </span>
+                </PopoverTrigger>
+                <PopoverContent align="center" className="w-48 space-y-2 border-border bg-popover p-2">
+                  <form onSubmit={(e) => { e.preventDefault(); const parsed = Number(pageJumpInput); if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= resource.last_page) { navigateToPage(parsed); setPageJumpOpen(false); } }} className="flex items-center gap-1.5">
+                    <input type="number" min={1} max={resource.last_page} value={pageJumpInput} onChange={(e) => setPageJumpInput(e.target.value)} placeholder={`1–${resource.last_page}`} className="h-8 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/20" autoFocus />
+                    <button type="submit" className="h-8 shrink-0 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90">Go</button>
+                  </form>
+                  <div className="max-h-56 space-y-0.5 overflow-y-auto border-t border-border pt-1.5">
+                    {Array.from({ length: resource.last_page }, (_, i) => i + 1).map((page) => (
+                      <button key={page} type="button" onClick={() => { navigateToPage(page); setPageJumpOpen(false); }} className={`flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors ${page === resource.current_page ? "bg-primary/15 font-medium text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>Page {page}</button>
+                    ))}
                   </div>
-                );
-              })()
-            ) : (
-              <div className="flex flex-nowrap items-center gap-1">
-                {resource.links.map((link, i) => {
-                  const rawLabel = link.label.replace(/&laquo;|&raquo;/g, "").trim();
-                  const isPrev = rawLabel.toLowerCase() === "previous";
-                  const isNext = rawLabel.toLowerCase() === "next";
+                </PopoverContent>
+              </Popover>
 
-                  return (
-                    <Button key={i} type="button" size="icon" variant={link.active ? "default" : "outline"} disabled={!link.url} onClick={() => link.url && onPageChange?.(Number(new URL(link.url, window.location.origin).searchParams.get("page") ?? 1))} aria-label={isPrev ? "Previous page" : isNext ? "Next page" : rawLabel} className={cn("h-8 w-8 shrink-0 rounded-md text-sm", link.active && "bg-primary text-primary-foreground hover:bg-primary/90")}>
-                      {isPrev ? <ChevronLeft className="h-4 w-4" /> : isNext ? <ChevronRight className="h-4 w-4" /> : rawLabel}
-                    </Button>
-                  );
-                })}
-              </div>
-            )}
+              <Button type="button" size="icon" variant="outline" disabled={resource.current_page >= resource.last_page} onClick={() => navigateToPage(resource.current_page + 1)} aria-label="Next page" className="h-8 w-8 shrink-0 rounded-md text-sm">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </Card>

@@ -1,10 +1,13 @@
+import { LightModeWrapper } from "@/components/ui/LightModeWrapper";
+
 export function AssessmentPageFromSkeleton() {
   return (
-    <main
-      className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12"
-      aria-busy="true"
-      aria-label="Loading assessment form"
-    >
+    <LightModeWrapper>
+      <main
+        className="min-h-screen bg-linear-to-b from-blue-500 via-slate-200 to-white px-6 py-12"
+        aria-busy="true"
+        aria-label="Loading assessment form"
+      >
       <div className="mx-auto max-w-4xl animate-pulse">
         <header className="mb-6 rounded-2xl border border-blue-100 bg-white px-8 py-8 text-center shadow-md">
           <div className="mx-auto h-20 max-w-md rounded bg-slate-200" />
@@ -46,6 +49,7 @@ export function AssessmentPageFromSkeleton() {
         </section>
       </div>
     </main>
+    </LightModeWrapper>
   );
 }
 
