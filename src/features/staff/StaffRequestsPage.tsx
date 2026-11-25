@@ -3,12 +3,15 @@ import { Link } from "react-router";
 import { Inbox, FileText, Trash2, Eye } from "lucide-react";
 import { ApiError } from "../../api/client";
 import { useStaffRequests } from "./queries";
+import { useDeleteStaffRequest } from "./mutations";
 import type { StaffFilters } from "./api";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import RequestTable, { type SortOptionDef, type StatusOption } from "@/components/ui/request-table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
+import { toast } from "sonner";
 
 const currencyFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -81,6 +84,25 @@ export function StaffRequestsPage() {
   });
 
   const query = useStaffRequests(activeFilters);
+
+  const deleteMutation = useDeleteStaffRequest();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; ref: string } | null>(null);
+
+  const handleDeleteClick = (id: number, referenceNumber: string) => {
+    setDeleteTarget({ id, ref: referenceNumber });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget.id, {
+      onSuccess: () => {
+        toast.success(`Request ${deleteTarget.ref} deleted successfully`);
+      },
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : "Failed to delete request");
+      },
+    });
+  };
 
   const handleApplyFilters = (e: React.FormEvent) => {
     e.preventDefault();
@@ -257,28 +279,24 @@ export function StaffRequestsPage() {
         columns={columns}
         resource={paginatedData}
         resourceKey="staff-requests"
-        renderActions={(req) => (
-          <>
-            <Link
-              to={`/staff/requests/${req.id}`}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-neutral-950"
-            >
-              <Eye className="h-4 w-4" />
-            </Link>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="text-red-600 hover:bg-red-600/10 hover:text-red-600"
-              onClick={() => {
-                if (window.confirm("Are you sure you want to delete this request?")) {
-                  // Handle delete
-                }
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </>
-        )}
+renderActions={(req) => (
+            <>
+              <Link
+                to={`/staff/requests/${req.id}`}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-neutral-950"
+              >
+                <Eye className="h-4 w-4" />
+              </Link>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="text-red-600 hover:bg-red-600/10 hover:text-red-600"
+                onClick={() => handleDeleteClick(req.id, req.reference_number)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
         emptyIcon={Inbox}
         emptyMessage={isFiltered ? "No order of payment requests matched your active filters. Try adjusting your search query or date range." : "There are currently no staff requests in the queue."}
         onPageChange={setPage}
@@ -302,6 +320,13 @@ export function StaffRequestsPage() {
         sort={activeFilters.sort}
         direction={activeFilters.direction}
         onSortChange={handleSortChange}
+      />
+      <DeleteConfirmation
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        isPending={deleteMutation.isPending}
+        description={`Are you sure you want to delete request ${deleteTarget?.ref}? This action cannot be undone.`}
       />
     </div>
   );

@@ -200,6 +200,12 @@ export function getOpPdfUrl(id: number, format: "portrait" | "landscape" = "port
   return `/api/v1/staff/requests/${id}/pdf?format=${format}`;
 }
 
+export function deleteStaffRequest(id: number) {
+  return api(`/api/v1/staff/requests/${id}`, {
+    method: "DELETE",
+  });
+}
+
 // ── Staff Dashboard & Activity Log ──────────────────────────────────────────
 
 export type StaffDashboardData = {
