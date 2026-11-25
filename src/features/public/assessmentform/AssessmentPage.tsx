@@ -110,7 +110,7 @@ export function AssessmentPage() {
     mutation.mutate(values, {
       onSuccess: (response) =>
         navigate(
-          `/assessment/success?reference=${encodeURIComponent(response.data.reference_number)}&token=${encodeURIComponent(response.data.access_token)}`,
+          `/assessmentform/success?reference=${encodeURIComponent(response.data.reference_number)}&token=${encodeURIComponent(response.data.access_token)}`,
         ),
     });
   };

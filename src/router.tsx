@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import App from "./App";
 import { LoginForm } from "./features/auth/LoginForm";
+import { LandingPage } from "./features/public/LandingPage";
 import { OpFormPage } from "./features/public/opform/OpFormPage";
 import { OpFormSuccessPage } from "./features/public/opform/OpFormSuccessPage";
 import { AssessmentPage } from "./features/public/assessmentform/AssessmentPage";
@@ -34,7 +35,7 @@ import { NotFoundPage } from "./routes/NotFoundPage";
 import { AppShellLayout } from "./layouts/AppShellLayout";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <App /> },
+  { path: "/", element: <LandingPage /> },
   { path: "/login", element: <LoginForm /> },
   { path: "/opform", element: <OpFormPage /> },
   { path: "/opform/result", element: <OpFormSuccessPage /> },
