@@ -178,7 +178,7 @@ function renderLandingContent(
                             className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-sm font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors hover:border-white/40 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:px-4"
                         >
                             <LogIn aria-hidden="true" className="size-4" />
-                            <span className="hidden sm:inline">Staff sign in</span>
+                            <span className="hidden sm:inline">Sign in</span>
                             <span className="sm:hidden">Staff</span>
                         </Link>
                     </div>
@@ -309,11 +309,10 @@ function renderLandingContent(
                                             onClick={() =>
                                                 setSelectedProcess(type)
                                             }
-                                            className={`min-h-11 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0d51b5] focus-visible:ring-offset-2 sm:px-6 ${
-                                                selectedProcess === type
+                                            className={`min-h-11 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0d51b5] focus-visible:ring-offset-2 sm:px-6 ${selectedProcess === type
                                                     ? "bg-[#064b9b] text-white"
                                                     : "text-[#294765] hover:bg-white"
-                                            }`}
+                                                }`}
                                         >
                                             {processes[type].label}
                                         </button>
@@ -324,11 +323,10 @@ function renderLandingContent(
                             <ol
                                 aria-live="polite"
                                 aria-label={`${process.label} process`}
-                                className={`relative mt-12 grid gap-8 before:absolute before:top-8 before:bottom-8 before:left-8 before:w-px before:bg-[#9fc4ee] sm:mt-14 lg:gap-10 lg:before:top-8 lg:before:right-8 lg:before:bottom-auto lg:before:left-8 lg:before:h-px lg:before:w-auto ${
-                                    selectedProcess === "assessment"
+                                className={`relative mt-12 grid gap-8 before:absolute before:top-8 before:bottom-8 before:left-8 before:w-px before:bg-[#9fc4ee] sm:mt-14 lg:gap-10 lg:before:top-8 lg:before:right-8 lg:before:bottom-auto lg:before:left-8 lg:before:h-px lg:before:w-auto ${selectedProcess === "assessment"
                                         ? "lg:grid-cols-4"
                                         : "lg:grid-cols-3"
-                                }`}
+                                    }`}
                             >
                                 {process.steps.map((step, index) => (
                                     <li

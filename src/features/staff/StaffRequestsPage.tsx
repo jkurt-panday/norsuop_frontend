@@ -140,6 +140,7 @@ export function StaffRequestsPage() {
     {
       header: "Reference #",
       sortable: "reference_number",
+      width: "160px",
       render: (req: any) => (
         <Link to={`/staff/requests/${req.id}`} className="font-semibold text-primary hover:underline">
           {req.reference_number}
@@ -149,6 +150,7 @@ export function StaffRequestsPage() {
     {
       header: "Payor",
       sortable: "firstname_or_office",
+      width: "200px",
       render: (req: any) => {
         const payorName = formatPayorName(req);
         return (
@@ -162,8 +164,10 @@ export function StaffRequestsPage() {
     {
       header: "Amount",
       sortable: "amount",
-      className: "text-right",
-      headerClassName: "text-right",
+      width: "160px",
+      align: "left" as const,
+      className: "pl-4 sm:pl-6",
+      headerClassName: "pl-4 sm:pl-6",
       render: (req: any) => (
         <span className="tabular-nums font-medium text-foreground">
           {currencyFormatter.format(Number(req.amount || 0))}
@@ -173,6 +177,8 @@ export function StaffRequestsPage() {
     {
       header: "Status",
       sortable: "status",
+      width: "140px",
+      align: "left" as const,
       render: (req: any) => {
         const status = req.staff_input?.status ?? "unprocessed";
         return <StatusBadge status={status} />;
@@ -181,6 +187,8 @@ export function StaffRequestsPage() {
     {
       header: "Date Requested",
       sortable: "created_at",
+      width: "160px",
+      align: "left" as const,
       render: (req: any) => <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(req.created_at)}</span>,
     },
   ], []);

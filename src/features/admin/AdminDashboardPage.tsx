@@ -182,10 +182,10 @@ export function AdminDashboardPage() {
           <CardTitle className="text-lg font-semibold text-foreground">
             Recent System Activity
           </CardTitle>
-          <Button variant="outline" size="sm">
-            <Link to="/admin/activity-log" className="gap-1.5 text-xs font-medium">
+          <Button variant="outline" size="lg" className="w-auto min-w-[140px] px-4">
+            <Link to="/admin/activity-log" className="flex items-center justify-between gap-1.5 text-xs font-medium w-full">
               View all activity
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-2.5 w-1.5" />
             </Link>
           </Button>
         </CardHeader>
