@@ -452,10 +452,10 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     types: ["AR", "Payment", "Adjustment"],
   };
 
-  const totalStudents = stats?.totalStudents ?? 0;
-  const totalAssessments = stats?.totalAssessments ?? 0;
-  const totalPayments = stats?.totalPayments ?? 0;
-  const outstandingBalance = stats?.outstandingBalance ?? 0;
+  const totalStudents = stats?.totalStudents ?? stats?.total_students ?? 0;
+  const totalAssessments = stats?.totalAssessments ?? stats?.total_assessments ?? 0;
+  const totalPayments = stats?.totalPayments ?? stats?.total_payments ?? 0;
+  const outstandingBalance = stats?.outstandingBalance ?? stats?.outstanding_balance ?? 0;
 
   const activeAdvancedFilters = [
     filterState.school_year && {
