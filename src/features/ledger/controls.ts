@@ -1,4 +1,4 @@
-import { apiUrl } from "../../api/client";
+﻿import { apiUrl } from "../../api/client";
 import type { Ledger } from "./api";
 
 export function formatCurrency(amount: number | string | null | undefined): string {
@@ -103,4 +103,17 @@ export function ledgerPdfUrl(ledger: Ledger, studentId: string | number) {
   return apiUrl(
     `/api/v1/${ledger}-ledger/pdf?student_id=${encodeURIComponent(String(studentId))}`,
   );
+}
+export function sanitizeHref(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url, window.location.href);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return url;
+    }
+  } catch {
+    // relative path — allow if it starts with /
+    if (url.startsWith("/")) return url;
+  }
+  return undefined; // blocks javascript:, data:, etc.
 }

@@ -76,10 +76,11 @@ export function useLedgerEmailRecipients(
   });
 }
 
-export function useLedgerRoster(ledger: Ledger) {
+export function useLedgerRoster(ledger: Ledger, enabled = true) {
   return useQuery({
     queryKey: ["ledger", ledger, "roster"],
     queryFn: ({ signal }) => getLedgerRoster(ledger, signal),
+    enabled,
   });
 }
 

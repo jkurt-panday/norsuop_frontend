@@ -1,4 +1,3 @@
-import { Link, useNavigate } from "react-router";
 import * as React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardTitle } from "@/components/ui/card";
@@ -28,20 +27,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
-  Plus,
-  Pencil,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   Search,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Check,
-  RefreshCw,
   Filter,
   ListFilter,
-  XCircle,
 } from "lucide-react";
 
 // ============ TYPE DEFINITIONS ============
@@ -94,7 +87,7 @@ export interface RequestTableProps<T extends { id: number | string }> {
   resource: PaginatedData<T>;
   renderActions: (row: T) => React.ReactNode;
   actionsWidth?: string;
-  emptyIcon?: React.ComponentType<{ className?: string }>;
+  emptyIcon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   emptyMessage?: string;
   onPageChange?: (page: number) => void;
   search: string;
@@ -217,10 +210,6 @@ function StatusSelect({
 
 export default function RequestTable<T extends { id: number | string }>({
   title,
-  description,
-  icon: HeaderIcon,
-  addLabel,
-  addHref,
   columns,
   resource,
   renderActions,
@@ -241,17 +230,12 @@ export default function RequestTable<T extends { id: number | string }>({
   onDateToChange,
   onFilterSubmit,
   onFilterReset,
-  resourceKey,
   highlightDuration = 2000,
   customToolbar,
-  sortOptions,
-  enableColumnSorting = true,
   sort,
   direction = "asc",
   onSortChange,
 }: RequestTableProps<T>) {
-  const navigate = useNavigate();
-
   const [isNavigating, setIsNavigating] = React.useState(false);
 
   const prevSignatures = React.useRef<Map<string | number, string> | null>(null);
@@ -482,7 +466,7 @@ export default function RequestTable<T extends { id: number | string }>({
                       {col.sortable ? (
                         <button
                           type="button"
-                          onClick={() => handleSortClick(col.sortable!)}
+                          onClick={() => handleSortClick(typeof col.sortable === 'string' ? col.sortable : '')}
                           className="flex w-full items-center gap-1.5 rounded-sm py-1 text-left focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none"
                         >
                           {col.header}

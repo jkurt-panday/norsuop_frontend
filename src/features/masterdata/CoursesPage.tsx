@@ -125,7 +125,7 @@ export function CoursesPage() {
       header: "ID",
       sortable: "id",
       width: "80px",
-      render: (row, index) =>
+      render: (_row, index) =>
         (page - 1) * 20 + index + 1,
     },
     {

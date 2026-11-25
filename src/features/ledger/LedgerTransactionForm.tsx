@@ -13,15 +13,15 @@ import { ApiError } from "../../api/client";
 import type { Ledger, LedgerRecord, LedgerTransactionRequest } from "./api";
 import { useCreateLedgerRecord, useUpdateLedgerRecord } from "./mutations";
 import { useLedgerMasterData, useSearchLedgerStudents } from "./queries";
+import { BatchLinesEditor } from "./BatchLinesEditor";
 import {
-  BatchLinesEditor,
   batchLineAmount,
   emptyBatchLine,
   latinHonorDiscount,
   LATIN_HONOR_OPTIONS,
   type BatchLatinHonor,
   type BatchLine,
-} from "./BatchLinesEditor";
+} from "./batch-lines";
 import { CohortEntryPanel } from "./CohortEntryPanel";
 import { formatCurrency } from "./controls";
 import { Button } from "@/components/ui/button";

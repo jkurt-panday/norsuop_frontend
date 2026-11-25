@@ -5,6 +5,8 @@ import {
   linkOpStudent,
   processStaffRequest,
   updateStaffDetails,
+  type StaffRequestDetail,
+  type StaffRequestList,
 } from "./api";
 import { api } from "../../api/client";
 
@@ -28,14 +30,14 @@ describe("staff request API", () => {
   });
 
   it("requests a detail record with an abort signal", async () => {
-    vi.mocked(api).mockResolvedValue({ data: { id: 4 } } as any);
+    vi.mocked(api).mockResolvedValue({ data: { id: 4 } } as unknown as StaffRequestDetail);
     const signal = new AbortController().signal;
     await getStaffRequest(4, signal);
     expect(api).toHaveBeenCalledWith("/api/v1/staff/requests/4", { signal });
   });
 
   it("fetches staff requests with serialized filter params", async () => {
-    vi.mocked(api).mockResolvedValue({ data: [], meta: {} as any, links: {} as any });
+    vi.mocked(api).mockResolvedValue({ data: [], meta: {}, links: {} } as unknown as StaffRequestList);
     await getStaffRequests({
       page: 1,
       status: "unprocessed",

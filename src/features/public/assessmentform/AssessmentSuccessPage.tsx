@@ -249,7 +249,7 @@ export function AssessmentSuccessPage() {
           <CardFooter className="flex flex-col gap-3 border-t px-4 py-6 sm:px-6">
             <div className="grid w-full max-w-2xl gap-3 sm:grid-cols-2">
               <Link
-                to="/assessment"
+                to="/assessmentform"
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
               >
                 Submit Another Request
@@ -318,7 +318,7 @@ function ResultMessage({
           </DialogHeader>
           <DialogFooter className="justify-center sm:justify-center">
             <Button
-              render={<Link to="/assessment" />}
+              render={<Link to="/assessmentform" />}
               className="bg-blue-700 text-white hover:bg-blue-800"
             >
               Submit another assessment

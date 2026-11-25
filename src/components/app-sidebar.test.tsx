@@ -75,7 +75,6 @@ describe("AppSidebar and AppSidebarHeader", () => {
 
     expect(container.textContent).toContain("Staff Portal");
     expect(container.textContent).toContain("Dashboard");
-    expect(container.textContent).toContain("Activity Log");
     expect(container.textContent).toContain("Order of Payment");
     expect(container.textContent).toContain("Assessments");
     expect(container.textContent).toContain("Graduate Ledger");

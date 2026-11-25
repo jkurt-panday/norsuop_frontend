@@ -102,7 +102,10 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
   // Query selected student's balance and transactions
   const balanceQuery = useLedgerBalance(ledger, selectedStudentId ?? 0);
   const balanceData = selectedStudentId ? balanceQuery.data : null;
-  const records = balanceData?.transactions ?? [];
+  const records = useMemo(
+    () => balanceData?.transactions ?? [],
+    [balanceData?.transactions],
+  );
   const summary = balanceData?.summary ?? {
     total_charges: 0,
     total_payments: 0,

@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router";
+﻿import { useParams, Link } from "react-router";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -77,7 +77,7 @@ interface FormInput {
   request_type: string;
   amount: number;
   created_at: string;
-  membership: { member_code: string; member_desc: string } | null;
+  membership: { id?: number; member_code: string; member_desc: string } | null;
   payment_detail_option: PaymentDetailOption | null;
   staff_input: StaffInputData | null;
   staffInput: StaffInputData | null;
@@ -110,6 +110,8 @@ interface PageData {
   uacsList: UacsItem[];
   paymentOptions: PaymentDetailOption[];
   academicTerms: AcademicTerm[];
+  courses: Array<{ id: number; course_code: string; course_desc: string; course_college: string }>;
+  memberships: Array<{ id: number; member_code: string; member_desc: string }>;
 }
 
 const statusBadgeClass = (status: string) => {
@@ -183,7 +185,8 @@ const escapeHtml = (value: string) =>
     .replace(/&/g, "&")
     .replace(/</g, "<")
     .replace(/>/g, ">")
-    .replace(/"/g, "");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 
 const buildEmailPreviewHtml = (
   formInput: FormInput,
@@ -200,7 +203,7 @@ const buildEmailPreviewHtml = (
     <p>Dear ${escapeHtml(recipientName || "\u2014")},</p>
     <p>
         Please find attached your Order of Payment
-        (Reference No. <strong>${formInput.reference_number}</strong>)
+        (Reference No. <strong>${escapeHtml(formInput.reference_number)}</strong>)
         for the amount of <strong>${formatCurrency(formInput.amount)}</strong>.
     </p>
     ${noteHtml}
@@ -479,6 +482,7 @@ export function StaffRequestDetailPage() {
   const searchStudentsMutation = useMutation({
     mutationFn: ({ q }: { q: string }) => searchOpStudents(q),
   });
+  const { mutateAsync: searchStudentsAsync } = searchStudentsMutation;
 
   const linkStudentMutation = useMutation({
     mutationFn: ({ id, student_id }: { id: number; student_id: number }) =>
@@ -520,7 +524,7 @@ export function StaffRequestDetailPage() {
     const timeout = window.setTimeout(async () => {
       setIsSearchingStudents(true);
       try {
-        const result = await searchStudentsMutation.mutateAsync({ q: studentSearch });
+        const result = await searchStudentsAsync({ q: studentSearch });
         setStudentCandidates(result.students ?? []);
       } catch {
         setStudentCandidates([]);
@@ -533,7 +537,7 @@ export function StaffRequestDetailPage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [isStudentMatchOpen, studentMatchMode, studentSearch]);
+  }, [isStudentMatchOpen, studentMatchMode, studentSearch, searchStudentsAsync]);
 
   // --- Handlers ---
   const openStudentMatch = () => {

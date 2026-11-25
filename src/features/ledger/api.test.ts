@@ -14,7 +14,7 @@ import {
   updateLedgerRecord,
 } from "./api";
 import { api, binary } from "../../api/client";
-import { latinHonorDiscount } from "./BatchLinesEditor";
+import { latinHonorDiscount } from "./batch-lines";
 
 vi.mock("../../api/client", () => ({ api: vi.fn(), binary: vi.fn() }));
 

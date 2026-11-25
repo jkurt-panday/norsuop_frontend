@@ -33,6 +33,7 @@ import {
   formatTransactionDate,
   getEntryTypeBadge,
   getRemarkBadge,
+  sanitizeHref,
 } from "./controls";
 import { StudentBalanceDrawer } from "./StudentBalanceDrawer";
 import { LedgerTransactionForm } from "./LedgerTransactionForm";
@@ -217,19 +218,14 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<LedgerRecord | null>(null);
 
-  // Refresh cooldown — 15 s buffer to prevent spam
-  const [refreshCooledAt, setRefreshCooledAt] = useState<number>(0);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const refreshCooldown = Date.now() < refreshCooledAt;
+  // Refresh cooldown — 5 s buffer to prevent spam
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const refreshCooldown = cooldownSeconds > 0;
 
   const handleRefresh = () => {
     if (refreshCooldown || query.isFetching) return;
     query.refetch();
-    const until = Date.now() + 5_000;
-    setRefreshCooledAt(until);
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    refreshTimerRef.current = setTimeout(() => setRefreshCooledAt(0), 5_000);
+    setCooldownSeconds(5);
   };
 
   const handleExport = async () => {
@@ -258,10 +254,6 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
       setIsExporting(false);
     }
   };
-
-  // Tick every second while cooldown is active so the button label stays accurate
-  const [, forceTickRefresh] = useState(0);
-  // (effect declared after all state, runs after mount)
 
   const [membershipTarget, setMembershipTarget] = useState<LedgerRecord | null>(null);
   const [selectedMembership, setSelectedMembership] = useState<"NAPU" | "NORSUFFA" | "">("");
@@ -479,12 +471,14 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     },
   ].filter(Boolean) as { key: keyof typeof filterState; label: string }[];
 
-  // Interval tick while cooldown is active → keeps the button label current
+  // Interval tick while cooldown is active → keeps countdown current
   useEffect(() => {
-    if (!refreshCooldown) return;
-    const id = setInterval(() => forceTickRefresh((n) => n + 1), 1_000);
+    if (cooldownSeconds <= 0) return;
+    const id = setInterval(() => {
+      setCooldownSeconds((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1_000);
     return () => clearInterval(id);
-  }, [refreshCooldown]);
+  }, [cooldownSeconds]);
 
   return (
     <>
@@ -533,7 +527,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
               className={`mr-1.5 h-4 w-4 ${query.isFetching ? "animate-spin" : ""} ${refreshCooldown ? "text-muted-foreground" : ""}`}
             />
             {refreshCooldown
-              ? `Wait ${Math.ceil((refreshCooledAt - Date.now()) / 1_000)}s`
+              ? `Wait ${cooldownSeconds}s`
               : "Refresh"}
           </Button>
 
@@ -1160,7 +1154,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                             <td className="py-2.5 pr-4 whitespace-nowrap text-muted-foreground text-xs">
                               {r.orLink ? (
                                 <a
-                                  href={r.orLink}
+                                  href={sanitizeHref(r.orLink)}
                                   onClick={(e) => e.stopPropagation()}
                                   className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
                                 >

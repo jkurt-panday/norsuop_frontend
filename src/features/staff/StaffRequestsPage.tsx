@@ -1,9 +1,9 @@
 import { useState, useTransition, useMemo } from "react";
 import { Link } from "react-router";
-import { Inbox, FileText, Trash2, Eye } from "lucide-react";
+import { Inbox, FileText, Eye } from "lucide-react";
 import { ApiError } from "../../api/client";
 import { useStaffRequests } from "./queries";
-import type { StaffFilters } from "./api";
+import type { StaffFilters, StaffRequest } from "./api";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -140,7 +140,7 @@ export function StaffRequestsPage() {
     {
       header: "Reference #",
       sortable: "reference_number",
-      render: (req: any) => (
+      render: (req: StaffRequest) => (
         <Link to={`/staff/requests/${req.id}`} className="font-semibold text-primary hover:underline">
           {req.reference_number}
         </Link>
@@ -149,7 +149,7 @@ export function StaffRequestsPage() {
     {
       header: "Payor",
       sortable: "firstname_or_office",
-      render: (req: any) => {
+      render: (req: StaffRequest) => {
         const payorName = formatPayorName(req);
         return (
           <div className="min-w-0">
@@ -164,7 +164,7 @@ export function StaffRequestsPage() {
       sortable: "amount",
       className: "text-right",
       headerClassName: "text-right",
-      render: (req: any) => (
+      render: (req: StaffRequest) => (
         <span className="tabular-nums font-medium text-foreground">
           {currencyFormatter.format(Number(req.amount || 0))}
         </span>
@@ -173,7 +173,7 @@ export function StaffRequestsPage() {
     {
       header: "Status",
       sortable: "status",
-      render: (req: any) => {
+      render: (req: StaffRequest) => {
         const status = req.staff_input?.status ?? "unprocessed";
         return <StatusBadge status={status} />;
       },
@@ -181,7 +181,7 @@ export function StaffRequestsPage() {
     {
       header: "Date Requested",
       sortable: "created_at",
-      render: (req: any) => <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(req.created_at)}</span>,
+      render: (req: StaffRequest) => <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(req.created_at)}</span>,
     },
   ], []);
 
@@ -250,26 +250,12 @@ export function StaffRequestsPage() {
         resource={paginatedData}
         resourceKey="staff-requests"
         renderActions={(req) => (
-          <>
-            <Link
-              to={`/staff/requests/${req.id}`}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-neutral-950"
-            >
-              <Eye className="h-4 w-4" />
-            </Link>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="text-red-600 hover:bg-red-600/10 hover:text-red-600"
-              onClick={() => {
-                if (window.confirm("Are you sure you want to delete this request?")) {
-                  // Handle delete
-                }
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </>
+          <Link
+            to={`/staff/requests/${req.id}`}
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-neutral-950"
+          >
+            <Eye className="h-4 w-4" />
+          </Link>
         )}
         emptyIcon={Inbox}
         emptyMessage={isFiltered ? "No order of payment requests matched your active filters. Try adjusting your search query or date range." : "There are currently no staff requests in the queue."}
@@ -290,7 +276,7 @@ export function StaffRequestsPage() {
         sortOptions={sortOptions}
         enableColumnSorting={true}
         highlightDuration={2000}
-        actionsWidth="110px"
+        actionsWidth="60px"
         sort={activeFilters.sort}
         direction={activeFilters.direction}
         onSortChange={handleSortChange}
