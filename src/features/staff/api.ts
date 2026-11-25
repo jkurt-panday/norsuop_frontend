@@ -269,7 +269,7 @@ export type StaffActivityLogFilterParams = {
 };
 
 export function getStaffDashboard(signal?: AbortSignal) {
-  return api<{ data: StaffDashboardData }>("/api/v1/staff/dashboard", {
+  return api<{ data: StaffDashboardData }>("/api/v1/staff/requests/dashboard", {
     signal,
   });
 }

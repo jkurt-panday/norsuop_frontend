@@ -119,8 +119,8 @@ const DEFAULT_PIE_COLORS = [
 // regardless of the order the data arrives in.
 const STATUS_PIE_COLORS: Record<string, string> = {
   cancelled: "#ef4444",
-  paid: "#3b82f6",
-  processed: "#22c55e",
+  paid: "#86efac",
+  processed: "#166534",
   pending: "#f59e0b",
   unprocessed: "#94a3b8",
 };

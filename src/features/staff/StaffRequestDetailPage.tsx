@@ -67,6 +67,7 @@ import {
   type SupportingDocument,
   type StaffStudent,
 } from "./api";
+import { toast } from "sonner";
 
 interface FormInput {
   id: number;
@@ -122,15 +123,17 @@ interface PageData {
 const statusBadgeClass = (status: string) => {
   switch (status) {
     case "processed":
-      return "bg-green-500/20 text-green-600 dark:bg-green-500/30 dark:text-green-400";
+      return "bg-green-900/20 text-green-700 dark:bg-green-900/30 dark:text-green-300";
     case "paid":
-      return "bg-green-500/20 text-green-700 dark:bg-green-500/30 dark:text-green-300";
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
     case "cancelled":
-      return "bg-red-500/20 text-red-700 dark:bg-red-500/30 dark:text-red-400";
+      return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
     case "pending":
+      return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
     case "unprocessed":
+      return "bg-slate-100 text-slate-700 dark:bg-slate-800/30 dark:text-slate-300";
     default:
-      return "bg-amber-500/20 text-amber-700 dark:bg-amber-500/30 dark:text-amber-400";
+      return "bg-slate-100 text-slate-700 dark:bg-slate-800/30 dark:text-slate-300";
   }
 };
 
@@ -448,6 +451,7 @@ export function StaffRequestDetailPage() {
     onSuccess: () => {
       refetch();
       setIsProcessing(false);
+      toast.success('Request processed successfully.');
     },
   });
 
@@ -457,6 +461,7 @@ export function StaffRequestDetailPage() {
     onSuccess: () => {
       refetch();
       setIsEditingStaffInput(false);
+      toast.success('Processing record updated successfully.');
     },
   });
 
@@ -467,10 +472,11 @@ export function StaffRequestDetailPage() {
       refetch();
       setIsEditingDetails(false);
       setIsEditingPaymentInfo(false);
+      toast.success('Request details saved successfully.');
     },
     onError: (error) => {
       console.error('Update details failed:', error);
-      alert('Failed to save changes: ' + (error as Error).message);
+      toast.error('Failed to save changes: ' + (error as Error).message);
     },
   });
 
@@ -483,6 +489,7 @@ export function StaffRequestDetailPage() {
     onSuccess: () => {
       refetch();
       setIsEditingOr(false);
+      toast.success('OR number updated successfully.');
     },
   });
 
@@ -496,6 +503,7 @@ export function StaffRequestDetailPage() {
     onSuccess: () => {
       refetch();
       setIsStudentMatchOpen(false);
+      toast.success('Student linked successfully.');
     },
   });
 
@@ -519,6 +527,7 @@ export function StaffRequestDetailPage() {
     onSuccess: () => {
       refetch();
       setDeleteTargetId(null);
+      toast.success('Document deleted successfully.');
     },
   });
 
@@ -571,10 +580,10 @@ export function StaffRequestDetailPage() {
       { id: formInput.id, payload: { subject: emailSubject, recipient_name: emailRecipientName, note: emailNote } },
       {
         onSuccess: () => {
-          alert("Order of Payment emailed successfully.");
+          toast.success("Order of Payment emailed successfully.");
           setIsEmailPreviewOpen(false);
         },
-        onError: (error) => alert("Failed to send email: " + (error as Error).message),
+        onError: (error) => toast.error("Failed to send email: " + (error as Error).message),
         onSettled: () => setIsSendingEmail(false),
       }
     );
@@ -631,8 +640,8 @@ export function StaffRequestDetailPage() {
 
   const handleOrSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!staffInput) return;
-    updateOrMutation.mutate({ id: staffInput.id, payload: orData });
+    if (!formInput) return;
+    updateOrMutation.mutate({ id: formInput.id, payload: orData });
   };
 
   const handlePaymentInfoSubmit = (e: React.FormEvent) => {

@@ -15,13 +15,17 @@ import { useStaffDashboard } from "./queries";
 const statusBadgeClass = (status?: string) => {
   switch (status) {
     case "processed":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border dark:border-emerald-800/40";
+      return "bg-green-900/20 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+    case "paid":
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
     case "cancelled":
-      return "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border dark:border-rose-800/40";
+      return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
     case "pending":
-      return "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 dark:border dark:border-amber-800/40";
+      return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+    case "unprocessed":
+      return "bg-slate-100 text-slate-700 dark:bg-slate-800/30 dark:text-slate-300";
     default:
-      return "bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:border dark:border-slate-700/40";
+      return "bg-slate-100 text-slate-700 dark:bg-slate-800/30 dark:text-slate-300";
   }
 };
 
@@ -171,15 +175,15 @@ export function StaffDashboardPage() {
           <StatCard
             label="Processed"
             value={processedRequests}
-            bgClass="bg-emerald-500/10 border border-emerald-500/20"
-            textClass="text-emerald-600 dark:text-emerald-400"
+            bgClass="bg-green-900/10 border border-green-700/30 dark:bg-green-900/20 dark:border-green-600/30"
+            textClass="text-green-700 dark:text-green-300"
             subtitle={getDayLabel(processedLastDate)}
           />
           <StatCard
             label="Paid"
             value={paidRequests}
-            bgClass="bg-blue-500/10 border border-blue-500/20"
-            textClass="text-blue-600 dark:text-blue-400"
+            bgClass="bg-green-100/30 border border-green-300/40 dark:bg-green-900/30 dark:border-green-700/40"
+            textClass="text-green-700 dark:text-green-300"
             subtitle={getDayLabel(paidLastDate)}
           />
           <StatCard
