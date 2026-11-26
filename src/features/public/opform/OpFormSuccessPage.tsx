@@ -412,6 +412,7 @@ function ResultMessage({
           </DialogHeader>
           <DialogFooter className="justify-center sm:justify-center">
             <Button
+              nativeButton={false}
               render={<Link to="/opform" />}
               className="bg-blue-700 text-white hover:bg-blue-800"
             >

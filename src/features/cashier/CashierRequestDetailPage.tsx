@@ -73,7 +73,7 @@ export function CashierRequestDetailPage() {
 
   const [status, setStatus] = useState("paid");
   const [orNo, setOrNo] = useState("");
-  const [orDate, setOrDate] = useState(new Date().toISOString().slice(0, 10));
+  const [orDate, setOrDate] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -90,7 +90,12 @@ export function CashierRequestDetailPage() {
       setOrNo(getCashierOrNo(current) ?? "");
       const existingOrDate = getCashierOrDate(current);
       if (existingOrDate) {
-        setOrDate(existingOrDate);
+        // Normalize to YYYY-MM-DD format for form submission
+        try {
+          setOrDate(format(parseISO(existingOrDate), "yyyy-MM-dd"));
+        } catch {
+          setOrDate(existingOrDate);
+        }
       }
     }
   }, [query.data]);
@@ -181,8 +186,6 @@ export function CashierRequestDetailPage() {
   const payor = getCashierPayorName(request);
   const amount = getCashierAmount(request);
   const currentStatus = getCashierStatus(request);
-  const existingOrNo = getCashierOrNo(request)?.trim() ?? "";
-  const isPaidAndRecorded = currentStatus === "paid" && existingOrNo.length > 0;
   const formInput = request.form_input ?? request.formInput;
 
   return (
@@ -372,7 +375,6 @@ export function CashierRequestDetailPage() {
                       onValueChange={(value) => {
                         if (value !== null) setStatus(value);
                       }}
-                      disabled={isPaidAndRecorded}
                     >
                     <SelectTrigger
                       id="payment_status"
@@ -407,16 +409,15 @@ export function CashierRequestDetailPage() {
                       <span className="text-destructive">*</span>
                     )}
                   </Label>
-                    <Input
+<Input
                       id="or_no"
                       placeholder="e.g. 1234567"
                       value={orNo}
-                      disabled={isPaidAndRecorded}
-                    onChange={(e) => handleOrNoChange(e.target.value)}
-                    aria-invalid={!!fieldErrors.or_no}
-                    required={status === "paid"}
-                    className="text-sm tabular-nums px-4 py-5!"
-                  />
+                      onChange={(e) => handleOrNoChange(e.target.value)}
+                      aria-invalid={!!fieldErrors.or_no}
+                      required={status === "paid"}
+                      className="text-sm tabular-nums px-4 py-5!"
+                    />
                   {fieldErrors.or_no && (
                     <p className="text-xs text-destructive">
                       {fieldErrors.or_no}
@@ -441,7 +442,6 @@ export function CashierRequestDetailPage() {
                           className="h-10 w-full justify-start gap-2 rounded-lg px-4 font-normal text-sm"
                           aria-label="OR Date"
                            aria-invalid={!!fieldErrors.or_date}
-                           disabled={isPaidAndRecorded}
                          />
                       }
                     >
@@ -455,7 +455,6 @@ export function CashierRequestDetailPage() {
                         mode="single"
                         selected={parseDateInput(orDate)}
                          onSelect={(selected) => {
-                           if (isPaidAndRecorded) return;
                            setOrDate(selected ? format(selected, "yyyy-MM-dd") : "");
                           if (fieldErrors.or_date) {
                             setFieldErrors((prev) => ({ ...prev, or_date: "" }));
@@ -472,28 +471,23 @@ export function CashierRequestDetailPage() {
                 </div>
 
                 <div className="pt-2">
-                   <Button
-                     type="submit"
-                     disabled={mutation.isPending || isPaidAndRecorded}
-                    className="w-full gap-1.5 px-4 py-5!"
-                  >
-                    {mutation.isPending ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" />
-                        <span>Saving Payment...</span>
-                      </>
-                    ) : isPaidAndRecorded ? (
-                      <>
-                        <CheckCircle2 className="size-4" />
-                        <span>Payment Locked</span>
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="size-4" />
-                        <span>Save</span>
-                      </>
-                    )}
-                  </Button>
+<Button
+                      type="submit"
+                      disabled={mutation.isPending}
+                     className="w-full gap-1.5 px-4 py-5!"
+                   >
+                     {mutation.isPending ? (
+                       <>
+                         <Loader2 className="size-4 animate-spin" />
+                         <span>Saving Payment...</span>
+                       </>
+                     ) : (
+                       <>
+                         <CreditCard className="size-4" />
+                         <span>Save</span>
+                       </>
+                     )}
+                   </Button>
                 </div>
               </form>
             </CardContent>

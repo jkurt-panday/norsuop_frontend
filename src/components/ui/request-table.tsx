@@ -112,6 +112,8 @@ export interface RequestTableProps<T extends { id: number | string }> {
   sort?: string;
   direction?: "asc" | "desc";
   onSortChange?: (sort: string, direction: "asc" | "desc") => void;
+  onReload?: () => void;
+  reloadCooldown?: number;
 }
 
 export const STATUS_COLORS = {
@@ -253,8 +255,35 @@ export default function RequestTable<T extends { id: number | string }>({
   sort,
   direction = "asc",
   onSortChange,
+  onReload,
+  reloadCooldown = 5000,
 }: RequestTableProps<T>) {
   const [isNavigating, setIsNavigating] = React.useState(false);
+  const [isReloading, setIsReloading] = React.useState(false);
+  const [reloadCountdown, setReloadCountdown] = React.useState(0);
+  const reloadCooldownRef = React.useRef(false);
+
+  const handleReload = () => {
+    if (reloadCooldownRef.current || !onReload) return;
+    reloadCooldownRef.current = true;
+    setIsReloading(true);
+    let remaining = Math.ceil(reloadCooldown / 1000);
+    setReloadCountdown(remaining);
+    const countdownInterval = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(countdownInterval);
+        setReloadCountdown(0);
+      } else {
+        setReloadCountdown(remaining);
+      }
+    }, 1000);
+    onReload();
+    setTimeout(() => {
+      reloadCooldownRef.current = false;
+      setIsReloading(false);
+    }, reloadCooldown);
+  };
 
   const prevSignatures = React.useRef<Map<string | number, string> | null>(null);
   const [highlightedIds, setHighlightedIds] = React.useState<Set<string | number>>(new Set());
@@ -420,8 +449,35 @@ export default function RequestTable<T extends { id: number | string }>({
                   <Filter className="h-4 w-4" />
                   <span>Filter</span>
                 </Button>
+                {onReload && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 rounded-lg"
+                    onClick={handleReload}
+                    disabled={isReloading || reloadCountdown > 0}
+                    title={reloadCountdown > 0 ? `Reload available in ${reloadCountdown}s` : "Reload table data (5s cooldown)"}
+                  >
+                    {isReloading ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <span>Reloading...</span>
+                      </>
+                    ) : reloadCountdown > 0 ? (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        <span>Reload in {reloadCountdown}s</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        <span>Reload</span>
+                      </>
+                    )}
+                  </Button>
+                )}
                 <Button type="button" variant="outline" className="h-10 rounded-lg" onClick={onFilterReset}>
-                  Reset
+                  Clear Filter
                 </Button>
               </div>
             </div>
