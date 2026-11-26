@@ -12,6 +12,9 @@ import { api } from "../../api/client";
 
 vi.mock("../../api/client", () => ({ api: vi.fn() }));
 
+const TEST_PASSWORD = "Password123!";
+const TEST_NEW_PASSWORD = "NewPassword123!";
+
 describe("admin API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -90,7 +93,7 @@ describe("admin API", () => {
     await createAdminUser({
       name: "Admin",
       email: "admin@example.com",
-      password: "Password123!",
+      password: TEST_PASSWORD,
       role: "admin",
     });
 
@@ -101,7 +104,7 @@ describe("admin API", () => {
         body: JSON.stringify({
           name: "Admin",
           email: "admin@example.com",
-          password: "Password123!",
+          password: TEST_PASSWORD,
           role: "admin",
         }),
       }),
@@ -127,7 +130,7 @@ describe("admin API", () => {
       name: "Jane Updated",
       email: "jane.updated@example.com",
       role: "staff",
-      password: "NewPassword123!",
+      password: TEST_NEW_PASSWORD,
     });
 
     expect(api).toHaveBeenCalledWith(
@@ -138,7 +141,7 @@ describe("admin API", () => {
           name: "Jane Updated",
           email: "jane.updated@example.com",
           role: "staff",
-          password: "NewPassword123!",
+          password: TEST_NEW_PASSWORD,
         }),
       }),
     );

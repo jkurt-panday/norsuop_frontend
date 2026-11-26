@@ -111,20 +111,19 @@ export function getCashierRequests(
   searchOrSignal?: string | AbortSignal,
   optionalSignal?: AbortSignal,
 ) {
-  let filters: CashierFilters = {};
-  let signal: AbortSignal | undefined;
-
-  if (typeof filtersOrPage === "number") {
-    filters = {
-      page: filtersOrPage,
-      per_page: 10,
-      search: typeof searchOrSignal === "string" ? searchOrSignal : "",
-    };
-    signal = optionalSignal;
-  } else {
-    filters = filtersOrPage;
-    signal = searchOrSignal instanceof AbortSignal ? searchOrSignal : optionalSignal;
-  }
+  const isPage = typeof filtersOrPage === "number";
+  const filters: CashierFilters = isPage
+    ? {
+        page: filtersOrPage,
+        per_page: 10,
+        search: typeof searchOrSignal === "string" ? searchOrSignal : "",
+      }
+    : filtersOrPage;
+  const signal: AbortSignal | undefined = isPage
+    ? optionalSignal
+    : searchOrSignal instanceof AbortSignal
+      ? searchOrSignal
+      : optionalSignal;
 
   const query = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {

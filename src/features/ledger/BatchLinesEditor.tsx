@@ -1,44 +1,18 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Sparkles, Trash2 } from "lucide-react";
 import type { Ledger } from "./api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "./controls";
-
-export type BatchEntryType = "ar" | "payment" | "adjustment";
-export type BatchMembership = "" | "NAPU" | "NORSUFFA";
-
-export interface BatchLine {
-  id: string;
-  entry_type: BatchEntryType;
-  particulars: string;
-  units: string;
-  rate: string;
-  amount: string;
-  reference_number: string;
-  membership: BatchMembership;
-  remarks: string;
-}
-
-let batchLineCounter = 0;
-
-export function emptyBatchLine(
-  particulars = "Tuition Fee",
-): BatchLine {
-  batchLineCounter += 1;
-
-  return {
-    id: `line-${Date.now()}-${batchLineCounter}`,
-    entry_type: "ar",
-    particulars,
-    units: "",
-    rate: "",
-    amount: "",
-    reference_number: "",
-    membership: "",
-    remarks: "",
-  };
-}
+import {
+  type BatchEntryType,
+  type BatchLine,
+  type BatchMembership,
+  LATIN_HONOR_OPTIONS,
+  latinHonorDiscount,
+  emptyBatchLine,
+  batchLineAmount,
+} from "./batch-lines";
 
 const ENTRY_TYPES: Array<{
   value: BatchEntryType;
@@ -69,17 +43,6 @@ const ENTRY_TYPES: Array<{
   },
 ];
 
-export function batchLineAmount(line: BatchLine): number {
-  const explicit = parseFloat(line.amount);
-  if (!Number.isNaN(explicit) && line.amount !== "") return explicit;
-
-  const units = parseFloat(line.units);
-  const rate = parseFloat(line.rate);
-  if (!Number.isNaN(units) && !Number.isNaN(rate)) return units * rate;
-
-  return Number.isNaN(explicit) ? 0 : explicit;
-}
-
 export function BatchLinesEditor({
   ledger,
   lines,
@@ -98,6 +61,7 @@ export function BatchLinesEditor({
 
         if (patch.entry_type && patch.entry_type !== "ar") {
           next.membership = "";
+          next.latin_honor = "";
         }
 
         // Recompute the amount when units / rate change on a blank amount.
@@ -128,10 +92,13 @@ export function BatchLinesEditor({
       if (line.entry_type === "ar") acc.charges += amount;
       else if (line.entry_type === "payment") acc.payments += amount;
       else acc.adjustments += amount;
+      if (line.entry_type === "ar" && ledger === "law") {
+        acc.scholarships += latinHonorDiscount(amount, line.latin_honor);
+      }
 
       return acc;
     },
-    { charges: 0, payments: 0, adjustments: 0 },
+    { charges: 0, payments: 0, adjustments: 0, scholarships: 0 },
   );
 
   return (
@@ -161,6 +128,9 @@ export function BatchLinesEditor({
         {lines.map((line, index) => {
           const isAR = line.entry_type === "ar";
           const showMembership = isAR && ledger === "graduate";
+          const showLatinHonor = isAR && ledger === "law";
+          const lineAmount = batchLineAmount(line);
+          const honorDiscount = latinHonorDiscount(lineAmount, line.latin_honor);
 
           return (
             <div
@@ -285,6 +255,40 @@ export function BatchLinesEditor({
                     </select>
                   </div>
                 )}
+                {showLatinHonor && (
+                  <div className="col-span-2 space-y-2 rounded-lg border border-border/70 bg-muted/20 p-2 sm:col-span-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] text-muted-foreground">Latin Honor Scholarship:</span>
+                      <div className="flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          onClick={() => updateLine(line.id, { latin_honor: "" })}
+                          className={`rounded px-2 py-0.5 text-[10px] ${!line.latin_honor ? "bg-slate-200 font-bold text-slate-800" : "text-slate-500"}`}
+                        >
+                          None
+                        </button>
+                        {LATIN_HONOR_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => updateLine(line.id, { latin_honor: option.value })}
+                            className={`rounded px-2 py-0.5 text-[10px] ${line.latin_honor === option.value ? "bg-purple-600 font-bold text-white" : "border border-purple-200 text-purple-700 dark:border-purple-800 dark:text-purple-300"}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {line.latin_honor && (
+                      <div className="flex items-center gap-2 rounded-md border border-dashed border-purple-300 bg-purple-50/60 px-3 py-2 text-[11px] text-purple-800 dark:border-purple-800 dark:bg-purple-950/30 dark:text-purple-300">
+                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-purple-500" />
+                        <span>
+                          <strong>Auto-generated on save:</strong> Scholarship Adjustment −{formatCurrency(honorDiscount)}. Net line impact: <strong>{formatCurrency(lineAmount - honorDiscount)}</strong>.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="col-span-2 space-y-1">
                   <Label className="text-[11px]">Remarks</Label>
                   <Input
@@ -312,10 +316,15 @@ export function BatchLinesEditor({
         <span className="font-semibold text-sky-600 dark:text-sky-400">
           Adjustments: {formatCurrency(totals.adjustments)}
         </span>
+        {ledger === "law" && totals.scholarships > 0 && (
+          <span className="font-semibold text-purple-600 dark:text-purple-400">
+            Honor Credits: {formatCurrency(totals.scholarships)}
+          </span>
+        )}
         <span className="ml-auto font-bold text-foreground">
           Net:{" "}
           {formatCurrency(
-            totals.charges - totals.payments - totals.adjustments,
+            totals.charges - totals.payments - totals.adjustments - totals.scholarships,
           )}
         </span>
       </div>

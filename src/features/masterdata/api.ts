@@ -102,28 +102,14 @@ export function getMasterRecords<T = MasterRecord>(
   search = "",
   signal?: AbortSignal,
 ): Promise<MasterList<T>> {
-  let page = 1;
-  let perPage = 20;
-  let term = "";
-  let sort: string | undefined;
-  let direction: "asc" | "desc" | undefined;
-  let filters:
-    | Record<string, string | number | boolean | undefined | null>
-    | undefined;
-  let sig = signal;
-
-  if (typeof pageOrOptions === "object" && pageOrOptions !== null) {
-    page = pageOrOptions.page ?? 1;
-    perPage = pageOrOptions.perPage ?? 20;
-    term = pageOrOptions.search ?? "";
-    sort = pageOrOptions.sort;
-    direction = pageOrOptions.direction;
-    filters = pageOrOptions.filters;
-    sig = pageOrOptions.signal ?? signal;
-  } else {
-    page = pageOrOptions;
-    term = search;
-  }
+  const isOptions = typeof pageOrOptions === "object" && pageOrOptions !== null;
+  const page = isOptions ? (pageOrOptions.page ?? 1) : pageOrOptions;
+  const perPage = isOptions ? (pageOrOptions.perPage ?? 20) : 20;
+  const term = isOptions ? (pageOrOptions.search ?? "") : search;
+  const sort = isOptions ? pageOrOptions.sort : undefined;
+  const direction = isOptions ? pageOrOptions.direction : undefined;
+  const filters = isOptions ? pageOrOptions.filters : undefined;
+  const sig = isOptions ? (pageOrOptions.signal ?? signal) : signal;
 
   const query = new URLSearchParams({
     page: String(page),
