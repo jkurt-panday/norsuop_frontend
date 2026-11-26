@@ -1,6 +1,6 @@
 import { useState, useTransition, useMemo } from "react";
 import { Link } from "react-router";
-import { Inbox, FileText, Eye, Trash2 } from "lucide-react";
+import { Inbox, FileText, Trash2, Eye, Mail } from "lucide-react";
 import { ApiError } from "../../api/client";
 import { useStaffRequests } from "./queries";
 import { useDeleteStaffRequest } from "./mutations";
@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import RequestTable, { type SortOptionDef, type StatusOption } from "@/components/ui/request-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
+import { BulkEmailModal } from "./BulkEmailModal";
 import { toast } from "sonner";
 
 const currencyFormatter = new Intl.NumberFormat("en-PH", {
@@ -87,6 +88,7 @@ export function StaffRequestsPage() {
 
   const deleteMutation = useDeleteStaffRequest();
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; ref: string } | null>(null);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
 
   const handleDeleteClick = (id: number, referenceNumber: string) => {
     setDeleteTarget({ id, ref: referenceNumber });
@@ -102,6 +104,10 @@ export function StaffRequestsPage() {
         toast.error(error instanceof Error ? error.message : "Failed to delete request");
       },
     });
+  };
+
+  const handleOpenEmailModal = () => {
+    setIsEmailModalOpen(true);
   };
 
   const handleApplyFilters = (e: React.FormEvent) => {
@@ -166,6 +172,7 @@ export function StaffRequestsPage() {
     {
       header: "Reference #",
       sortable: "reference_number",
+      width: "160px",
       render: (req: StaffRequest) => (
         <Link to={`/staff/requests/${req.id}`} className="font-semibold text-primary hover:underline">
           {req.reference_number}
@@ -189,8 +196,10 @@ export function StaffRequestsPage() {
     {
       header: "Amount",
       sortable: "amount",
-      className: "text-right",
-      headerClassName: "text-right",
+      width: "160px",
+      align: "left" as const,
+      className: "pl-4 sm:pl-6",
+      headerClassName: "pl-4 sm:pl-6",
       render: (req: StaffRequest) => (
         <span className="tabular-nums font-medium text-foreground">
           {currencyFormatter.format(Number(req.amount || 0))}
@@ -280,24 +289,24 @@ export function StaffRequestsPage() {
         columns={columns}
         resource={paginatedData}
         resourceKey="staff-requests"
-renderActions={(req) => (
-            <>
-              <Link
-                to={`/staff/requests/${req.id}`}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-neutral-950"
-              >
-                <Eye className="h-4 w-4" />
-              </Link>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="text-red-600 hover:bg-red-600/10 hover:text-red-600"
-                onClick={() => handleDeleteClick(req.id, req.reference_number)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </>
-          )}
+        renderActions={(req) => (
+          <>
+            <Link
+              to={`/staff/requests/${req.id}`}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-neutral-950"
+            >
+              <Eye className="h-4 w-4" />
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="text-red-600 hover:bg-red-600/10 hover:text-red-600"
+              onClick={() => handleDeleteClick(req.id, req.reference_number)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </>
+        )}
         emptyIcon={Inbox}
         emptyMessage={isFiltered ? "No order of payment requests matched your active filters. Try adjusting your search query or date range." : "There are currently no staff requests in the queue."}
         onPageChange={setPage}
@@ -315,10 +324,20 @@ renderActions={(req) => (
         onFilterSubmit={handleFilterSubmit}
         onFilterReset={handleResetFilters}
         onReload={handleReload}
+        customToolbar={
+          <Button
+            type="button"
+            onClick={handleOpenEmailModal}
+            className="h-10 gap-2 rounded-lg bg-emerald-700 px-4 text-white hover:bg-emerald-800"
+          >
+            <Mail className="h-4 w-4" />
+            <span>Send Email</span>
+          </Button>
+        }
         sortOptions={sortOptions}
         enableColumnSorting={true}
         highlightDuration={2000}
-        actionsWidth="60px"
+        actionsWidth="110px"
         sort={activeFilters.sort}
         direction={activeFilters.direction}
         onSortChange={handleSortChange}
@@ -330,6 +349,7 @@ renderActions={(req) => (
         isPending={deleteMutation.isPending}
         description={`Are you sure you want to delete request ${deleteTarget?.ref}? This action cannot be undone.`}
       />
+      <BulkEmailModal open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen} />
     </div>
   );
 }

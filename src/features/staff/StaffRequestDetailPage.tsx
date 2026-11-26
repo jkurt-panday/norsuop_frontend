@@ -22,6 +22,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -231,6 +239,49 @@ const buildEmailPreviewHtml = (
     </div>
 </body>
 </html>`;
+};
+
+const SearchableSelect = ({
+  value,
+  placeholder,
+  searchPlaceholder,
+  options,
+  onChange,
+}: {
+  value: string;
+  placeholder: string;
+  searchPlaceholder: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+}) => {
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? "";
+
+  return (
+    <Combobox
+      items={options}
+      value={selectedLabel}
+      onValueChange={(label) => {
+        onChange(options.find((option) => option.label === label)?.value ?? "");
+      }}
+    >
+      <ComboboxInput
+        placeholder={searchPlaceholder || placeholder}
+        aria-label={placeholder}
+        showClear={Boolean(value)}
+        className="h-9 w-full"
+      />
+      <ComboboxContent>
+        <ComboboxEmpty>No matches found.</ComboboxEmpty>
+        <ComboboxList>
+          {(option) => (
+            <ComboboxItem key={option.value} value={option.label}>
+              {option.label}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
 };
 
 const ReadOnlyRow = ({
@@ -1038,30 +1089,21 @@ export function StaffRequestDetailPage() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Payment Option <span className="text-red-500">*</span></label>
-                        <Select
+                        <SearchableSelect
                           value={paymentInfoData.payment_detail_option_id}
-                          onValueChange={(value) => setPaymentInfoData({ ...paymentInfoData, payment_detail_option_id: value ?? "" })}
-                        >
-                          <SelectTrigger>
-                            {paymentInfoData.payment_detail_option_id ? (
-                              <span className="flex flex-1 text-left line-clamp-1">
-                                {(() => {
-                                  const selected = paymentOptions.find((o) => String(o.id) === paymentInfoData.payment_detail_option_id);
-                                  return selected ? selected.payment_desc : "Select Payment Option";
-                                })()}
-                              </span>
-                            ) : (
-                              <SelectValue placeholder="Select Payment Option" />
-                            )}
-                          </SelectTrigger>
-                          <SelectContent>
-                            {paymentOptions.map((option) => (
-                              <SelectItem key={option.id} value={String(option.id)}>
-                                {option.payment_desc}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Select Payment Option"
+                          searchPlaceholder="Search payment option..."
+                          options={paymentOptions.map((option) => ({
+                            value: String(option.id),
+                            label: option.payment_desc,
+                          }))}
+                          onChange={(value) =>
+                            setPaymentInfoData({
+                              ...paymentInfoData,
+                              payment_detail_option_id: value,
+                            })
+                          }
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Submission Date <span className="text-red-500">*</span></label>
@@ -1232,27 +1274,16 @@ export function StaffRequestDetailPage() {
                   <form onSubmit={handleProcessSubmit} className="space-y-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Bank Account <span className="text-red-500">*</span></label>
-                      <Select value={processData.fundcluster_id} onValueChange={(v) => setProcessData({ ...processData, fundcluster_id: v ?? "" })}>
-                        <SelectTrigger>
-                          {processData.fundcluster_id ? (
-                            <>
-                              {(() => {
-                                const selected = bankAccounts.find((a) => String(a.id) === processData.fundcluster_id);
-                                return selected ? `${selected.fund_cluster} - ${selected.account_name} - ${selected.bank_name} (${selected.account_num})` : "Select Bank Account";
-                              })()}
-                            </>
-                          ) : (
-                            <SelectValue placeholder="Select Bank Account" />
-                          )}
-                        </SelectTrigger>
-                        <SelectContent>
-                          {bankAccounts.map((acc) => (
-                            <SelectItem key={acc.id} value={String(acc.id)}>
-                              {acc.fund_cluster} - {acc.account_name} - {acc.bank_name} ({acc.account_num})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={processData.fundcluster_id}
+                        placeholder="Select Bank Account"
+                        searchPlaceholder="Search bank account..."
+                        options={bankAccounts.map((acc) => ({
+                          value: String(acc.id),
+                          label: `${acc.fund_cluster} - ${acc.account_name} - ${acc.bank_name} (${acc.account_num})`,
+                        }))}
+                        onChange={(value) => setProcessData({ ...processData, fundcluster_id: value })}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Reference Document</label>
@@ -1278,32 +1309,23 @@ export function StaffRequestDetailPage() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">UACS <span className="text-red-500">*</span></label>
-                      <Select value={processData.uacs_id} onValueChange={(v) => setProcessData({ ...processData, uacs_id: v ?? "" })}>
-                        <SelectTrigger>
-                          {processData.uacs_id ? (
-                            <>
-                              {(() => {
-                                const selected = uacsList.find((u) => String(u.id) === processData.uacs_id);
-                                return selected ? `${selected.uacs_sub_object_code ? `${selected.uacs_object_code}-${selected.uacs_sub_object_code}` : selected.uacs_object_code} - ${selected.account_title}` : "Select UACS";
-                              })()}
-                            </>
-                          ) : (
-                            <SelectValue placeholder="Select UACS" />
-                          )}
-                        </SelectTrigger>
-                        <SelectContent>
-                          {uacsList.map((u) => (
-                            <SelectItem key={u.id} value={String(u.id)}>
-                              {u.uacs_sub_object_code ? `${u.uacs_object_code}-${u.uacs_sub_object_code}` : u.uacs_object_code} - {u.account_title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={processData.uacs_id}
+                        placeholder="Select UACS"
+                        searchPlaceholder="Search UACS code or account title..."
+                        options={uacsList.map((u) => ({
+                          value: String(u.id),
+                          label: `${u.uacs_sub_object_code ? `${u.uacs_object_code}-${u.uacs_sub_object_code}` : u.uacs_object_code} - ${u.account_title}`,
+                        }))}
+                        onChange={(value) => setProcessData({ ...processData, uacs_id: value })}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Status</label>
                       <Select value={processData.status} onValueChange={(v) => setProcessData({ ...processData, status: (v ?? "processed") as "processed" | "pending" | "paid" | "cancelled" })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger>
+                          <span className="truncate capitalize">{processData.status}</span>
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="processed">Processed</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
@@ -1332,27 +1354,16 @@ export function StaffRequestDetailPage() {
                     <form onSubmit={handleStaffInputSubmit} className="space-y-4">
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Bank Account <span className="text-red-500">*</span></label>
-                        <Select value={staffInputData.fundcluster_id} onValueChange={(v) => setStaffInputData({ ...staffInputData, fundcluster_id: v ?? "" })}>
-                          <SelectTrigger>
-                            {staffInputData.fundcluster_id ? (
-                              <>
-                                {(() => {
-                                  const selected = bankAccounts.find((a) => String(a.id) === staffInputData.fundcluster_id);
-                                  return selected ? `${selected.fund_cluster} - ${selected.account_name} - ${selected.bank_name} (${selected.account_num})` : "Select Bank Account";
-                                })()}
-                              </>
-                            ) : (
-                              <SelectValue placeholder="Select Bank Account" />
-                            )}
-                          </SelectTrigger>
-                          <SelectContent>
-                            {bankAccounts.map((acc) => (
-                              <SelectItem key={acc.id} value={String(acc.id)}>
-                                {acc.fund_cluster} - {acc.account_name} - {acc.bank_name} ({acc.account_num})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          value={staffInputData.fundcluster_id}
+                          placeholder="Select Bank Account"
+                          searchPlaceholder="Search bank account..."
+                          options={bankAccounts.map((acc) => ({
+                            value: String(acc.id),
+                            label: `${acc.fund_cluster} - ${acc.account_name} - ${acc.bank_name} (${acc.account_num})`,
+                          }))}
+                          onChange={(value) => setStaffInputData({ ...staffInputData, fundcluster_id: value })}
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Reference Document</label>
@@ -1378,32 +1389,23 @@ export function StaffRequestDetailPage() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">UACS <span className="text-red-500">*</span></label>
-                        <Select value={staffInputData.uacs_id} onValueChange={(v) => setStaffInputData({ ...staffInputData, uacs_id: v ?? "" })}>
-                          <SelectTrigger>
-                            {staffInputData.uacs_id ? (
-                              <>
-                                {(() => {
-                                  const selected = uacsList.find((u) => String(u.id) === staffInputData.uacs_id);
-                                  return selected ? `${selected.uacs_sub_object_code ? `${selected.uacs_object_code}-${selected.uacs_sub_object_code}` : selected.uacs_object_code} - ${selected.account_title}` : "Select UACS";
-                                })()}
-                              </>
-                            ) : (
-                              <SelectValue placeholder="Select UACS" />
-                            )}
-                          </SelectTrigger>
-                          <SelectContent>
-                            {uacsList.map((u) => (
-                              <SelectItem key={u.id} value={String(u.id)}>
-                                {u.uacs_sub_object_code ? `${u.uacs_object_code}-${u.uacs_sub_object_code}` : u.uacs_object_code} - {u.account_title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          value={staffInputData.uacs_id}
+                          placeholder="Select UACS"
+                          searchPlaceholder="Search UACS code or account title..."
+                          options={uacsList.map((u) => ({
+                            value: String(u.id),
+                            label: `${u.uacs_sub_object_code ? `${u.uacs_object_code}-${u.uacs_sub_object_code}` : u.uacs_object_code} - ${u.account_title}`,
+                          }))}
+                          onChange={(value) => setStaffInputData({ ...staffInputData, uacs_id: value })}
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Status</label>
                         <Select value={staffInputData.status} onValueChange={(v) => setStaffInputData({ ...staffInputData, status: (v ?? "unprocessed") as "pending" | "processed" | "paid" | "cancelled" | "unprocessed" })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger>
+                            <span className="truncate capitalize">{staffInputData.status}</span>
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="processed">Processed</SelectItem>
                             <SelectItem value="pending">Pending</SelectItem>
@@ -1568,7 +1570,7 @@ export function StaffRequestDetailPage() {
               </CardHeader>
               <CardContent className="pt-4 flex items-center gap-2">
                 <Popover>
-                  <PopoverTrigger asChild>
+                  <PopoverTrigger>
                     <Button variant="outline">
                       <Eye className="h-4 w-4 mr-2" /> View OP
                       <svg
@@ -1613,40 +1615,53 @@ export function StaffRequestDetailPage() {
 
         {/* Email Preview Dialog */}
         <Dialog open={isEmailPreviewOpen} onOpenChange={setIsEmailPreviewOpen}>
-          <DialogContent className="sm:max-w-[100vh] max-h-[100vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-screen max-h-screen overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Preview Email</DialogTitle>
               <DialogDescription>
                 Review before sending to <span className="font-medium">{formInput.email}</span>. Two PDF copies (A5 + Legal) will be attached automatically.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-[3fr_5fr] py-6">
+            <div className="grid gap-3 py-6 md:grid-cols-1 lg:grid-cols-[3fr_5fr]">
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground">Subject</label>
-                  <Input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+                  <Input
+                    value={emailSubject}
+                    onChange={(event) => setEmailSubject(event.target.value)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground">Recipient Name</label>
-                  <Input value={emailRecipientName} onChange={(e) => setEmailRecipientName(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">How they're greeted \u2014 edit if the name needs correcting.</p>
+                  <Input
+                    value={emailRecipientName}
+                    onChange={(event) => setEmailRecipientName(event.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">How they're greeted — edit if the name needs correcting.</p>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground">Additional Note (Optional)</label>
                   <Textarea
                     value={emailNote}
-                    onChange={(e) => setEmailNote(e.target.value)}
+                    onChange={(event) => setEmailNote(event.target.value)}
                     rows={4}
                     placeholder="Add a personal note to the email..."
                   />
                 </div>
               </div>
-              <div className="border rounded-lg bg-muted p-4 overflow-auto max-h-[60vh]">
-                <div dangerouslySetInnerHTML={{ __html: buildEmailPreviewHtml(formInput, emailRecipientName, emailNote) }} />
+              <div className="max-h-[60vh] overflow-auto rounded-lg border bg-muted p-4">
+                <div dangerouslySetInnerHTML={{
+                  __html: buildEmailPreviewHtml(formInput, emailRecipientName, emailNote),
+                }} />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEmailPreviewOpen(false)}>Cancel</Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsEmailPreviewOpen(false)}
+              >
+                Cancel
+              </Button>
               <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
                 {isSendingEmail ? "Sending..." : "Send Email"}
               </Button>
