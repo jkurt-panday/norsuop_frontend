@@ -97,6 +97,42 @@ export type LedgerAcademicTerm = {
   semester: string;
 };
 
+export function getSemesterRank(semester?: string): number {
+  if (!semester) return 0;
+  const s = semester.toLowerCase().trim();
+  if (s.includes("summer") || s.includes("midyear")) {
+    return 3;
+  }
+  if (s.includes("second") || s.includes("2nd")) {
+    return 2;
+  }
+  if (s.includes("first") || s.includes("1st")) {
+    return 1;
+  }
+  return 0;
+}
+
+export function parseStartYear(schoolYear?: string): number {
+  const match = schoolYear?.match(/\d{4}/);
+  return match ? parseInt(match[0], 10) : 0;
+}
+
+export function sortAcademicTerms(
+  terms: LedgerAcademicTerm[],
+): LedgerAcademicTerm[] {
+  return [...terms].sort((a, b) => {
+    const yearDiff = parseStartYear(b.school_year) - parseStartYear(a.school_year);
+    if (yearDiff !== 0) {
+      return yearDiff;
+    }
+    const semDiff = getSemesterRank(b.semester) - getSemesterRank(a.semester);
+    if (semDiff !== 0) {
+      return semDiff;
+    }
+    return (b.id ?? 0) - (a.id ?? 0);
+  });
+}
+
 export function useLedgerMasterData(ledger: Ledger) {
   const college = ledger === "graduate" ? "Graduate School" : "School of Law";
 
@@ -114,7 +150,7 @@ export function useLedgerMasterData(ledger: Ledger) {
 
       return {
         courses: filteredCourses,
-        academicTerms: (termsRes.data ?? []).sort((a, b) => b.id - a.id),
+        academicTerms: sortAcademicTerms(termsRes.data ?? []),
       };
     },
   });

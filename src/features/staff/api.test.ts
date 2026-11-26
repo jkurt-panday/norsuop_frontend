@@ -4,6 +4,7 @@ import {
   getStaffRequests,
   linkOpStudent,
   processStaffRequest,
+  unlinkOpStudent,
   updateStaffDetails,
   type StaffRequestDetail,
   type StaffRequestList,
@@ -26,6 +27,15 @@ describe("staff request API", () => {
       2,
       "/api/v1/staff/requests/4/student",
       expect.objectContaining({ method: "PUT" }),
+    );
+  });
+
+  it("unlinks a student through the staff API", async () => {
+    vi.mocked(api).mockResolvedValue({ message: "Student unlinked from this Order of Payment." });
+    await unlinkOpStudent(4);
+    expect(api).toHaveBeenCalledWith(
+      "/api/v1/staff/requests/4/student",
+      expect.objectContaining({ method: "DELETE" }),
     );
   });
 
