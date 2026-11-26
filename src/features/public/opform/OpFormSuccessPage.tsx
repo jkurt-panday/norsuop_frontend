@@ -333,7 +333,7 @@ export function OpFormSuccessPage() {
                 Submit Another Request
               </Link>
               <Link
-                to="/assessment"
+                to="/assessmentform"
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
               >
                 Submit Assessment Request
@@ -412,6 +412,7 @@ function ResultMessage({
           </DialogHeader>
           <DialogFooter className="justify-center sm:justify-center">
             <Button
+              nativeButton={false}
               render={<Link to="/opform" />}
               className="bg-blue-700 text-white hover:bg-blue-800"
             >

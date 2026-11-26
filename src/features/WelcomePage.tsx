@@ -134,7 +134,7 @@ export function WelcomePage() {
                 </h2>
               </div>
               <Link
-                to="/assessment"
+                to="/assessmentform"
                 className="group flex items-start gap-4 border-b border-white/15 px-6 py-7 hover:bg-white/10 sm:px-8"
               >
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-sky-200/25 bg-sky-300/15 text-sky-200">
