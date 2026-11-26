@@ -1528,41 +1528,91 @@ export function StaffRequestDetailPage() {
 
         {/* Email Preview Dialog */}
         <Dialog open={isEmailPreviewOpen} onOpenChange={setIsEmailPreviewOpen}>
-          <DialogContent className="sm:max-w-screen max-h-screen overflow-y-auto">
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Preview Email</DialogTitle>
+              <DialogTitle>Email Order of Payment</DialogTitle>
               <DialogDescription>
-                Review before sending to <span className="font-medium">{formInput.email}</span>. Two PDF copies (A5 + Legal) will be attached automatically.
+                Review and customize the email before sending the Order of Payment to{" "}
+                <span className="font-medium">{formInput.email}</span>.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-[3fr_5fr] py-6">
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Subject</label>
-                  <Input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+            <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+              <div className="space-y-4 overflow-y-auto">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    To
+                  </label>
+                  <Input
+                    value={formInput.email}
+                    disabled
+                    className="bg-slate-50 text-slate-600"
+                  />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Recipient Name</label>
-                  <Input value={emailRecipientName} onChange={(e) => setEmailRecipientName(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">How they're greeted \u2014 edit if the name needs correcting.</p>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Recipient Name
+                  </label>
+                  <Input
+                    value={emailRecipientName}
+                    onChange={(event) => setEmailRecipientName(event.target.value)}
+                    placeholder="Recipient name"
+                  />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Additional Note (Optional)</label>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Subject
+                  </label>
+                  <Input
+                    value={emailSubject}
+                    onChange={(event) => setEmailSubject(event.target.value)}
+                    placeholder="Email subject"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Additional Note (optional)
+                  </label>
                   <Textarea
                     value={emailNote}
-                    onChange={(e) => setEmailNote(e.target.value)}
+                    onChange={(event) => setEmailNote(event.target.value)}
+                    placeholder="Add a personal note..."
                     rows={4}
-                    placeholder="Add a personal note to the email..."
                   />
                 </div>
               </div>
-              <div className="border rounded-lg bg-muted p-4 overflow-auto max-h-[60vh]">
-                <div dangerouslySetInnerHTML={{ __html: buildEmailPreviewHtml(formInput, emailRecipientName, emailNote) }} />
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Live Preview
+                </label>
+                <div className="overflow-hidden rounded-xl border border-border">
+                  <iframe
+                    title="Email preview"
+                    srcDoc={buildEmailPreviewHtml(
+                      formInput,
+                      emailRecipientName,
+                      emailNote,
+                    )}
+                    className="h-112 w-100 bg-card"
+                  />
+                </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEmailPreviewOpen(false)}>Cancel</Button>
-              <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                className="min-h-11"
+                onClick={() => setIsEmailPreviewOpen(false)}
+                disabled={isSendingEmail}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="lg"
+                onClick={handleConfirmSendEmail}
+                disabled={isSendingEmail}
+                className="min-w-32 bg-primary hover:bg-primary/90"
+              >
                 {isSendingEmail ? "Sending..." : "Send Email"}
               </Button>
             </DialogFooter>
