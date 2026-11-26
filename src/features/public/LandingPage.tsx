@@ -11,8 +11,8 @@ import {
     Mail,
     MapPin,
     Send,
+    User,
     UserRoundCog,
-    Users,
     Loader2,
 } from "lucide-react";
 
@@ -188,7 +188,7 @@ function renderLandingContent(
                     <img
                         src="/images/norsu-campus.jpg.webp"
                         alt=""
-                        className="absolute inset-0 -z-30 size-full object-cover object-center"
+                        className="absolute inset-0 -z-30 size-full scaleX(-1) object-cover object-center"
                     />
                     <div className="absolute inset-0 -z-20 bg-[linear-gradient(110deg,rgba(4,24,50,0.98)_5%,rgba(5,57,117,0.88)_55%,rgba(1,32,72,0.74)_100%)]" />
                     <div className="absolute -top-40 right-[8%] -z-10 size-136 rounded-full bg-sky-300/20 blur-[110px]" />
@@ -462,10 +462,7 @@ function renderLandingContent(
                         </div>
 
                         <span className="flex size-28 items-center justify-center justify-self-start rounded-full bg-[#eaf3ff] text-[#0d51b5] sm:size-32 lg:justify-self-end">
-                            <Users
-                                aria-hidden="true"
-                                className="size-14 sm:size-16"
-                            />
+                            <User aria-hidden="true" className="size-14 sm:size-16" />
                         </span>
                     </div>
                 </section>
@@ -479,8 +476,8 @@ function renderLandingContent(
                                 className="size-14 shrink-0 object-contain"
                             />
                             <p className="font-heading text-base leading-6 font-semibold text-white">
-                                <span className="block">Our Hope</span>
                                 <span className="block">Our Pride</span>
+                                <span className="block">Our Hope</span>
                                 <span className="block">Our Future</span>
                             </p>
                         </div>

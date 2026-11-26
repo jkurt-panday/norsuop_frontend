@@ -94,8 +94,10 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
   const students = normalizedSearch
     ? allStudents.filter(
         (student) =>
-          student.name.toLowerCase().includes(normalizedSearch) ||
-          student.student_number.toLowerCase().includes(normalizedSearch),
+          (student.name ?? "").toLowerCase().includes(normalizedSearch) ||
+          (student.student_number ?? "")
+            .toLowerCase()
+            .includes(normalizedSearch),
       )
     : allStudents;
 
@@ -289,7 +291,7 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
                 <option value="">-- Choose Student --</option>
                 {students.map((s) => (
                   <option key={s.id} value={String(s.id)}>
-                    {s.student_number} - {s.name}
+                    {s.name}
                   </option>
                 ))}
               </select>
@@ -323,7 +325,7 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
                             : "text-foreground"
                         }`}
                       >
-                        {s.student_number} - {s.name}
+                        {s.name}
                       </button>
                     );
                   })}

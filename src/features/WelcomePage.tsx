@@ -11,8 +11,8 @@ import {
   Mail,
   MapPin,
   Send,
+  User,
   UserRoundCog,
-  Users,
 } from "lucide-react";
 import { useCurrentUser } from "./auth/queries";
 
@@ -116,7 +116,7 @@ export function WelcomePage() {
         <img
           src="/images/norsu-campus.jpg.webp"
           alt=""
-          className="absolute inset-0 -z-30 size-full object-cover object-center"
+          className="absolute inset-0 -z-30 size-full scaleX(-1) object-cover object-center"
         />
         <div className="absolute inset-0 -z-20 bg-[linear-gradient(110deg,rgba(4,24,50,0.98)_5%,rgba(5,57,117,0.88)_55%,rgba(1,32,72,0.74)_100%)]" />
         <div className="absolute -top-40 right-[8%] -z-10 size-[34rem] rounded-full bg-sky-300/20 blur-[110px]" />
@@ -301,8 +301,8 @@ export function WelcomePage() {
               </p>
             )}
           </div>
-          <span className="flex size-28 items-center justify-center justify-self-start rounded-full bg-[#eaf3ff] text-[#0d51b5] lg:justify-self-end">
-            <Users className="size-14" />
+          <span className="flex size-28 items-center justify-center justify-self-start rounded-full bg-[#eaf3ff] text-[#0d51b5] sm:size-32 lg:justify-self-end">
+            <User aria-hidden="true" className="size-14 sm:size-16" />
           </span>
         </div>
       </section>
@@ -315,8 +315,8 @@ export function WelcomePage() {
               className="h-14 w-20 object-contain"
             />
             <p className="font-semibold text-white">
-              <span className="block">Our Hope</span>
               <span className="block">Our Pride</span>
+              <span className="block">Our Hope</span>
               <span className="block">Our Future</span>
             </p>
           </div>
@@ -329,3 +329,4 @@ export function WelcomePage() {
     </div>
   );
 }
+

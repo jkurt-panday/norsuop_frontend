@@ -401,14 +401,23 @@ function SingleFormFields({
       payload.discount_amount = latinHonorDiscount(numAmount, latinHonor);
     }
 
-    if (mode === "edit" && initialData?.id) {
+    if (mode === "edit") {
+      if (!initialData?.id) {
+        setErrorMessage("Cannot update: transaction record ID is missing. Please close and re-open the edit dialog.");
+        return;
+      }
       updateMutation.mutate(
         { ledger, id: initialData.id, payload },
         {
-          onSuccess: () => { onSuccess("Transaction updated."); onClose(); },
-          onError: (err) => setErrorMessage(
-            err instanceof ApiError ? err.message : "Failed to update transaction.",
-          ),
+          onSuccess: () => {
+            onSuccess("Transaction updated.");
+            onClose();
+          },
+          onError: (err) => {
+            setErrorMessage(
+              err instanceof ApiError ? err.message : "Failed to update transaction.",
+            );
+          },
         },
       );
     } else {
@@ -545,6 +554,16 @@ function SingleFormFields({
                         setStudentLabel(`${s.name} (${s.student_number || `#${s.id}`})`);
                         setShowStudentDropdown(false);
                         setStudentSearch("");
+
+                        // Auto-select last-used course if it belongs to this ledger's course list
+                        if (s.last_course_id) {
+                          const exists = masterQuery.data?.courses.some((c) => c.id === s.last_course_id);
+                          if (exists) setCourseId(s.last_course_id);
+                        }
+
+                        // Auto-select latest academic term
+                        const latestTerm = masterQuery.data?.academicTerms?.[0];
+                        if (latestTerm) setTermId(latestTerm.id);
                       }}
                     >
                       <span className="font-medium text-foreground">{s.name}</span>
@@ -951,7 +970,20 @@ function BatchForm({
                         key={s.id}
                         type="button"
                         className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs hover:bg-muted/80"
-                        onClick={() => { setStudentId(s.id); setStudentLabel(`${s.name} (${s.student_number || `#${s.id}`})`); setShowStudentDropdown(false); setStudentSearch(""); }}
+                        onClick={() => {
+                          setStudentId(s.id);
+                          setStudentLabel(`${s.name} (${s.student_number || `#${s.id}`})`);
+                          setShowStudentDropdown(false);
+                          setStudentSearch("");
+
+                          if (s.last_course_id) {
+                            const exists = masterQuery.data?.courses.some((c) => c.id === s.last_course_id);
+                            if (exists) setCourseId(s.last_course_id);
+                          }
+
+                          const latestTerm = masterQuery.data?.academicTerms?.[0];
+                          if (latestTerm) setTermId(latestTerm.id);
+                        }}
                       >
                         <span className="font-medium">{s.name}</span>
                         <span className="font-mono text-muted-foreground">{s.student_number}</span>

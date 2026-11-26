@@ -114,7 +114,7 @@ export function useLedgerMasterData(ledger: Ledger) {
 
       return {
         courses: filteredCourses,
-        academicTerms: termsRes.data ?? [],
+        academicTerms: (termsRes.data ?? []).sort((a, b) => b.id - a.id),
       };
     },
   });

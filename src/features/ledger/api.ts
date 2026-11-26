@@ -93,6 +93,7 @@ export type LedgerStudent = {
   id: number;
   student_number: string;
   name: string;
+  last_course_id?: number | null;
 };
 
 export type LedgerRosterStudent = LedgerStudent & {

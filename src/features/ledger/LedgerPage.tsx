@@ -82,7 +82,32 @@ const defaultVisibleColumns = {
   inputBy: true,
 };
 
-type OptionalColumn = keyof typeof defaultVisibleColumns;
+const defaultVisibleColumnsLaw = {
+  ...defaultVisibleColumns,
+  status: true,
+};
+
+type OptionalColumn = keyof typeof defaultVisibleColumnsLaw;
+
+const optionalColumnLabels: Record<OptionalColumn, string> = {
+  studentNumber: "Student ID",
+  course: "Course",
+  schoolYear: "School Year",
+  semester: "Semester",
+  units: "Units",
+  transactionDate: "Trans. Date",
+  referenceNo: "Ref. (JEV/OR #)",
+  particulars: "Particulars",
+  feeRate: "Tuition/Unit or Fee",
+  entryType: "AR/Payment",
+  remark: "Remark",
+  inputBy: "Input By",
+};
+
+const optionalColumnLabelsLaw: Record<string, string> = {
+  ...optionalColumnLabels,
+  status: "Status",
+};
 
 type PaginationToken = number | "ellipsis";
 
@@ -100,23 +125,10 @@ function ledgerPaginationPages(currentPage: number, lastPage: number): Paginatio
   });
 }
 
-const optionalColumnLabels: Record<OptionalColumn, string> = {
-  studentNumber: "Student ID",
-  course: "Course",
-  schoolYear: "School Year",
-  semester: "Semester",
-  units: "Units",
-  transactionDate: "Trans. Date",
-  referenceNo: "Ref. (JEV/OR #)",
-  particulars: "Particulars",
-  feeRate: "Tuition/Unit or Fee",
-  entryType: "AR/Payment",
-  remark: "Remark",
-  inputBy: "Input By",
-};
-
 export function LedgerPage({ ledger }: { ledger: Ledger }) {
   const isLaw = ledger === "law";
+  const effectiveDefaults = isLaw ? defaultVisibleColumnsLaw : defaultVisibleColumns;
+  const effectiveLabels   = isLaw ? optionalColumnLabelsLaw  : optionalColumnLabels;
   const title = isLaw ? "School of Law Ledger" : "Graduate School Ledger";
   const subtitle = isLaw
     ? "Tuition, fees, and payment transactions for law students."
@@ -128,12 +140,12 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
   // Column visibility state persisted in localStorage
   const storageKey = `${ledger}-ledger.visible-columns`;
   const [visibleColumns, setVisibleColumns] = useState<Record<OptionalColumn, boolean>>(() => {
-    if (typeof window === "undefined") return defaultVisibleColumns;
+    if (typeof window === "undefined") return effectiveDefaults;
     try {
       const saved = JSON.parse(window.localStorage.getItem(storageKey) ?? "{}");
-      return { ...defaultVisibleColumns, ...saved };
+      return { ...effectiveDefaults, ...saved };
     } catch {
-      return defaultVisibleColumns;
+      return effectiveDefaults;
     }
   });
 
@@ -162,6 +174,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     date_from: "",
     date_to: "",
     balance_status: "",
+    status: "",
   });
 
   const [activeFilters, setActiveFilters] = useState<LedgerFilterParams>({
@@ -175,6 +188,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     date_from: "",
     date_to: "",
     balance_status: "",
+    status: "",
   });
 
   const [showFilters, setShowFilters] = useState(false);
@@ -280,6 +294,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
         date_from: merged.date_from,
         date_to: merged.date_to,
         balance_status: merged.balance_status,
+        status: merged.status,
       }));
     });
   };
@@ -299,6 +314,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
       date_from: "",
       date_to: "",
       balance_status: "",
+      status: "",
     };
     setFilterState(reset);
     startTransition(() => {
@@ -461,6 +477,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
       key: "balance_status",
       label: filterState.balance_status === "with_balance" ? "Outstanding balance" : "Fully paid",
     },
+    filterState.status && { key: "status", label: `Status: ${filterState.status}` },
     filterState.date_from && {
       key: "date_from",
       label: `From: ${formatTransactionDate(filterState.date_from)}`,
@@ -721,7 +738,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                     </p>
                   </div>
                   <div className="grid gap-1">
-                    {(Object.keys(optionalColumnLabels) as OptionalColumn[]).map(
+                    {(Object.keys(effectiveLabels) as OptionalColumn[]).map(
                       (column) => (
                         <label
                           key={column}
@@ -733,7 +750,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                             onChange={() => toggleColumn(column)}
                             className="h-4 w-4 rounded border-input accent-primary"
                           />
-                          <span>{optionalColumnLabels[column]}</span>
+                          <span>{effectiveLabels[column]}</span>
                         </label>
                       ),
                     )}
@@ -837,6 +854,19 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                       </option>
                     ))}
                   </select>
+
+                  {isLaw && (
+                    <select
+                      value={filterState.status}
+                      onChange={(e) => applyFilters({ status: e.target.value })}
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Applied">Applied</option>
+                      <option value="ADJUSTMENT">Adjustment</option>
+                    </select>
+                  )}
 
                   <select
                     value={filterState.balance_status}
@@ -1028,6 +1058,11 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                         AR/Payment
                       </th>
                     )}
+                    {isLaw && visibleColumns.status && (
+                      <th className="py-2.5 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground text-xs">
+                        Status
+                      </th>
+                    )}
                     <th className="py-2.5 pr-4 text-right font-medium whitespace-nowrap text-muted-foreground text-xs">
                       Amount
                     </th>
@@ -1063,6 +1098,9 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                         {visibleColumns.particulars && <td className="py-3 px-2"><Skeleton className="h-4 w-36" /></td>}
                         {visibleColumns.feeRate && <td className="py-3 px-2"><Skeleton className="h-4 w-14 ml-auto" /></td>}
                         {visibleColumns.entryType && <td className="py-3 px-2"><Skeleton className="h-4 w-16" /></td>}
+                        {isLaw && visibleColumns.status && (
+                          <td className="py-3 px-2"><Skeleton className="h-4 w-16" /></td>
+                        )}
                         <td className="py-3 px-2"><Skeleton className="h-4 w-16 ml-auto" /></td>
                         {visibleColumns.remark && <td className="py-3 px-2"><Skeleton className="h-4 w-16" /></td>}
                         {visibleColumns.inputBy && <td className="py-3 px-2"><Skeleton className="h-4 w-20" /></td>}
@@ -1207,6 +1245,12 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                                   {entryTypeLabel}
                                 </Badge>
                               )}
+                            </td>
+                          )}
+
+                          {isLaw && visibleColumns.status && (
+                            <td className="py-2.5 pr-4 whitespace-nowrap text-muted-foreground text-xs">
+                              {r.status || "—"}
                             </td>
                           )}
 
