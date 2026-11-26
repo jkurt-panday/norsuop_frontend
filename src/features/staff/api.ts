@@ -186,6 +186,22 @@ export function linkOpStudent(id: number, student_id: number) {
   });
 }
 
+export interface CreateStudentPayload {
+  student_number: string;
+  first_name: string;
+  middle_name?: string | null;
+  last_name: string;
+  email?: string | null;
+  contact_num?: string | null;
+}
+
+export function createAndLinkOpStudent(id: number, payload: CreateStudentPayload) {
+  return api(`/api/v1/staff/requests/${id}/student`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function unlinkOpStudent(id: number) {
   return api(`/api/v1/staff/requests/${id}/student`, { method: "DELETE" });
 }

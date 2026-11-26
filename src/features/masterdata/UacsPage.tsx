@@ -223,7 +223,7 @@ export function UacsPage() {
       header: "Account Title",
       sortable: "account_title",
       width: "300px",
-      className: "whitespace-normal text-base text-foreground",
+      className: "whitespace-normal text-medium text-foreground",
       render: (row) => (
         <span className="font-medium text-foreground wrap-break-word">
           {row.account_title ?? "—"}
