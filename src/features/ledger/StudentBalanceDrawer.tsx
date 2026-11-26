@@ -19,7 +19,7 @@ import {
 import type { Ledger, LedgerRecord } from "./api";
 import { useLedgerBalance } from "./queries";
 import { useLedgerPdf, useSendLedgerEmails } from "./mutations";
-import { formatCurrency, formatLedgerDate } from "./controls";
+import { formatCurrency, formatLedgerDate, sanitizeHref } from "./controls";
 import {
   Sheet,
   SheetContent,
@@ -401,7 +401,7 @@ export function StudentBalanceDrawer({
                             <div className="mt-2 flex items-center justify-between gap-3 border-t border-border/50 pt-2 text-[11px] text-muted-foreground">
                               {tx.orLink ? (
                                 <a
-                                  href={tx.orLink}
+                                  href={sanitizeHref(tx.orLink)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1 font-medium text-primary hover:underline"

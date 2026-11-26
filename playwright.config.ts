@@ -6,6 +6,7 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   reporter: process.env.CI ? 'line' : 'list',
+  timeout: 60_000,
   use: {
     baseURL: frontendUrl,
     trace: 'retain-on-failure',

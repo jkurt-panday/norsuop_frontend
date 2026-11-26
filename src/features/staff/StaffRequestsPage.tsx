@@ -1,10 +1,10 @@
 import { useState, useTransition, useMemo } from "react";
 import { Link } from "react-router";
-import { Inbox, FileText, Trash2, Eye } from "lucide-react";
+import { Inbox, FileText, Eye, Trash2 } from "lucide-react";
 import { ApiError } from "../../api/client";
 import { useStaffRequests } from "./queries";
 import { useDeleteStaffRequest } from "./mutations";
-import type { StaffFilters } from "./api";
+import type { StaffFilters, StaffRequest } from "./api";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -166,8 +166,7 @@ export function StaffRequestsPage() {
     {
       header: "Reference #",
       sortable: "reference_number",
-      width: "160px",
-      render: (req: any) => (
+      render: (req: StaffRequest) => (
         <Link to={`/staff/requests/${req.id}`} className="font-semibold text-primary hover:underline">
           {req.reference_number}
         </Link>
@@ -190,11 +189,9 @@ export function StaffRequestsPage() {
     {
       header: "Amount",
       sortable: "amount",
-      width: "160px",
-      align: "left" as const,
-      className: "pl-4 sm:pl-6",
-      headerClassName: "pl-4 sm:pl-6",
-      render: (req: any) => (
+      className: "text-right",
+      headerClassName: "text-right",
+      render: (req: StaffRequest) => (
         <span className="tabular-nums font-medium text-foreground">
           {currencyFormatter.format(Number(req.amount || 0))}
         </span>
@@ -321,7 +318,7 @@ renderActions={(req) => (
         sortOptions={sortOptions}
         enableColumnSorting={true}
         highlightDuration={2000}
-        actionsWidth="110px"
+        actionsWidth="60px"
         sort={activeFilters.sort}
         direction={activeFilters.direction}
         onSortChange={handleSortChange}

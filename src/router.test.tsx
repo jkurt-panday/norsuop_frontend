@@ -15,6 +15,7 @@ describe("SPA routes", () => {
     const paths = collectPaths(router.routes);
     expect(paths).toEqual(
       expect.arrayContaining([
+        "/",
         "/opform",
         "/assessmentform",
         "/graduate-ledger",
