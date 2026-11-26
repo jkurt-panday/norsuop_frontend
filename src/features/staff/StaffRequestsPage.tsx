@@ -1,6 +1,6 @@
 import { useState, useTransition, useMemo } from "react";
 import { Link } from "react-router";
-import { Inbox, FileText, Eye } from "lucide-react";
+import { Inbox, FileText, Eye, Trash2 } from "lucide-react";
 import { ApiError } from "../../api/client";
 import { useStaffRequests } from "./queries";
 import { useDeleteStaffRequest } from "./mutations";
