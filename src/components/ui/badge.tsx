@@ -73,9 +73,9 @@ function StatusBadge({
 }: StatusBadgeProps) {
   const normalizedStatus = (status ?? "unprocessed").toLowerCase().trim()
 
-  let badgeVariant: "success" | "info" | "destructive" | "warning" | "secondary" = "secondary"
-  let dotColor = "bg-slate-400"
-  let displayLabel = label
+  let badgeVariant: "success" | "info" | "destructive" | "warning"
+  let dotColor: string
+  let displayLabel: string | undefined
 
   switch (normalizedStatus) {
     case "paid":

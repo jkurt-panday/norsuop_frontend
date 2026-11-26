@@ -6,9 +6,11 @@ import {
   ActivityLogList,
   ChartCard,
   StatCard,
+} from "./dashboard-components";
+import {
   getDayLabel,
   useReloadCooldown,
-} from "./dashboard-components";
+} from "./dashboard-utils";
 import type { StaffDashboardData } from "./api";
 import { useStaffDashboard } from "./queries";
 

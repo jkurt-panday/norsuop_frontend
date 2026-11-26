@@ -18,5 +18,19 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
+    files: [
+      "src/components/ui/**",
+      "src/components/base/**",
+      "src/components/application/**",
+      "src/components/confirm-dialog.tsx",
+    ],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
   },
 ]);

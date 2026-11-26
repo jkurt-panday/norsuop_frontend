@@ -7,6 +7,8 @@ import {
   getCashierReferenceNumber,
   getCashierAmount,
   getCashierStatus,
+  type CashierList,
+  type CashierRequest,
 } from "./api";
 import { api } from "../../api/client";
 
@@ -27,7 +29,7 @@ describe("cashier API", () => {
   });
 
   it("fetches cashier requests with query filters and page", async () => {
-    vi.mocked(api).mockResolvedValue({ data: [], meta: {} as any, links: {} as any });
+    vi.mocked(api).mockResolvedValue({ data: [], meta: {}, links: {} } as unknown as CashierList);
     await getCashierRequests({ page: 2, per_page: 10, search: "INV-100", status: "processed" });
     expect(api).toHaveBeenCalledWith(
       expect.stringContaining("/api/v1/cashier/requests?page=2&per_page=10&search=INV-100&status=processed"),
@@ -36,7 +38,7 @@ describe("cashier API", () => {
   });
 
   it("fetches single cashier request by ID", async () => {
-    vi.mocked(api).mockResolvedValue({ data: { id: 10 } as any });
+    vi.mocked(api).mockResolvedValue({ data: { id: 10 } as unknown as CashierRequest });
     await getCashierRequest(10);
     expect(api).toHaveBeenCalledWith("/api/v1/cashier/requests/10", expect.anything());
   });

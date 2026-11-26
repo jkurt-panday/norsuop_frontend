@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,7 +39,6 @@ import {
   Plus,
   Edit,
   Trash2,
-  Eye,
 } from "lucide-react";
 
 export interface ColumnDef<T> {
@@ -200,8 +199,6 @@ export function DataTable<T extends { id: number | string }>({
   // UI
   className,
   showPagination = true,
-  storageKey,
-  defaultVisibleColumns,
   highlightDuration = 2000,
   actionsWidth = "110px",
 }: DataTableProps<T>) {
@@ -215,10 +212,12 @@ export function DataTable<T extends { id: number | string }>({
 
   // Local search state for responsive input
   const [localSearch, setLocalSearch] = React.useState(searchValue);
+  const [prevSearch, setPrevSearch] = React.useState(searchValue);
 
-  React.useEffect(() => {
+  if (prevSearch !== searchValue) {
+    setPrevSearch(searchValue);
     setLocalSearch(searchValue);
-  }, [searchValue]);
+  }
 
   // Row highlighting state
   const prevSignatures = React.useRef<Map<string | number, string> | null>(null);
@@ -418,12 +417,10 @@ export function DataTable<T extends { id: number | string }>({
             </div>
           </div>
           {addHref && addLabel && (
-            <Button asChild>
-              <a href={addHref}>
-                <Plus className="mr-1.5 h-4 w-4" />
-                {addLabel}
-              </a>
-            </Button>
+            <a href={addHref} className={buttonVariants()}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              {addLabel}
+            </a>
           )}
         </div>
       )}

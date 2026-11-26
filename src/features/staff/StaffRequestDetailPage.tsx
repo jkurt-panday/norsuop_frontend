@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router";
+﻿import { useParams, Link } from "react-router";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -9,6 +9,7 @@ import {
   Download,
   Trash2,
   Edit2,
+  Unlink,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -66,6 +67,7 @@ import {
   updateStaffDetails,
   searchOpStudents,
   linkOpStudent,
+  unlinkOpStudent,
   emailOpRequest,
   getOpPdfUrl,
   type BankAccount,
@@ -201,7 +203,8 @@ const escapeHtml = (value: string) =>
     .replace(/&/g, "&")
     .replace(/</g, "<")
     .replace(/>/g, ">")
-    .replace(/"/g, "");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 
 const buildEmailPreviewHtml = (
   formInput: FormInput,
@@ -340,6 +343,7 @@ export function StaffRequestDetailPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
   const [isStudentMatchOpen, setIsStudentMatchOpen] = useState(false);
+  const [isUnlinkConfirmOpen, setIsUnlinkConfirmOpen] = useState(false);
   const [studentMatchMode, setStudentMatchMode] = useState<"existing" | "create">("existing");
   const [studentSearch, setStudentSearch] = useState(formInput?.submitted_student_number ?? "");
   const [studentCandidates, setStudentCandidates] = useState<StaffStudent[]>([]);
@@ -548,6 +552,7 @@ export function StaffRequestDetailPage() {
   const searchStudentsMutation = useMutation({
     mutationFn: ({ q }: { q: string }) => searchOpStudents(q),
   });
+  const { mutateAsync: searchStudentsAsync } = searchStudentsMutation;
 
   const linkStudentMutation = useMutation({
     mutationFn: ({ id, student_id }: { id: number; student_id: number }) =>
@@ -556,6 +561,22 @@ export function StaffRequestDetailPage() {
       refetch();
       setIsStudentMatchOpen(false);
       toast.success('Student linked successfully.');
+    },
+  });
+
+  const unlinkStudentMutation = useMutation({
+    mutationFn: () => {
+      if (!formInput?.id) throw new Error('Request ID missing');
+      return unlinkOpStudent(formInput.id);
+    },
+    onSuccess: () => {
+      refetch();
+      setIsUnlinkConfirmOpen(false);
+      toast.success('Student unlinked successfully.');
+    },
+    onError: (error) => {
+      console.error('Unlink student failed:', error);
+      toast.error('Failed to unlink student: ' + (error as Error).message);
     },
   });
 
@@ -591,7 +612,7 @@ export function StaffRequestDetailPage() {
     const timeout = window.setTimeout(async () => {
       setIsSearchingStudents(true);
       try {
-        const result = await searchStudentsMutation.mutateAsync({ q: studentSearch });
+        const result = await searchStudentsAsync({ q: studentSearch });
         setStudentCandidates(result.students ?? []);
       } catch {
         setStudentCandidates([]);
@@ -604,7 +625,7 @@ export function StaffRequestDetailPage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [isStudentMatchOpen, studentMatchMode, studentSearch]);
+  }, [isStudentMatchOpen, studentMatchMode, studentSearch, searchStudentsAsync]);
 
   // --- Handlers ---
   const openStudentMatch = () => {
@@ -1454,7 +1475,19 @@ export function StaffRequestDetailPage() {
                         <p className="text-xs text-green-700 font-mono">Student ID: {formInput.student.student_number}</p>
                       </div>
                     </div>
-                    <Badge className="bg-green-100 text-green-700">Linked</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-100 text-green-700">Linked</Badge>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => setIsUnlinkConfirmOpen(true)}
+                      >
+                        <Unlink className="h-3.5 w-3.5 mr-1" />
+                        Unlink
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1741,6 +1774,30 @@ export function StaffRequestDetailPage() {
               <Button variant="outline" onClick={() => setDeleteTargetId(null)}>Cancel</Button>
               <Button variant="destructive" onClick={handleDelete} disabled={deleteDocumentMutation.isPending}>
                 {deleteDocumentMutation.isPending ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Unlink Student Confirmation Dialog */}
+        <Dialog open={isUnlinkConfirmOpen} onOpenChange={setIsUnlinkConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Unlink Student</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to unlink this student from the Order of Payment? This only detaches the student record from this request and does not delete the student record or any ledger transactions.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsUnlinkConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => unlinkStudentMutation.mutate()}
+                disabled={unlinkStudentMutation.isPending}
+              >
+                {unlinkStudentMutation.isPending ? "Unlinking..." : "Unlink Student"}
               </Button>
             </DialogFooter>
           </DialogContent>

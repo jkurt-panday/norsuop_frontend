@@ -5,6 +5,7 @@ import {
   GraduationCap,
   Wallet,
   AlertTriangle,
+  CheckCircle2,
   PlusCircle,
   Pencil,
   Trash2,
@@ -20,6 +21,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import {
+  exportLedger,
   type Ledger,
   type LedgerFilterParams,
   type LedgerRecord,
@@ -31,7 +33,7 @@ import {
   formatTransactionDate,
   getEntryTypeBadge,
   getRemarkBadge,
-  ledgerExportUrl,
+  sanitizeHref,
 } from "./controls";
 import { StudentBalanceDrawer } from "./StudentBalanceDrawer";
 import { LedgerTransactionForm } from "./LedgerTransactionForm";
@@ -58,6 +60,7 @@ import {
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -79,7 +82,12 @@ const defaultVisibleColumns = {
   inputBy: true,
 };
 
-type OptionalColumn = keyof typeof defaultVisibleColumns;
+const defaultVisibleColumnsLaw = {
+  ...defaultVisibleColumns,
+  status: true,
+};
+
+type OptionalColumn = keyof typeof defaultVisibleColumnsLaw;
 
 const optionalColumnLabels: Record<OptionalColumn, string> = {
   studentNumber: "Student ID",
@@ -96,8 +104,31 @@ const optionalColumnLabels: Record<OptionalColumn, string> = {
   inputBy: "Input By",
 };
 
+const optionalColumnLabelsLaw: Record<string, string> = {
+  ...optionalColumnLabels,
+  status: "Status",
+};
+
+type PaginationToken = number | "ellipsis";
+
+function ledgerPaginationPages(currentPage: number, lastPage: number): PaginationToken[] {
+  const windowPages = [currentPage, currentPage + 1, currentPage + 2].filter(
+    (page) => page >= 1 && page <= lastPage,
+  );
+  const pages = Array.from(new Set([1, ...windowPages, lastPage]))
+    .filter((page) => page >= 1 && page <= lastPage)
+    .sort((a, b) => a - b);
+
+  return pages.flatMap((page, index) => {
+    const previous = pages[index - 1];
+    return previous !== undefined && page - previous > 1 ? ["ellipsis", page] : [page];
+  });
+}
+
 export function LedgerPage({ ledger }: { ledger: Ledger }) {
   const isLaw = ledger === "law";
+  const effectiveDefaults = isLaw ? defaultVisibleColumnsLaw : defaultVisibleColumns;
+  const effectiveLabels   = isLaw ? optionalColumnLabelsLaw  : optionalColumnLabels;
   const title = isLaw ? "School of Law Ledger" : "Graduate School Ledger";
   const subtitle = isLaw
     ? "Tuition, fees, and payment transactions for law students."
@@ -109,12 +140,12 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
   // Column visibility state persisted in localStorage
   const storageKey = `${ledger}-ledger.visible-columns`;
   const [visibleColumns, setVisibleColumns] = useState<Record<OptionalColumn, boolean>>(() => {
-    if (typeof window === "undefined") return defaultVisibleColumns;
+    if (typeof window === "undefined") return effectiveDefaults;
     try {
       const saved = JSON.parse(window.localStorage.getItem(storageKey) ?? "{}");
-      return { ...defaultVisibleColumns, ...saved };
+      return { ...effectiveDefaults, ...saved };
     } catch {
-      return defaultVisibleColumns;
+      return effectiveDefaults;
     }
   });
 
@@ -143,6 +174,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     date_from: "",
     date_to: "",
     balance_status: "",
+    status: "",
   });
 
   const [activeFilters, setActiveFilters] = useState<LedgerFilterParams>({
@@ -156,10 +188,25 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     date_from: "",
     date_to: "",
     balance_status: "",
+    status: "",
   });
 
   const [showFilters, setShowFilters] = useState(false);
   const [goToPage, setGoToPage] = useState("");
+
+  // Excel export feedback
+  const [isExporting, setIsExporting] = useState(false);
+  const [toastFeedback, setToastFeedback] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const showToast = (type: "success" | "error", text: string) => {
+    setToastFeedback({ type, text });
+    setTimeout(() => {
+      setToastFeedback((current) => (current?.text === text ? null : current));
+    }, 4000);
+  };
 
   // Query
   const query = useLedgerRecords(ledger, activeFilters);
@@ -185,24 +232,42 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<LedgerRecord | null>(null);
 
-  // Refresh cooldown — 15 s buffer to prevent spam
-  const [refreshCooledAt, setRefreshCooledAt] = useState<number>(0);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const refreshCooldown = Date.now() < refreshCooledAt;
+  // Refresh cooldown — 5 s buffer to prevent spam
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const refreshCooldown = cooldownSeconds > 0;
 
   const handleRefresh = () => {
     if (refreshCooldown || query.isFetching) return;
     query.refetch();
-    const until = Date.now() + 5_000;
-    setRefreshCooledAt(until);
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    refreshTimerRef.current = setTimeout(() => setRefreshCooledAt(0), 5_000);
+    setCooldownSeconds(5);
   };
 
-  // Tick every second while cooldown is active so the button label stays accurate
-  const [, forceTickRefresh] = useState(0);
-  // (effect declared after all state, runs after mount)
+  const handleExport = async () => {
+    if (isExporting) return;
+    try {
+      setIsExporting(true);
+      const blob = await exportLedger(ledger, activeFilters);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      a.download = `${ledger}_ledger_export_${stamp}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      showToast("success", "Ledger export downloaded successfully.");
+    } catch (err) {
+      showToast(
+        "error",
+        err instanceof Error ? err.message : "Failed to export ledger.",
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const [membershipTarget, setMembershipTarget] = useState<LedgerRecord | null>(null);
   const [selectedMembership, setSelectedMembership] = useState<"NAPU" | "NORSUFFA" | "">("");
@@ -229,6 +294,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
         date_from: merged.date_from,
         date_to: merged.date_to,
         balance_status: merged.balance_status,
+        status: merged.status,
       }));
     });
   };
@@ -248,6 +314,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
       date_from: "",
       date_to: "",
       balance_status: "",
+      status: "",
     };
     setFilterState(reset);
     startTransition(() => {
@@ -410,6 +477,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
       key: "balance_status",
       label: filterState.balance_status === "with_balance" ? "Outstanding balance" : "Fully paid",
     },
+    filterState.status && { key: "status", label: `Status: ${filterState.status}` },
     filterState.date_from && {
       key: "date_from",
       label: `From: ${formatTransactionDate(filterState.date_from)}`,
@@ -420,15 +488,32 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
     },
   ].filter(Boolean) as { key: keyof typeof filterState; label: string }[];
 
-  // Interval tick while cooldown is active → keeps the button label current
+  // Interval tick while cooldown is active → keeps countdown current
   useEffect(() => {
-    if (!refreshCooldown) return;
-    const id = setInterval(() => forceTickRefresh((n) => n + 1), 1_000);
+    if (cooldownSeconds <= 0) return;
+    const id = setInterval(() => {
+      setCooldownSeconds((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1_000);
     return () => clearInterval(id);
-  }, [refreshCooldown]);
+  }, [cooldownSeconds]);
 
   return (
-    <div className="w-full space-y-6 pb-12">
+    <>
+      {toastFeedback && (
+        <div
+          role="status"
+          className={`fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+            toastFeedback.type === "success"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100"
+              : "border border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100"
+          }`}
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>{toastFeedback.text}</span>
+        </div>
+      )}
+
+      <div className="w-full space-y-6 pb-12">
       <Card className="rounded-2xl border border-border bg-card px-2! py-2! shadow-sm">
         <CardHeader className="p-3">
           <div>
@@ -459,7 +544,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
               className={`mr-1.5 h-4 w-4 ${query.isFetching ? "animate-spin" : ""} ${refreshCooldown ? "text-muted-foreground" : ""}`}
             />
             {refreshCooldown
-              ? `Wait ${Math.ceil((refreshCooledAt - Date.now()) / 1_000)}s`
+              ? `Wait ${cooldownSeconds}s`
               : "Refresh"}
           </Button>
 
@@ -479,19 +564,20 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
             Import Excel/CSV
           </Button>
 
-          <a
-            href={ledgerExportUrl(ledger, activeFilters)}
-            download
-            className="inline-flex"
+          <Button
+            variant="outline"
+            className="h-9 border-input text-foreground hover:bg-muted disabled:opacity-50"
+            onClick={handleExport}
+            disabled={isExporting}
+            aria-busy={isExporting}
           >
-            <Button
-              variant="outline"
-              className="h-9 border-input text-foreground hover:bg-muted"
-            >
+            {isExporting ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
               <Download className="mr-1.5 h-4 w-4" />
-              Export Excel
-            </Button>
-          </a>
+            )}
+            {isExporting ? "Exporting…" : "Export Excel"}
+          </Button>
 
           <Button
             className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -652,7 +738,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                     </p>
                   </div>
                   <div className="grid gap-1">
-                    {(Object.keys(optionalColumnLabels) as OptionalColumn[]).map(
+                    {(Object.keys(effectiveLabels) as OptionalColumn[]).map(
                       (column) => (
                         <label
                           key={column}
@@ -664,7 +750,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                             onChange={() => toggleColumn(column)}
                             className="h-4 w-4 rounded border-input accent-primary"
                           />
-                          <span>{optionalColumnLabels[column]}</span>
+                          <span>{effectiveLabels[column]}</span>
                         </label>
                       ),
                     )}
@@ -768,6 +854,19 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                       </option>
                     ))}
                   </select>
+
+                  {isLaw && (
+                    <select
+                      value={filterState.status}
+                      onChange={(e) => applyFilters({ status: e.target.value })}
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Applied">Applied</option>
+                      <option value="ADJUSTMENT">Adjustment</option>
+                    </select>
+                  )}
 
                   <select
                     value={filterState.balance_status}
@@ -959,6 +1058,11 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                         AR/Payment
                       </th>
                     )}
+                    {isLaw && visibleColumns.status && (
+                      <th className="py-2.5 pr-4 text-left font-medium whitespace-nowrap text-muted-foreground text-xs">
+                        Status
+                      </th>
+                    )}
                     <th className="py-2.5 pr-4 text-right font-medium whitespace-nowrap text-muted-foreground text-xs">
                       Amount
                     </th>
@@ -994,6 +1098,9 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                         {visibleColumns.particulars && <td className="py-3 px-2"><Skeleton className="h-4 w-36" /></td>}
                         {visibleColumns.feeRate && <td className="py-3 px-2"><Skeleton className="h-4 w-14 ml-auto" /></td>}
                         {visibleColumns.entryType && <td className="py-3 px-2"><Skeleton className="h-4 w-16" /></td>}
+                        {isLaw && visibleColumns.status && (
+                          <td className="py-3 px-2"><Skeleton className="h-4 w-16" /></td>
+                        )}
                         <td className="py-3 px-2"><Skeleton className="h-4 w-16 ml-auto" /></td>
                         {visibleColumns.remark && <td className="py-3 px-2"><Skeleton className="h-4 w-16" /></td>}
                         {visibleColumns.inputBy && <td className="py-3 px-2"><Skeleton className="h-4 w-20" /></td>}
@@ -1085,7 +1192,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                             <td className="py-2.5 pr-4 whitespace-nowrap text-muted-foreground text-xs">
                               {r.orLink ? (
                                 <a
-                                  href={r.orLink}
+                                  href={sanitizeHref(r.orLink)}
                                   onClick={(e) => e.stopPropagation()}
                                   className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
                                 >
@@ -1138,6 +1245,12 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                                   {entryTypeLabel}
                                 </Badge>
                               )}
+                            </td>
+                          )}
+
+                          {isLaw && visibleColumns.status && (
+                            <td className="py-2.5 pr-4 whitespace-nowrap text-muted-foreground text-xs">
+                              {r.status || "—"}
                             </td>
                           )}
 
@@ -1272,11 +1385,27 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                       className={meta.current_page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
                   </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLink isActive className="font-mono">
-                      {meta.current_page}
-                    </PaginationLink>
-                  </PaginationItem>
+                  {ledgerPaginationPages(meta.current_page, meta.last_page).map((item, index) =>
+                    item === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${index}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink
+                          isActive={item === meta.current_page}
+                          className="cursor-pointer font-mono"
+                          aria-label={`Go to page ${item}`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            handlePageChange(item);
+                          }}
+                        >
+                          {item}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ),
+                  )}
                   <PaginationItem>
                     <PaginationNext
                       onClick={() => handlePageChange(Math.min(meta.last_page, meta.current_page + 1))}
@@ -1585,6 +1714,7 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
         onOpenChange={setEmailModalOpen}
         filters={activeFilters}
       />
-    </div>
+      </div>
+    </>
   );
 }

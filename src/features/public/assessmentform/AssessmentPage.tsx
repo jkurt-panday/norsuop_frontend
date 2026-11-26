@@ -138,7 +138,7 @@ export function AssessmentPage() {
               />
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-blue-900">
-              Assessment Form - Main Campus 1
+              Assessment Form
             </h1>
             <p className="mt-3 text-base text-slate-600">
               For Undergraduate (not covered under RA 10931-FHE), Graduate
@@ -324,6 +324,7 @@ export function AssessmentPage() {
                   Enrolled Under:
                 </FieldLabel>
                 <RadioGroup
+                  aria-label="Enrolled under"
                   value={values.enrolled_under}
                   onValueChange={(value) => update("enrolled_under", value)}
                   className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3"

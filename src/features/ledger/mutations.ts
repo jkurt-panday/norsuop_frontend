@@ -137,6 +137,8 @@ export function useSendLedgerEmails() {
         semester?: string;
         subject?: string;
         note?: string;
+        exam_period?: "Midterm" | "Final";
+        exam_deadline?: string;
       };
     }) => sendLedgerEmails(ledger, payload),
   });
