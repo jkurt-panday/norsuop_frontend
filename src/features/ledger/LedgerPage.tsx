@@ -1237,6 +1237,25 @@ export function LedgerPage({ ledger }: { ledger: Ledger }) {
                                     {entryTypeLabel}
                                   </Badge>
                                 </button>
+                              ) : isLaw && r.entry_type === "ar" && !r.latin_honor ? (
+                                <button
+                                  type="button"
+                                  title="Apply Latin Honor Scholarship"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setHonorTarget(r);
+                                    setSelectedHonor("");
+                                    setHonorError(null);
+                                  }}
+                                  className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                >
+                                  <Badge
+                                    variant="outline"
+                                    className={`cursor-pointer text-[11px] transition-colors ${getEntryTypeBadge(r.entry_type)} hover:border-amber-300 hover:bg-amber-100 hover:text-amber-800 dark:hover:border-amber-800 dark:hover:bg-amber-950/30 dark:hover:text-amber-300`}
+                                  >
+                                    {entryTypeLabel}
+                                  </Badge>
+                                </button>
                               ) : (
                                 <Badge
                                   variant="outline"

@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { api, binary } from "../../api/client";
+import { api, binary, ApiError } from "../../api/client";
 import {
   getStaffRequest,
   processStaffRequest,
@@ -67,6 +67,7 @@ import {
   updateStaffDetails,
   searchOpStudents,
   linkOpStudent,
+  createAndLinkOpStudent,
   unlinkOpStudent,
   emailOpRequest,
   getOpPdfUrl,
@@ -76,6 +77,7 @@ import {
   type AcademicTerm,
   type SupportingDocument,
   type StaffStudent,
+  type CreateStudentPayload,
 } from "./api";
 import { toast } from "sonner";
 
@@ -348,6 +350,26 @@ export function StaffRequestDetailPage() {
   const [studentSearch, setStudentSearch] = useState(formInput?.submitted_student_number ?? "");
   const [studentCandidates, setStudentCandidates] = useState<StaffStudent[]>([]);
   const [isSearchingStudents, setIsSearchingStudents] = useState(false);
+  const [createStudentForm, setCreateStudentForm] = useState<CreateStudentPayload>({
+    student_number: formInput?.submitted_student_number ?? "",
+    first_name: formInput?.firstname_or_office ?? "",
+    middle_name: formInput?.middlename_or_project ?? "",
+    last_name: formInput?.lastname_or_agency ?? "",
+    email: formInput?.email ?? "",
+    contact_num: formInput?.contact_num ?? "",
+  });
+  const [createStudentErrors, setCreateStudentErrors] = useState<Record<string, string[]>>({});
+
+  const updateCreateStudentField = (field: keyof CreateStudentPayload, value: string) => {
+    setCreateStudentForm((prev) => ({ ...prev, [field]: value }));
+    if (createStudentErrors[field]) {
+      setCreateStudentErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [documentAction, setDocumentAction] = useState<{ id: number; type: "view" | "download" } | null>(null);
 
@@ -564,6 +586,24 @@ export function StaffRequestDetailPage() {
     },
   });
 
+  const createAndLinkStudentMutation = useMutation({
+    mutationFn: () => {
+      if (!formInput?.id) throw new Error("Request ID missing");
+      return createAndLinkOpStudent(formInput.id, createStudentForm);
+    },
+    onSuccess: () => {
+      refetch();
+      setIsStudentMatchOpen(false);
+      toast.success("Student created and linked successfully.");
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.errors) {
+        setCreateStudentErrors(error.errors);
+      }
+      toast.error(error instanceof Error ? error.message : "Failed to create and link student.");
+    },
+  });
+
   const unlinkStudentMutation = useMutation({
     mutationFn: () => {
       if (!formInput?.id) throw new Error('Request ID missing');
@@ -628,9 +668,18 @@ export function StaffRequestDetailPage() {
   }, [isStudentMatchOpen, studentMatchMode, studentSearch, searchStudentsAsync]);
 
   // --- Handlers ---
-  const openStudentMatch = () => {
+  const openStudentMatch = (mode: "existing" | "create" = "existing") => {
+    setCreateStudentForm({
+      student_number: formInput?.submitted_student_number ?? "",
+      first_name: formInput?.firstname_or_office ?? "",
+      middle_name: formInput?.middlename_or_project ?? "",
+      last_name: formInput?.lastname_or_agency ?? "",
+      email: formInput?.email ?? "",
+      contact_num: formInput?.contact_num ?? "",
+    });
+    setCreateStudentErrors({});
     setStudentSearch(formInput?.submitted_student_number ?? "");
-    setStudentMatchMode("existing");
+    setStudentMatchMode(mode);
     setStudentCandidates([]);
     setIsStudentMatchOpen(true);
   };
@@ -1500,9 +1549,14 @@ export function StaffRequestDetailPage() {
                         )}
                       </div>
                     </div>
-                    <Button variant="outline" onClick={openStudentMatch}>
-                      <UserPlus className="h-4 w-4 mr-2" /> Match Student
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" onClick={() => openStudentMatch("existing")}>
+                        <Search className="h-4 w-4 mr-2" /> Match Student
+                      </Button>
+                      <Button variant="outline" onClick={() => openStudentMatch("create")}>
+                        <UserPlus className="h-4 w-4 mr-2" /> Create New Student
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -1619,25 +1673,14 @@ export function StaffRequestDetailPage() {
         <Dialog open={isStudentMatchOpen} onOpenChange={setIsStudentMatchOpen}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Match Student</DialogTitle>
-              <DialogDescription>Link this request to a student in the university ledger</DialogDescription>
+              <DialogTitle>{studentMatchMode === "create" ? "Create New Student" : "Match Student"}</DialogTitle>
+              <DialogDescription>
+                {studentMatchMode === "create"
+                  ? "Create a new student record and link it to this request."
+                  : "Link this request to a student in the university ledger"}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="flex gap-2 border-b pb-4">
-                <Button
-                  variant={studentMatchMode === "existing" ? "default" : "outline"}
-                  onClick={() => setStudentMatchMode("existing")}
-                >
-                  Existing Student
-                </Button>
-                <Button
-                  variant={studentMatchMode === "create" ? "default" : "outline"}
-                  onClick={() => setStudentMatchMode("create")}
-                >
-                  Create New
-                </Button>
-              </div>
-
               {studentMatchMode === "existing" ? (
                 <div className="space-y-4">
                   <div className="space-y-1.5">
@@ -1654,7 +1697,9 @@ export function StaffRequestDetailPage() {
                   </div>
                   {isSearchingStudents && <div className="text-center text-sm text-muted-foreground">Searching...</div>}
                   {!isSearchingStudents && studentCandidates.length === 0 && studentSearch && (
-                    <div className="text-center text-sm text-muted-foreground">No students found.</div>
+                    <div className="py-6 text-center space-y-2">
+                      <p className="text-sm text-muted-foreground">No students found. Use “Create New Student” on the request page to add one.</p>
+                    </div>
                   )}
                   <div className="max-h-60 overflow-y-auto space-y-2">
                     {studentCandidates.map((student) => (
@@ -1673,55 +1718,85 @@ export function StaffRequestDetailPage() {
               ) : (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">Create a new student record and link it to this request.</p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Student Number *</label>
-                      <Input value={formInput.submitted_student_number ?? ""} readOnly />
+                      <Input
+                        value={createStudentForm.student_number}
+                        onChange={(e) => updateCreateStudentField("student_number", e.target.value)}
+                        placeholder="e.g. 2024-12345"
+                      />
+                      {createStudentErrors.student_number && (
+                        <p className="text-xs text-destructive">{createStudentErrors.student_number[0]}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">First Name *</label>
-                      <Input defaultValue={formInput.firstname_or_office} />
+                      <Input
+                        value={createStudentForm.first_name}
+                        onChange={(e) => updateCreateStudentField("first_name", e.target.value)}
+                      />
+                      {createStudentErrors.first_name && (
+                        <p className="text-xs text-destructive">{createStudentErrors.first_name[0]}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Middle Name</label>
-                      <Input defaultValue={formInput.middlename_or_project ?? ""} />
+                      <Input
+                        value={createStudentForm.middle_name ?? ""}
+                        onChange={(e) => updateCreateStudentField("middle_name", e.target.value)}
+                      />
+                      {createStudentErrors.middle_name && (
+                        <p className="text-xs text-destructive">{createStudentErrors.middle_name[0]}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Last Name *</label>
-                      <Input defaultValue={formInput.lastname_or_agency} />
+                      <Input
+                        value={createStudentForm.last_name}
+                        onChange={(e) => updateCreateStudentField("last_name", e.target.value)}
+                      />
+                      {createStudentErrors.last_name && (
+                        <p className="text-xs text-destructive">{createStudentErrors.last_name[0]}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-foreground">Email *</label>
-                      <Input type="email" defaultValue={formInput.email} />
+                      <label className="text-sm font-medium text-foreground">Email</label>
+                      <Input
+                        type="email"
+                        value={createStudentForm.email ?? ""}
+                        onChange={(e) => updateCreateStudentField("email", e.target.value)}
+                      />
+                      {createStudentErrors.email && (
+                        <p className="text-xs text-destructive">{createStudentErrors.email[0]}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Contact Number</label>
-                      <Input defaultValue={formInput.contact_num} />
+                      <Input
+                        value={createStudentForm.contact_num ?? ""}
+                        onChange={(e) => updateCreateStudentField("contact_num", e.target.value)}
+                      />
+                      {createStudentErrors.contact_num && (
+                        <p className="text-xs text-destructive">{createStudentErrors.contact_num[0]}</p>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsStudentMatchOpen(false)}>Cancel</Button>
-              <Button
-                onClick={
-                  studentMatchMode === "existing"
-                    ? () => { } // linkStudentMutation.mutate({ id: formInput.id, student_id: selectedId })
-                    : () => { } // createAndLinkStudent mutation not implemented yet
-                }
-                disabled={
-                  studentMatchMode === "existing"
-                    ? false // !selectedId || linkStudentMutation.isPending
-                    : false // createStudentForm.processing
-                }
-              >
-                {studentMatchMode === "existing"
-                  ? linkStudentMutation.isPending
-                    ? "Linking..."
-                    : "Confirm Match"
-                  : "Create and Match"}
+              <Button variant="outline" onClick={() => setIsStudentMatchOpen(false)}>
+                Cancel
               </Button>
+              {studentMatchMode === "create" && (
+                <Button
+                  onClick={() => createAndLinkStudentMutation.mutate()}
+                  disabled={createAndLinkStudentMutation.isPending}
+                >
+                  {createAndLinkStudentMutation.isPending ? "Creating..." : "Create and Match"}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

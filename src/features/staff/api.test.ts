@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  createAndLinkOpStudent,
   getStaffRequest,
   getStaffRequests,
   linkOpStudent,
   processStaffRequest,
   unlinkOpStudent,
   updateStaffDetails,
+  type CreateStudentPayload,
   type StaffRequestDetail,
   type StaffRequestList,
 } from "./api";
@@ -36,6 +38,26 @@ describe("staff request API", () => {
     expect(api).toHaveBeenCalledWith(
       "/api/v1/staff/requests/4/student",
       expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+
+  it("creates and links a student through the staff API", async () => {
+    const payload: CreateStudentPayload = {
+      student_number: "2024-12345",
+      first_name: "Juan",
+      middle_name: "Dela",
+      last_name: "Cruz",
+      email: "juan@example.com",
+      contact_num: "09123456789",
+    };
+    vi.mocked(api).mockResolvedValue({ message: "Student created and matched to this Order of Payment." });
+    await createAndLinkOpStudent(4, payload);
+    expect(api).toHaveBeenCalledWith(
+      "/api/v1/staff/requests/4/student",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
     );
   });
 
