@@ -172,6 +172,7 @@ export function StaffRequestsPage() {
     {
       header: "Reference #",
       sortable: "reference_number",
+      width: "160px",
       render: (req: StaffRequest) => (
         <Link to={`/staff/requests/${req.id}`} className="font-semibold text-primary hover:underline">
           {req.reference_number}
@@ -195,8 +196,10 @@ export function StaffRequestsPage() {
     {
       header: "Amount",
       sortable: "amount",
-      className: "text-right",
-      headerClassName: "text-right",
+      width: "160px",
+      align: "left" as const,
+      className: "pl-4 sm:pl-6",
+      headerClassName: "pl-4 sm:pl-6",
       render: (req: StaffRequest) => (
         <span className="tabular-nums font-medium text-foreground">
           {currencyFormatter.format(Number(req.amount || 0))}
@@ -334,7 +337,7 @@ export function StaffRequestsPage() {
         sortOptions={sortOptions}
         enableColumnSorting={true}
         highlightDuration={2000}
-        actionsWidth="60px"
+        actionsWidth="110px"
         sort={activeFilters.sort}
         direction={activeFilters.direction}
         onSortChange={handleSortChange}
