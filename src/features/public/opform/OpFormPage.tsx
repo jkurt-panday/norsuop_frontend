@@ -764,7 +764,7 @@ export function OpFormPage() {
                   Supporting Document(s)
                 </CardTitle>
                 <p className="mt-3 text-sm text-slate-600">
-                  e.g. Assessment Form, Billing Statement, Computation
+                  e.g. Statement of Account, Billing Statement, Computation
                   Documents, Student ID, Liquidation Form
                 </p>
                 {documentError && <FieldError>{documentError}</FieldError>}
