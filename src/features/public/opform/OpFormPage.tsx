@@ -595,7 +595,6 @@ export function OpFormPage() {
                         {fieldError("semester")}
                       </Field>
                     </div>
-                    <Separator className="bg-blue-100" />
                   </>
                 )}
                 <Separator className="bg-blue-100" />

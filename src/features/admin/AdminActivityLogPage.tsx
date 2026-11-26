@@ -9,7 +9,6 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
-  RefreshCw,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
@@ -217,12 +216,6 @@ export function AdminActivityLogPage() {
     query.refetch();
     setResetCooldown(5);
   };
-
-  const hasFilters =
-    activeFilters.activity_search ||
-    activeFilters.activity_action ||
-    activeFilters.date_from ||
-    activeFilters.date_to;
 
   const handleSortClick = (columnKey: string) => {
     startTransition(() => {

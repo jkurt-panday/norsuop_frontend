@@ -4,7 +4,7 @@ import { Inbox, FileText, Trash2, Eye, Mail } from "lucide-react";
 import { ApiError } from "../../api/client";
 import { useStaffRequests } from "./queries";
 import { useDeleteStaffRequest } from "./mutations";
-import type { StaffFilters } from "./api";
+import type { StaffFilters, StaffRequest } from "./api";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -172,8 +172,7 @@ export function StaffRequestsPage() {
     {
       header: "Reference #",
       sortable: "reference_number",
-      width: "160px",
-      render: (req: any) => (
+      render: (req: StaffRequest) => (
         <Link to={`/staff/requests/${req.id}`} className="font-semibold text-primary hover:underline">
           {req.reference_number}
         </Link>
@@ -196,11 +195,9 @@ export function StaffRequestsPage() {
     {
       header: "Amount",
       sortable: "amount",
-      width: "160px",
-      align: "left" as const,
-      className: "pl-4 sm:pl-6",
-      headerClassName: "pl-4 sm:pl-6",
-      render: (req: any) => (
+      className: "text-right",
+      headerClassName: "text-right",
+      render: (req: StaffRequest) => (
         <span className="tabular-nums font-medium text-foreground">
           {currencyFormatter.format(Number(req.amount || 0))}
         </span>
@@ -289,24 +286,24 @@ export function StaffRequestsPage() {
         columns={columns}
         resource={paginatedData}
         resourceKey="staff-requests"
-renderActions={(req) => (
-            <>
-              <Link
-                to={`/staff/requests/${req.id}`}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-neutral-950"
-              >
-                <Eye className="h-4 w-4" />
-              </Link>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="text-red-600 hover:bg-red-600/10 hover:text-red-600"
-                onClick={() => handleDeleteClick(req.id, req.reference_number)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </>
-          )}
+        renderActions={(req) => (
+          <>
+            <Link
+              to={`/staff/requests/${req.id}`}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-neutral-950"
+            >
+              <Eye className="h-4 w-4" />
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="text-red-600 hover:bg-red-600/10 hover:text-red-600"
+              onClick={() => handleDeleteClick(req.id, req.reference_number)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </>
+        )}
         emptyIcon={Inbox}
         emptyMessage={isFiltered ? "No order of payment requests matched your active filters. Try adjusting your search query or date range." : "There are currently no staff requests in the queue."}
         onPageChange={setPage}
@@ -337,7 +334,7 @@ renderActions={(req) => (
         sortOptions={sortOptions}
         enableColumnSorting={true}
         highlightDuration={2000}
-        actionsWidth="110px"
+        actionsWidth="60px"
         sort={activeFilters.sort}
         direction={activeFilters.direction}
         onSortChange={handleSortChange}

@@ -186,6 +186,10 @@ export function linkOpStudent(id: number, student_id: number) {
   });
 }
 
+export function unlinkOpStudent(id: number) {
+  return api(`/api/v1/staff/requests/${id}/student`, { method: "DELETE" });
+}
+
 export function emailOpRequest(
   id: number,
   payload: { subject: string; recipient_name: string; note?: string },

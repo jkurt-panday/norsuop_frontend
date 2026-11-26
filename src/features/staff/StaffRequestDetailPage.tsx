@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router";
+﻿import { useParams, Link } from "react-router";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -9,6 +9,7 @@ import {
   Download,
   Trash2,
   Edit2,
+  Unlink,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -20,6 +21,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import {
   Popover,
   PopoverContent,
@@ -50,7 +59,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { api } from "../../api/client";
+import { api, binary } from "../../api/client";
 import {
   getStaffRequest,
   processStaffRequest,
@@ -58,6 +67,7 @@ import {
   updateStaffDetails,
   searchOpStudents,
   linkOpStudent,
+  unlinkOpStudent,
   emailOpRequest,
   getOpPdfUrl,
   type BankAccount,
@@ -193,7 +203,8 @@ const escapeHtml = (value: string) =>
     .replace(/&/g, "&")
     .replace(/</g, "<")
     .replace(/>/g, ">")
-    .replace(/"/g, "");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 
 const buildEmailPreviewHtml = (
   formInput: FormInput,
@@ -226,6 +237,49 @@ const buildEmailPreviewHtml = (
     </div>
 </body>
 </html>`;
+};
+
+const SearchableSelect = ({
+  value,
+  placeholder,
+  searchPlaceholder,
+  options,
+  onChange,
+}: {
+  value: string;
+  placeholder: string;
+  searchPlaceholder: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+}) => {
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? "";
+
+  return (
+    <Combobox
+      items={options}
+      value={selectedLabel}
+      onValueChange={(label) => {
+        onChange(options.find((option) => option.label === label)?.value ?? "");
+      }}
+    >
+      <ComboboxInput
+        placeholder={searchPlaceholder || placeholder}
+        aria-label={placeholder}
+        showClear={Boolean(value)}
+        className="h-9 w-full"
+      />
+      <ComboboxContent>
+        <ComboboxEmpty>No matches found.</ComboboxEmpty>
+        <ComboboxList>
+          {(option) => (
+            <ComboboxItem key={option.value} value={option.label}>
+              {option.label}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
 };
 
 const ReadOnlyRow = ({
@@ -289,11 +343,13 @@ export function StaffRequestDetailPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
   const [isStudentMatchOpen, setIsStudentMatchOpen] = useState(false);
+  const [isUnlinkConfirmOpen, setIsUnlinkConfirmOpen] = useState(false);
   const [studentMatchMode, setStudentMatchMode] = useState<"existing" | "create">("existing");
   const [studentSearch, setStudentSearch] = useState(formInput?.submitted_student_number ?? "");
   const [studentCandidates, setStudentCandidates] = useState<StaffStudent[]>([]);
   const [isSearchingStudents, setIsSearchingStudents] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [documentAction, setDocumentAction] = useState<{ id: number; type: "view" | "download" } | null>(null);
 
   const [emailSubject, setEmailSubject] = useState("");
   const [emailRecipientName, setEmailRecipientName] = useState("");
@@ -496,6 +552,7 @@ export function StaffRequestDetailPage() {
   const searchStudentsMutation = useMutation({
     mutationFn: ({ q }: { q: string }) => searchOpStudents(q),
   });
+  const { mutateAsync: searchStudentsAsync } = searchStudentsMutation;
 
   const linkStudentMutation = useMutation({
     mutationFn: ({ id, student_id }: { id: number; student_id: number }) =>
@@ -504,6 +561,22 @@ export function StaffRequestDetailPage() {
       refetch();
       setIsStudentMatchOpen(false);
       toast.success('Student linked successfully.');
+    },
+  });
+
+  const unlinkStudentMutation = useMutation({
+    mutationFn: () => {
+      if (!formInput?.id) throw new Error('Request ID missing');
+      return unlinkOpStudent(formInput.id);
+    },
+    onSuccess: () => {
+      refetch();
+      setIsUnlinkConfirmOpen(false);
+      toast.success('Student unlinked successfully.');
+    },
+    onError: (error) => {
+      console.error('Unlink student failed:', error);
+      toast.error('Failed to unlink student: ' + (error as Error).message);
     },
   });
 
@@ -539,7 +612,7 @@ export function StaffRequestDetailPage() {
     const timeout = window.setTimeout(async () => {
       setIsSearchingStudents(true);
       try {
-        const result = await searchStudentsMutation.mutateAsync({ q: studentSearch });
+        const result = await searchStudentsAsync({ q: studentSearch });
         setStudentCandidates(result.students ?? []);
       } catch {
         setStudentCandidates([]);
@@ -552,7 +625,7 @@ export function StaffRequestDetailPage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [isStudentMatchOpen, studentMatchMode, studentSearch]);
+  }, [isStudentMatchOpen, studentMatchMode, studentSearch, searchStudentsAsync]);
 
   // --- Handlers ---
   const openStudentMatch = () => {
@@ -590,6 +663,31 @@ export function StaffRequestDetailPage() {
   };
 
   const confirmDelete = (documentId: number) => setDeleteTargetId(documentId);
+
+  const handleDocumentAction = async (documentId: number, type: "view" | "download") => {
+    setDocumentAction({ id: documentId, type });
+    try {
+      const blob = await binary(`/api/v1/documents/${documentId}/${type}`);
+      const objectUrl = URL.createObjectURL(blob);
+
+      if (type === "view") {
+        window.open(objectUrl, "_blank", "noopener,noreferrer");
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      } else {
+        const document = supportingDocuments.find((item) => item.id === documentId);
+        const anchor = window.document.createElement("a");
+        anchor.href = objectUrl;
+        anchor.download = document?.original_filename ?? "supporting-document";
+        anchor.click();
+        URL.revokeObjectURL(objectUrl);
+      }
+    } catch (error) {
+      toast.error(`Unable to ${type} document: ${error instanceof Error ? error.message : "Please try again."}`);
+    } finally {
+      setDocumentAction(null);
+    }
+  };
+
   const handleDelete = () => {
     if (deleteTargetId !== null) deleteDocumentMutation.mutate(deleteTargetId);
   };
@@ -942,30 +1040,21 @@ export function StaffRequestDetailPage() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Payment Option <span className="text-red-500">*</span></label>
-                        <Select
+                        <SearchableSelect
                           value={paymentInfoData.payment_detail_option_id}
-                          onValueChange={(value) => setPaymentInfoData({ ...paymentInfoData, payment_detail_option_id: value ?? "" })}
-                        >
-                          <SelectTrigger>
-                            {paymentInfoData.payment_detail_option_id ? (
-                              <span className="flex flex-1 text-left line-clamp-1">
-                                {(() => {
-                                  const selected = paymentOptions.find((o) => String(o.id) === paymentInfoData.payment_detail_option_id);
-                                  return selected ? selected.payment_desc : "Select Payment Option";
-                                })()}
-                              </span>
-                            ) : (
-                              <SelectValue placeholder="Select Payment Option" />
-                            )}
-                          </SelectTrigger>
-                          <SelectContent>
-                            {paymentOptions.map((option) => (
-                              <SelectItem key={option.id} value={String(option.id)}>
-                                {option.payment_desc}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Select Payment Option"
+                          searchPlaceholder="Search payment option..."
+                          options={paymentOptions.map((option) => ({
+                            value: String(option.id),
+                            label: option.payment_desc,
+                          }))}
+                          onChange={(value) =>
+                            setPaymentInfoData({
+                              ...paymentInfoData,
+                              payment_detail_option_id: value,
+                            })
+                          }
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Submission Date <span className="text-red-500">*</span></label>
@@ -1032,13 +1121,15 @@ export function StaffRequestDetailPage() {
                               <TooltipTrigger
                                 render={
                                   <a
-                                    href={`/api/v1/staff/documents/${document.id}/download`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block max-w-65 min-w-0 truncate text-blue-600 hover:underline"
-                                  >
-                                    {document.original_filename}
-                                  </a>
+                                     href="#download-document"
+                                     onClick={(event) => {
+                                       event.preventDefault();
+                                       void handleDocumentAction(document.id, "download");
+                                     }}
+                                     className="block max-w-65 min-w-0 truncate text-blue-600 hover:underline"
+                                   >
+                                     {document.original_filename}
+                                   </a>
                                 }
                               >
                                 {document.original_filename}
@@ -1056,24 +1147,24 @@ export function StaffRequestDetailPage() {
                           <span className="text-xs text-muted-foreground">
                             {document.formatted_file_size ?? formatFileSize(document.file_size)}
                           </span>
-                          <a
-                            href={`/api/v1/staff/documents/${document.id}/view`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 text-blue-600 hover:bg-blue-50"
-                            title="View"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </a>
-                          <a
-                            href={`/api/v1/staff/documents/${document.id}/download`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted"
-                            title="Download"
-                          >
-                            <Download className="h-4 w-4" />
-                          </a>
+                           <button
+                             type="button"
+                             onClick={() => void handleDocumentAction(document.id, "view")}
+                             disabled={documentAction?.id === document.id}
+                             className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+                             title="View"
+                           >
+                             <Eye className="h-4 w-4" />
+                           </button>
+                           <button
+                             type="button"
+                             onClick={() => void handleDocumentAction(document.id, "download")}
+                             disabled={documentAction?.id === document.id}
+                             className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted disabled:opacity-50"
+                             title="Download"
+                           >
+                             <Download className="h-4 w-4" />
+                           </button>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger render={
@@ -1134,27 +1225,16 @@ export function StaffRequestDetailPage() {
                   <form onSubmit={handleProcessSubmit} className="space-y-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Bank Account <span className="text-red-500">*</span></label>
-                      <Select value={processData.fundcluster_id} onValueChange={(v) => setProcessData({ ...processData, fundcluster_id: v ?? "" })}>
-                        <SelectTrigger>
-                          {processData.fundcluster_id ? (
-                            <>
-                              {(() => {
-                                const selected = bankAccounts.find((a) => String(a.id) === processData.fundcluster_id);
-                                return selected ? `${selected.fund_cluster} - ${selected.account_name} - ${selected.bank_name} (${selected.account_num})` : "Select Bank Account";
-                              })()}
-                            </>
-                          ) : (
-                            <SelectValue placeholder="Select Bank Account" />
-                          )}
-                        </SelectTrigger>
-                        <SelectContent>
-                          {bankAccounts.map((acc) => (
-                            <SelectItem key={acc.id} value={String(acc.id)}>
-                              {acc.fund_cluster} - {acc.account_name} - {acc.bank_name} ({acc.account_num})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={processData.fundcluster_id}
+                        placeholder="Select Bank Account"
+                        searchPlaceholder="Search bank account..."
+                        options={bankAccounts.map((acc) => ({
+                          value: String(acc.id),
+                          label: `${acc.fund_cluster} - ${acc.account_name} - ${acc.bank_name} (${acc.account_num})`,
+                        }))}
+                        onChange={(value) => setProcessData({ ...processData, fundcluster_id: value })}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Reference Document</label>
@@ -1180,32 +1260,23 @@ export function StaffRequestDetailPage() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">UACS <span className="text-red-500">*</span></label>
-                      <Select value={processData.uacs_id} onValueChange={(v) => setProcessData({ ...processData, uacs_id: v ?? "" })}>
-                        <SelectTrigger>
-                          {processData.uacs_id ? (
-                            <>
-                              {(() => {
-                                const selected = uacsList.find((u) => String(u.id) === processData.uacs_id);
-                                return selected ? `${selected.uacs_sub_object_code ? `${selected.uacs_object_code}-${selected.uacs_sub_object_code}` : selected.uacs_object_code} - ${selected.account_title}` : "Select UACS";
-                              })()}
-                            </>
-                          ) : (
-                            <SelectValue placeholder="Select UACS" />
-                          )}
-                        </SelectTrigger>
-                        <SelectContent>
-                          {uacsList.map((u) => (
-                            <SelectItem key={u.id} value={String(u.id)}>
-                              {u.uacs_sub_object_code ? `${u.uacs_object_code}-${u.uacs_sub_object_code}` : u.uacs_object_code} - {u.account_title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={processData.uacs_id}
+                        placeholder="Select UACS"
+                        searchPlaceholder="Search UACS code or account title..."
+                        options={uacsList.map((u) => ({
+                          value: String(u.id),
+                          label: `${u.uacs_sub_object_code ? `${u.uacs_object_code}-${u.uacs_sub_object_code}` : u.uacs_object_code} - ${u.account_title}`,
+                        }))}
+                        onChange={(value) => setProcessData({ ...processData, uacs_id: value })}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Status</label>
                       <Select value={processData.status} onValueChange={(v) => setProcessData({ ...processData, status: (v ?? "processed") as "processed" | "pending" | "paid" | "cancelled" })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger>
+                          <span className="truncate capitalize">{processData.status}</span>
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="processed">Processed</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
@@ -1234,27 +1305,16 @@ export function StaffRequestDetailPage() {
                     <form onSubmit={handleStaffInputSubmit} className="space-y-4">
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Bank Account <span className="text-red-500">*</span></label>
-                        <Select value={staffInputData.fundcluster_id} onValueChange={(v) => setStaffInputData({ ...staffInputData, fundcluster_id: v ?? "" })}>
-                          <SelectTrigger>
-                            {staffInputData.fundcluster_id ? (
-                              <>
-                                {(() => {
-                                  const selected = bankAccounts.find((a) => String(a.id) === staffInputData.fundcluster_id);
-                                  return selected ? `${selected.fund_cluster} - ${selected.account_name} - ${selected.bank_name} (${selected.account_num})` : "Select Bank Account";
-                                })()}
-                              </>
-                            ) : (
-                              <SelectValue placeholder="Select Bank Account" />
-                            )}
-                          </SelectTrigger>
-                          <SelectContent>
-                            {bankAccounts.map((acc) => (
-                              <SelectItem key={acc.id} value={String(acc.id)}>
-                                {acc.fund_cluster} - {acc.account_name} - {acc.bank_name} ({acc.account_num})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          value={staffInputData.fundcluster_id}
+                          placeholder="Select Bank Account"
+                          searchPlaceholder="Search bank account..."
+                          options={bankAccounts.map((acc) => ({
+                            value: String(acc.id),
+                            label: `${acc.fund_cluster} - ${acc.account_name} - ${acc.bank_name} (${acc.account_num})`,
+                          }))}
+                          onChange={(value) => setStaffInputData({ ...staffInputData, fundcluster_id: value })}
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Reference Document</label>
@@ -1280,32 +1340,23 @@ export function StaffRequestDetailPage() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">UACS <span className="text-red-500">*</span></label>
-                        <Select value={staffInputData.uacs_id} onValueChange={(v) => setStaffInputData({ ...staffInputData, uacs_id: v ?? "" })}>
-                          <SelectTrigger>
-                            {staffInputData.uacs_id ? (
-                              <>
-                                {(() => {
-                                  const selected = uacsList.find((u) => String(u.id) === staffInputData.uacs_id);
-                                  return selected ? `${selected.uacs_sub_object_code ? `${selected.uacs_object_code}-${selected.uacs_sub_object_code}` : selected.uacs_object_code} - ${selected.account_title}` : "Select UACS";
-                                })()}
-                              </>
-                            ) : (
-                              <SelectValue placeholder="Select UACS" />
-                            )}
-                          </SelectTrigger>
-                          <SelectContent>
-                            {uacsList.map((u) => (
-                              <SelectItem key={u.id} value={String(u.id)}>
-                                {u.uacs_sub_object_code ? `${u.uacs_object_code}-${u.uacs_sub_object_code}` : u.uacs_object_code} - {u.account_title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          value={staffInputData.uacs_id}
+                          placeholder="Select UACS"
+                          searchPlaceholder="Search UACS code or account title..."
+                          options={uacsList.map((u) => ({
+                            value: String(u.id),
+                            label: `${u.uacs_sub_object_code ? `${u.uacs_object_code}-${u.uacs_sub_object_code}` : u.uacs_object_code} - ${u.account_title}`,
+                          }))}
+                          onChange={(value) => setStaffInputData({ ...staffInputData, uacs_id: value })}
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium text-foreground">Status</label>
                         <Select value={staffInputData.status} onValueChange={(v) => setStaffInputData({ ...staffInputData, status: (v ?? "unprocessed") as "pending" | "processed" | "paid" | "cancelled" | "unprocessed" })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger>
+                            <span className="truncate capitalize">{staffInputData.status}</span>
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="processed">Processed</SelectItem>
                             <SelectItem value="pending">Pending</SelectItem>
@@ -1424,7 +1475,19 @@ export function StaffRequestDetailPage() {
                         <p className="text-xs text-green-700 font-mono">Student ID: {formInput.student.student_number}</p>
                       </div>
                     </div>
-                    <Badge className="bg-green-100 text-green-700">Linked</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-100 text-green-700">Linked</Badge>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => setIsUnlinkConfirmOpen(true)}
+                      >
+                        <Unlink className="h-3.5 w-3.5 mr-1" />
+                        Unlink
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1453,7 +1516,7 @@ export function StaffRequestDetailPage() {
               </CardHeader>
               <CardContent className="pt-4 flex items-center gap-2">
                 <Popover>
-                  <PopoverTrigger asChild>
+                  <PopoverTrigger>
                     <Button variant="outline">
                       <Eye className="h-4 w-4 mr-2" /> View OP
                       <svg
@@ -1498,41 +1561,91 @@ export function StaffRequestDetailPage() {
 
         {/* Email Preview Dialog */}
         <Dialog open={isEmailPreviewOpen} onOpenChange={setIsEmailPreviewOpen}>
-          <DialogContent className="sm:max-w-[100vh] max-h-[100vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Preview Email</DialogTitle>
+              <DialogTitle>Email Order of Payment</DialogTitle>
               <DialogDescription>
-                Review before sending to <span className="font-medium">{formInput.email}</span>. Two PDF copies (A5 + Legal) will be attached automatically.
+                Review and customize the email before sending the Order of Payment to{" "}
+                <span className="font-medium">{formInput.email}</span>.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-[3fr_5fr] py-6">
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Subject</label>
-                  <Input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+            <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+              <div className="space-y-4 overflow-y-auto">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    To
+                  </label>
+                  <Input
+                    value={formInput.email}
+                    disabled
+                    className="bg-slate-50 text-slate-600"
+                  />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Recipient Name</label>
-                  <Input value={emailRecipientName} onChange={(e) => setEmailRecipientName(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">How they're greeted \u2014 edit if the name needs correcting.</p>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Recipient Name
+                  </label>
+                  <Input
+                    value={emailRecipientName}
+                    onChange={(event) => setEmailRecipientName(event.target.value)}
+                    placeholder="Recipient name"
+                  />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Additional Note (Optional)</label>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Subject
+                  </label>
+                  <Input
+                    value={emailSubject}
+                    onChange={(event) => setEmailSubject(event.target.value)}
+                    placeholder="Email subject"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Additional Note (optional)
+                  </label>
                   <Textarea
                     value={emailNote}
-                    onChange={(e) => setEmailNote(e.target.value)}
+                    onChange={(event) => setEmailNote(event.target.value)}
+                    placeholder="Add a personal note..."
                     rows={4}
-                    placeholder="Add a personal note to the email..."
                   />
                 </div>
               </div>
-              <div className="border rounded-lg bg-muted p-4 overflow-auto max-h-[60vh]">
-                <div dangerouslySetInnerHTML={{ __html: buildEmailPreviewHtml(formInput, emailRecipientName, emailNote) }} />
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Live Preview
+                </label>
+                <div className="overflow-hidden rounded-xl border border-border">
+                  <iframe
+                    title="Email preview"
+                    srcDoc={buildEmailPreviewHtml(
+                      formInput,
+                      emailRecipientName,
+                      emailNote,
+                    )}
+                    className="h-112 w-100 bg-card"
+                  />
+                </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEmailPreviewOpen(false)}>Cancel</Button>
-              <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                className="min-h-11"
+                onClick={() => setIsEmailPreviewOpen(false)}
+                disabled={isSendingEmail}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="lg"
+                onClick={handleConfirmSendEmail}
+                disabled={isSendingEmail}
+                className="min-w-32 bg-primary hover:bg-primary/90"
+              >
                 {isSendingEmail ? "Sending..." : "Send Email"}
               </Button>
             </DialogFooter>
@@ -1661,6 +1774,30 @@ export function StaffRequestDetailPage() {
               <Button variant="outline" onClick={() => setDeleteTargetId(null)}>Cancel</Button>
               <Button variant="destructive" onClick={handleDelete} disabled={deleteDocumentMutation.isPending}>
                 {deleteDocumentMutation.isPending ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Unlink Student Confirmation Dialog */}
+        <Dialog open={isUnlinkConfirmOpen} onOpenChange={setIsUnlinkConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Unlink Student</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to unlink this student from the Order of Payment? This only detaches the student record from this request and does not delete the student record or any ledger transactions.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsUnlinkConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => unlinkStudentMutation.mutate()}
+                disabled={unlinkStudentMutation.isPending}
+              >
+                {unlinkStudentMutation.isPending ? "Unlinking..." : "Unlink Student"}
               </Button>
             </DialogFooter>
           </DialogContent>

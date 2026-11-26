@@ -27,18 +27,20 @@ function timeoutError(): ApiError {
   });
 }
 
-function requestSignal(parentSignal: AbortSignal | null | undefined, timeoutMs?: number): {
+function requestSignal(
+  parentSignal: AbortSignal | null | undefined,
+  timeoutMs = requestTimeoutMs,
+): {
   signal: AbortSignal;
   cleanup: () => void;
   timedOut: () => boolean;
 } {
   const controller = new AbortController();
   let didTimeout = false;
-  const effectiveTimeout = timeoutMs ?? requestTimeoutMs;
   const timeout = window.setTimeout(() => {
     didTimeout = true;
     controller.abort(timeoutError());
-  }, effectiveTimeout);
+  }, timeoutMs);
   const abortParent = () => controller.abort(parentSignal?.reason);
   parentSignal?.addEventListener("abort", abortParent, { once: true });
   return {
@@ -83,7 +85,7 @@ export async function csrf(parentSignal?: AbortSignal): Promise<void> {
 async function request(
   path: string,
   init: RequestInit = {},
-  timeoutMs?: number,
+  timeoutMs = requestTimeoutMs,
 ): Promise<Response> {
   const method = (init.method ?? "GET").toUpperCase();
   if (!["GET", "HEAD", "OPTIONS"].includes(method))
@@ -96,8 +98,7 @@ async function request(
   }
   if (!(init.body instanceof FormData) && init.body !== undefined)
     headers.set("Content-Type", "application/json");
-  const effectiveTimeout = timeoutMs ?? requestTimeoutMs;
-  const signals = requestSignal(init.signal, effectiveTimeout);
+  const signals = requestSignal(init.signal, timeoutMs);
   try {
     return await fetch(`${baseUrl}${path}`, {
       ...init,
@@ -133,7 +134,11 @@ async function parseError(response: Response): Promise<never> {
   throw new ApiError(response.status, normalized);
 }
 
-export async function api<T>(path: string, init: RequestInit = {}, timeoutMs?: number): Promise<T> {
+export async function api<T>(
+  path: string,
+  init: RequestInit = {},
+  timeoutMs = requestTimeoutMs,
+): Promise<T> {
   const response = await request(path, init, timeoutMs);
   if (response.status === 204) return undefined as T;
   if (!response.ok) return parseError(response);
@@ -147,8 +152,9 @@ export async function api<T>(path: string, init: RequestInit = {}, timeoutMs?: n
 export async function binary(
   path: string,
   init: RequestInit = {},
+  timeoutMs = requestTimeoutMs,
 ): Promise<Blob> {
-  const response = await request(path, init);
+  const response = await request(path, init, timeoutMs);
   if (!response.ok) return parseError(response);
   return response.blob();
 }

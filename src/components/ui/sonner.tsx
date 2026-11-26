@@ -1,14 +1,14 @@
-import { Toaster as Sonner, type ToasterProps } from 'sonner';
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from 'lucide-react';
-import { useAppearance } from '@/hooks/use-appearance';
+import { useAppearance } from "@/hooks/use-appearance"
+import { Toaster as Sonner, type ToasterProps } from "sonner"
+import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { resolvedAppearance: theme } = useAppearance();
+  const { appearance = "system" } = useAppearance()
 
   return (
     <Sonner
-      theme={theme as ToasterProps['theme']}
-      richColors={true}
+      theme={theme as ToasterProps["theme"]}
+      position="top-center"
       className="toaster group"
       icons={{
         success: (
@@ -29,36 +29,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          '--normal-bg': 'var(--popover)',
-          '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
-          '--border-radius': 'var(--radius)',
-          '--success-bg': '#003f7d',
-          '--success-border': '#002d5b',
-          '--success-text': '#f8fafc',
-          '--error-bg': '#c2410c',
-          '--error-border': '#9a3412',
-          '--error-text': '#f8fafc',
-          '--warning-bg': '#f59e0b',
-          '--warning-border': '#d97706',
-          '--warning-text': '#0f172a',
-          '--info-bg': '#0f172a',
-          '--info-border': '#334155',
-          '--info-text': '#f8fafc',
+          "--normal-bg": "var(--popover)",
+          "--normal-text": "var(--popover-foreground)",
+          "--normal-border": "var(--border)",
+          "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
-          toast: 'cn-toast',
-          success: 'cn-toast-success',
-          error: 'cn-toast-error',
-          warning: 'cn-toast-warning',
-          info: 'cn-toast-info',
+          toast: "cn-toast",
         },
       }}
       {...props}
     />
-  );
-};
+  )
+}
 
-export { Toaster };
+export { Toaster }

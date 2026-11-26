@@ -110,7 +110,10 @@ export function CohortEntryPanel({
   const showMembership = isAR && ledger === "graduate";
   const showLatinHonor = isAR && ledger === "law";
 
-  const roster = rosterQuery.data?.data ?? [];
+  const roster = useMemo(
+    () => rosterQuery.data?.data ?? [],
+    [rosterQuery.data?.data],
+  );
 
   const available = useMemo(() => {
     let pool = roster;

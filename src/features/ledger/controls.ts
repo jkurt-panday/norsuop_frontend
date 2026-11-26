@@ -1,5 +1,5 @@
-import { apiUrl } from "../../api/client";
-import type { Ledger, LedgerFilterParams } from "./api";
+﻿import { apiUrl } from "../../api/client";
+import type { Ledger } from "./api";
 
 export function formatCurrency(amount: number | string | null | undefined): string {
   const num = typeof amount === "string" ? parseFloat(amount) : Number(amount ?? 0);
@@ -99,26 +99,21 @@ export function getEntryTypeBadgeVariant(
   }
 }
 
-export function ledgerExportUrl(ledger: Ledger, filters?: LedgerFilterParams) {
-  const query = new URLSearchParams();
-  if (filters) {
-    if (filters.search?.trim()) query.set("search", filters.search.trim());
-    if (filters.entry_type) query.set("entry_type", filters.entry_type);
-    if (filters.status) query.set("status", filters.status);
-    if (filters.student_id) query.set("student_id", String(filters.student_id));
-    if (filters.date_from) query.set("date_from", filters.date_from);
-    if (filters.date_to) query.set("date_to", filters.date_to);
-    if (filters.school_year) query.set("school_year", filters.school_year);
-    if (filters.semester) query.set("semester", filters.semester);
-    if (filters.course) query.set("course", filters.course);
-    if (filters.balance_status) query.set("balance_status", filters.balance_status);
-  }
-  const qs = query.toString();
-  return apiUrl(`/api/v1/${ledger}-ledger/export${qs ? `?${qs}` : ""}`);
-}
-
 export function ledgerPdfUrl(ledger: Ledger, studentId: string | number) {
   return apiUrl(
     `/api/v1/${ledger}-ledger/pdf?student_id=${encodeURIComponent(String(studentId))}`,
   );
+}
+export function sanitizeHref(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url, window.location.href);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return url;
+    }
+  } catch {
+    // relative path — allow if it starts with /
+    if (url.startsWith("/")) return url;
+  }
+  return undefined; // blocks javascript:, data:, etc.
 }

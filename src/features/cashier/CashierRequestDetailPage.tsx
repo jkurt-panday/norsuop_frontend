@@ -186,7 +186,6 @@ export function CashierRequestDetailPage() {
   const payor = getCashierPayorName(request);
   const amount = getCashierAmount(request);
   const currentStatus = getCashierStatus(request);
-  const existingOrNo = getCashierOrNo(request)?.trim() ?? "";
   const formInput = request.form_input ?? request.formInput;
 
   return (

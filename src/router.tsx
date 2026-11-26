@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import App from "./App";
+import { WelcomePage } from "./features/WelcomePage";
 import { LoginForm } from "./features/auth/LoginForm";
 import { LandingPage } from "./features/public/LandingPage";
 import { OpFormPage } from "./features/public/opform/OpFormPage";
@@ -35,12 +36,14 @@ import { NotFoundPage } from "./routes/NotFoundPage";
 import { AppShellLayout } from "./layouts/AppShellLayout";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <LandingPage /> },
+  { path: "/", element: <WelcomePage /> },
   { path: "/login", element: <LoginForm /> },
   { path: "/opform", element: <OpFormPage /> },
+  { path: "/public/opform", element: <Navigate to="/opform" replace /> },
   { path: "/opform/result", element: <OpFormSuccessPage /> },
   { path: "/public/success/:reference", element: <OpFormSuccessPage /> },
   { path: "/assessmentform", element: <AssessmentPage /> },
+  { path: "/assessment", element: <Navigate to="/assessmentform" replace /> },
   { path: "/assessmentform/result", element: <AssessmentResultPage /> },
   { path: "/assessmentform/success", element: <AssessmentSuccessPage /> },
   {

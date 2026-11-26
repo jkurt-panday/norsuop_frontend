@@ -94,15 +94,20 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
   const students = normalizedSearch
     ? allStudents.filter(
         (student) =>
-          student.name.toLowerCase().includes(normalizedSearch) ||
-          student.student_number.toLowerCase().includes(normalizedSearch),
+          (student.name ?? "").toLowerCase().includes(normalizedSearch) ||
+          (student.student_number ?? "")
+            .toLowerCase()
+            .includes(normalizedSearch),
       )
     : allStudents;
 
   // Query selected student's balance and transactions
   const balanceQuery = useLedgerBalance(ledger, selectedStudentId ?? 0);
   const balanceData = selectedStudentId ? balanceQuery.data : null;
-  const records = balanceData?.transactions ?? [];
+  const records = useMemo(
+    () => balanceData?.transactions ?? [],
+    [balanceData?.transactions],
+  );
   const summary = balanceData?.summary ?? {
     total_charges: 0,
     total_payments: 0,
@@ -286,7 +291,7 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
                 <option value="">-- Choose Student --</option>
                 {students.map((s) => (
                   <option key={s.id} value={String(s.id)}>
-                    {s.student_number} - {s.name}
+                    {s.name}
                   </option>
                 ))}
               </select>
@@ -320,7 +325,7 @@ export function PrintSelectPage({ ledger }: PrintSelectPageProps) {
                             : "text-foreground"
                         }`}
                       >
-                        {s.student_number} - {s.name}
+                        {s.name}
                       </button>
                     );
                   })}
