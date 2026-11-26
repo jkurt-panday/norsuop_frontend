@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { api } from "../../api/client";
+import { api, binary } from "../../api/client";
 import {
   getStaffRequest,
   processStaffRequest,
@@ -294,6 +294,7 @@ export function StaffRequestDetailPage() {
   const [studentCandidates, setStudentCandidates] = useState<StaffStudent[]>([]);
   const [isSearchingStudents, setIsSearchingStudents] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [documentAction, setDocumentAction] = useState<{ id: number; type: "view" | "download" } | null>(null);
 
   const [emailSubject, setEmailSubject] = useState("");
   const [emailRecipientName, setEmailRecipientName] = useState("");
@@ -590,6 +591,31 @@ export function StaffRequestDetailPage() {
   };
 
   const confirmDelete = (documentId: number) => setDeleteTargetId(documentId);
+
+  const handleDocumentAction = async (documentId: number, type: "view" | "download") => {
+    setDocumentAction({ id: documentId, type });
+    try {
+      const blob = await binary(`/api/v1/documents/${documentId}/${type}`);
+      const objectUrl = URL.createObjectURL(blob);
+
+      if (type === "view") {
+        window.open(objectUrl, "_blank", "noopener,noreferrer");
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      } else {
+        const document = supportingDocuments.find((item) => item.id === documentId);
+        const anchor = window.document.createElement("a");
+        anchor.href = objectUrl;
+        anchor.download = document?.original_filename ?? "supporting-document";
+        anchor.click();
+        URL.revokeObjectURL(objectUrl);
+      }
+    } catch (error) {
+      toast.error(`Unable to ${type} document: ${error instanceof Error ? error.message : "Please try again."}`);
+    } finally {
+      setDocumentAction(null);
+    }
+  };
+
   const handleDelete = () => {
     if (deleteTargetId !== null) deleteDocumentMutation.mutate(deleteTargetId);
   };
@@ -1032,13 +1058,15 @@ export function StaffRequestDetailPage() {
                               <TooltipTrigger
                                 render={
                                   <a
-                                    href={`/api/v1/staff/documents/${document.id}/download`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block max-w-65 min-w-0 truncate text-blue-600 hover:underline"
-                                  >
-                                    {document.original_filename}
-                                  </a>
+                                     href="#download-document"
+                                     onClick={(event) => {
+                                       event.preventDefault();
+                                       void handleDocumentAction(document.id, "download");
+                                     }}
+                                     className="block max-w-65 min-w-0 truncate text-blue-600 hover:underline"
+                                   >
+                                     {document.original_filename}
+                                   </a>
                                 }
                               >
                                 {document.original_filename}
@@ -1056,24 +1084,24 @@ export function StaffRequestDetailPage() {
                           <span className="text-xs text-muted-foreground">
                             {document.formatted_file_size ?? formatFileSize(document.file_size)}
                           </span>
-                          <a
-                            href={`/api/v1/staff/documents/${document.id}/view`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 text-blue-600 hover:bg-blue-50"
-                            title="View"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </a>
-                          <a
-                            href={`/api/v1/staff/documents/${document.id}/download`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted"
-                            title="Download"
-                          >
-                            <Download className="h-4 w-4" />
-                          </a>
+                           <button
+                             type="button"
+                             onClick={() => void handleDocumentAction(document.id, "view")}
+                             disabled={documentAction?.id === document.id}
+                             className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+                             title="View"
+                           >
+                             <Eye className="h-4 w-4" />
+                           </button>
+                           <button
+                             type="button"
+                             onClick={() => void handleDocumentAction(document.id, "download")}
+                             disabled={documentAction?.id === document.id}
+                             className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted disabled:opacity-50"
+                             title="Download"
+                           >
+                             <Download className="h-4 w-4" />
+                           </button>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger render={

@@ -12,7 +12,7 @@ export function AssessmentResultPage() {
     return (
       <main className="bootstrap-card">
         <h1>Receipt link incomplete</h1>
-        <Link to="/assessment">Submit another assessment</Link>
+        <Link to="/assessmentform">Submit another assessment</Link>
       </main>
     );
   if (result.isPending)
@@ -30,7 +30,7 @@ export function AssessmentResultPage() {
             ? "This receipt link is invalid or expired."
             : "We could not load this assessment."}
         </p>
-        <Link to="/assessment">Submit another assessment</Link>
+        <Link to="/assessmentform">Submit another assessment</Link>
       </main>
     );
   return (
@@ -51,7 +51,7 @@ export function AssessmentResultPage() {
           Download receipt PDF
         </a>
       </div>
-      <Link to="/assessment">Submit another assessment</Link>
+      <Link to="/assessmentform">Submit another assessment</Link>
     </main>
   );
 }
