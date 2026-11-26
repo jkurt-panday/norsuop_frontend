@@ -17,6 +17,8 @@ import { toast } from "sonner";
 const currencyFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
 
 function formatPayorName(req: {
@@ -172,31 +174,38 @@ export function StaffRequestsPage() {
     {
       header: "Reference #",
       sortable: "reference_number",
+      width: "160px",
       render: (req: StaffRequest) => (
-        <Link to={`/staff/requests/${req.id}`} className="font-semibold text-primary hover:underline">
+        <Link to={`/staff/requests/${req.id}`} className="font-semibold text-blue-600 hover:underline dark:text-sky-400">
           {req.reference_number}
         </Link>
       ),
     },
     {
-      header: "Payor",
+      header: "Name",
       sortable: "firstname_or_office",
-      width: "200px",
+      width: "180px",
       render: (req: any) => {
         const payorName = formatPayorName(req);
         return (
           <div className="min-w-0">
-            <p className="font-medium text-foreground truncate max-w-xs">{payorName || "—"}</p>
-            <p className="text-xs text-muted-foreground truncate max-w-xs">{req.email}</p>
+            <p className="font-medium text-foreground truncate">{payorName || "—"}</p>
           </div>
         );
       },
     },
     {
+      header: "Email",
+      sortable: "email",
+      width: "220px",
+      render: (req: any) => <span className="text-xs text-muted-foreground truncate">{req.email}</span>,
+    },
+    {
       header: "Amount",
       sortable: "amount",
-      className: "text-right",
-      headerClassName: "text-right",
+      width: "110px",
+      align: "left" as const,
+      className: "tabular-nums",
       render: (req: StaffRequest) => (
         <span className="tabular-nums font-medium text-foreground">
           {currencyFormatter.format(Number(req.amount || 0))}
@@ -204,9 +213,14 @@ export function StaffRequestsPage() {
       ),
     },
     {
+      header: "Membership",
+      width: "130px",
+      render: (req: any) => <span className="text-xs text-muted-foreground">{req.membership?.member_code ?? 'N/A'}</span>,
+    },
+    {
       header: "Status",
       sortable: "status",
-      width: "140px",
+      width: "130px",
       align: "left" as const,
       render: (req: any) => {
         const status = req.staff_input?.status ?? "unprocessed";
@@ -214,9 +228,9 @@ export function StaffRequestsPage() {
       },
     },
     {
-      header: "Date Requested",
+      header: "Date Submitted",
       sortable: "created_at",
-      width: "160px",
+      width: "200px",
       align: "left" as const,
       render: (req: any) => <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(req.created_at)}</span>,
     },
@@ -290,17 +304,17 @@ export function StaffRequestsPage() {
           <>
             <Link
               to={`/staff/requests/${req.id}`}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-neutral-950"
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-neutral-950"
             >
               <Eye className="h-4 w-4" />
             </Link>
             <Button
               variant="ghost"
-              size="icon-xs"
-              className="text-red-600 hover:bg-red-600/10 hover:text-red-600"
+              size="icon"
+              className="h-9 w-9 text-red-600 hover:bg-red-600/10 hover:text-red-600"
               onClick={() => handleDeleteClick(req.id, req.reference_number)}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </>
         )}
@@ -334,7 +348,7 @@ export function StaffRequestsPage() {
         sortOptions={sortOptions}
         enableColumnSorting={true}
         highlightDuration={2000}
-        actionsWidth="60px"
+        actionsWidth="90px"
         sort={activeFilters.sort}
         direction={activeFilters.direction}
         onSortChange={handleSortChange}

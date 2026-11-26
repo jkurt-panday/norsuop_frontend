@@ -80,12 +80,12 @@ function StatusBadge({
   switch (normalizedStatus) {
     case "paid":
       badgeVariant = "success"
-      dotColor = "bg-emerald-500"
+      dotColor = "bg-green-400"
       displayLabel = label ?? "Paid"
       break
     case "processed":
       badgeVariant = "success"
-      dotColor = "bg-green-300"
+      dotColor = "bg-emerald-600"
       displayLabel = label ?? "Processed"
       break
     case "cancelled":

@@ -234,7 +234,10 @@ export function BulkEmailModal({ open, onOpenChange }: BulkEmailModalProps) {
     });
   };
 
+  const isSendingRef = useRef(false);
   const handleSendBulkEmail = async () => {
+    if (isSendingRef.current) return;
+    isSendingRef.current = true;
     const ids = computeTargetIds();
     if (ids.length === 0) {
       toast.error('No eligible recipients selected.');
@@ -255,6 +258,7 @@ export function BulkEmailModal({ open, onOpenChange }: BulkEmailModalProps) {
       toast.error(message);
     } finally {
       setIsSendingEmail(false);
+      isSendingRef.current = false;
     }
   };
 
