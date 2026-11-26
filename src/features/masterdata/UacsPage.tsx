@@ -180,40 +180,52 @@ export function UacsPage() {
     {
       header: "ID",
       sortable: "id",
-      width: "80px",
+      width: "55px",
       render: (row, index) =>
         row.display_number ?? (page - 1) * 20 + index + 1,
     },
     {
       header: "NORSU Object Code",
       sortable: "norsu_object_code",
+      width: "105px",
+      className: "text-base text-foreground",
       render: (row) => row.norsu_object_code ?? "—",
     },
     {
       header: "NORSU Sub-Object Code",
       sortable: "norsu_sub_object_code",
+      width: "105px",
+      className: "text-base text-foreground",
       render: (row) => row.norsu_sub_object_code ?? "—",
     },
     {
       header: "UACS Object Code",
       sortable: "uacs_object_code",
+      width: "105px",
+      className: "text-base text-foreground",
       render: (row) => row.uacs_object_code ?? "—",
     },
     {
       header: "UACS Sub-Object Code",
       sortable: "uacs_sub_object_code",
+      width: "105px",
+      className: "text-base text-foreground",
       render: (row) => row.uacs_sub_object_code ?? "—",
     },
     {
       header: "RCA Code",
       sortable: "rca_code",
+      width: "95px",
+      className: "text-base text-foreground",
       render: (row) => row.rca_code ?? "—",
     },
     {
       header: "Account Title",
       sortable: "account_title",
+      width: "300px",
+      className: "whitespace-normal text-base text-foreground",
       render: (row) => (
-        <span className="font-medium text-foreground">
+        <span className="font-medium text-foreground wrap-break-word">
           {row.account_title ?? "—"}
         </span>
       ),
