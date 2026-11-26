@@ -27,17 +27,18 @@ function timeoutError(): ApiError {
   });
 }
 
-function requestSignal(parentSignal: AbortSignal | null | undefined): {
+function requestSignal(parentSignal: AbortSignal | null | undefined, timeoutMs?: number): {
   signal: AbortSignal;
   cleanup: () => void;
   timedOut: () => boolean;
 } {
   const controller = new AbortController();
   let didTimeout = false;
+  const effectiveTimeout = timeoutMs ?? requestTimeoutMs;
   const timeout = window.setTimeout(() => {
     didTimeout = true;
     controller.abort(timeoutError());
-  }, requestTimeoutMs);
+  }, effectiveTimeout);
   const abortParent = () => controller.abort(parentSignal?.reason);
   parentSignal?.addEventListener("abort", abortParent, { once: true });
   return {
@@ -82,6 +83,7 @@ export async function csrf(parentSignal?: AbortSignal): Promise<void> {
 async function request(
   path: string,
   init: RequestInit = {},
+  timeoutMs?: number,
 ): Promise<Response> {
   const method = (init.method ?? "GET").toUpperCase();
   if (!["GET", "HEAD", "OPTIONS"].includes(method))
@@ -94,7 +96,8 @@ async function request(
   }
   if (!(init.body instanceof FormData) && init.body !== undefined)
     headers.set("Content-Type", "application/json");
-  const signals = requestSignal(init.signal);
+  const effectiveTimeout = timeoutMs ?? requestTimeoutMs;
+  const signals = requestSignal(init.signal, effectiveTimeout);
   try {
     return await fetch(`${baseUrl}${path}`, {
       ...init,
@@ -130,8 +133,8 @@ async function parseError(response: Response): Promise<never> {
   throw new ApiError(response.status, normalized);
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await request(path, init);
+export async function api<T>(path: string, init: RequestInit = {}, timeoutMs?: number): Promise<T> {
+  const response = await request(path, init, timeoutMs);
   if (response.status === 204) return undefined as T;
   if (!response.ok) return parseError(response);
   const contentType = response.headers.get("content-type") ?? "";

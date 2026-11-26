@@ -206,6 +206,39 @@ export function deleteStaffRequest(id: number) {
   });
 }
 
+export type EmailRecipient = {
+  id: number;
+  reference_number: string;
+  email: string;
+  firstname_or_office: string;
+  middlename_or_project?: string | null;
+  lastname_or_agency: string;
+  staff_input?: {
+    id: number;
+    status: string;
+    emailed_at?: string | null;
+    email_status?: string | null;
+  } | null;
+};
+
+export function getEmailRecipients() {
+  return api<{ data: EmailRecipient[]; queue_stalled: boolean }>(`/api/v1/staff/requests/email-recipients`);
+}
+
+export function bulkEmailOp(
+  payload: {
+    form_input_ids: number[];
+    subject?: string;
+    recipient_name?: string;
+    note?: string;
+  }
+) {
+  return api(`/api/v1/staff/requests/bulk-email-op`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, 120000);
+}
+
 // ── Staff Dashboard & Activity Log ──────────────────────────────────────────
 
 export type StaffDashboardData = {

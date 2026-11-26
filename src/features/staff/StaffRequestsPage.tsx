@@ -1,6 +1,6 @@
 import { useState, useTransition, useMemo } from "react";
 import { Link } from "react-router";
-import { Inbox, FileText, Trash2, Eye } from "lucide-react";
+import { Inbox, FileText, Trash2, Eye, Mail } from "lucide-react";
 import { ApiError } from "../../api/client";
 import { useStaffRequests } from "./queries";
 import { useDeleteStaffRequest } from "./mutations";
@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import RequestTable, { type SortOptionDef, type StatusOption } from "@/components/ui/request-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
+import { BulkEmailModal } from "./BulkEmailModal";
 import { toast } from "sonner";
 
 const currencyFormatter = new Intl.NumberFormat("en-PH", {
@@ -87,6 +88,7 @@ export function StaffRequestsPage() {
 
   const deleteMutation = useDeleteStaffRequest();
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; ref: string } | null>(null);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
 
   const handleDeleteClick = (id: number, referenceNumber: string) => {
     setDeleteTarget({ id, ref: referenceNumber });
@@ -102,6 +104,10 @@ export function StaffRequestsPage() {
         toast.error(error instanceof Error ? error.message : "Failed to delete request");
       },
     });
+  };
+
+  const handleOpenEmailModal = () => {
+    setIsEmailModalOpen(true);
   };
 
   const handleApplyFilters = (e: React.FormEvent) => {
@@ -318,6 +324,16 @@ renderActions={(req) => (
         onFilterSubmit={handleFilterSubmit}
         onFilterReset={handleResetFilters}
         onReload={handleReload}
+        customToolbar={
+          <Button
+            type="button"
+            onClick={handleOpenEmailModal}
+            className="h-10 gap-2 rounded-lg bg-emerald-700 px-4 text-white hover:bg-emerald-800"
+          >
+            <Mail className="h-4 w-4" />
+            <span>Send Email</span>
+          </Button>
+        }
         sortOptions={sortOptions}
         enableColumnSorting={true}
         highlightDuration={2000}
@@ -333,6 +349,7 @@ renderActions={(req) => (
         isPending={deleteMutation.isPending}
         description={`Are you sure you want to delete request ${deleteTarget?.ref}? This action cannot be undone.`}
       />
+      <BulkEmailModal open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen} />
     </div>
   );
 }
