@@ -167,21 +167,21 @@ export function OpFormSuccessPage() {
         <title>Order of Payment Submission Successful</title>
         <div className="mx-auto max-w-5xl">
         <Card className="pt-0! overflow-hidden rounded-2xl shadow-xl sm:rounded-3xl">
-          <CardHeader className="rounded-2xl bg-linear-to-b from-blue-600 to-blue-400 px-4 text-center text-white sm:rounded-t-3xl sm:py-10">
+          <CardHeader className="rounded-t-2xl bg-linear-to-b from-blue-600 to-blue-400 px-3 py-6 text-center text-white sm:rounded-t-3xl sm:px-6 sm:py-10">
             <img
               src="/finance_logo1.png"
               alt="NORSU Logo"
               width={600}
               height={114}
-              className="mx-auto h-auto max-w-70 pb-4 sm:max-w-md sm:pb-6"
+              className="mx-auto h-auto w-full max-w-[min(80vw,280px)] pb-4 sm:max-w-md sm:pb-6"
             />
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 sm:h-24 sm:w-24">
-              <CheckCircle className="h-10 w-10 sm:h-14 sm:w-14" />
+              <CheckCircle className="h-9 w-9 sm:h-14 sm:w-14" />
             </div>
-            <CardTitle className="mt-2 text-2xl text-green-300 sm:text-3xl">
+            <CardTitle className="mt-3 text-xl leading-tight text-green-300 sm:text-3xl">
               Submission Successful!
             </CardTitle>
-            <CardDescription className="text-blue-100">
+            <CardDescription className="px-2 text-sm leading-relaxed text-blue-100 sm:px-0 sm:text-base">
               Your request has been submitted successfully.
             </CardDescription>
           </CardHeader>
