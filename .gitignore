@@ -29,6 +29,20 @@ blob-report/
 *.tsbuildinfo
 .eslintcache
 
+# AI assistant instruction files
+AGENTS.md
+Agents.md
+CLAUDE.md
+CODEX.md
+GEMINI.md
+.ai.md
+**/AGENTS.md
+**/Agents.md
+**/CLAUDE.md
+**/CODEX.md
+**/GEMINI.md
+**/.ai.md
+
 # Editor & OS files
 .vscode/*
 !.vscode/extensions.json

@@ -221,7 +221,7 @@ export const FileUploadDropZone = ({
                     />
                     <label htmlFor={id} className="flex cursor-pointer">
                         <Button color="link-color" size="md" isDisabled={isDisabled} onClick={() => inputRef.current?.click()}>
-                            Click to upload <span className="md:hidden">and attach files</span>
+                            Click me to upload <span className="md:hidden">and attach files</span>
                         </Button>
                     </label>
                     <span className="text-sm max-md:hidden">or drag and drop</span>
