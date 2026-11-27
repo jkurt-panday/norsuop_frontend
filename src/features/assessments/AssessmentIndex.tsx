@@ -410,7 +410,7 @@ export function AssessmentIndex() {
                     <Columns3 className="size-4" />
                     <span className="hidden sm:inline">Columns</span>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-64 p-3">
+                  <PopoverContent align="start" className="w-64 p-3">
                     <p className="mb-2 text-sm font-semibold">
                       Visible columns
                     </p>
