@@ -1,8 +1,6 @@
-import { useState, useTransition, type SubmitEvent } from "react";
+import { useState, useTransition, type SyntheticEvent } from "react";
 import { Link } from "react-router";
-import { format, parseISO } from "date-fns";
 import { Eye, Inbox, Pencil } from "lucide-react";
-import { ApiError } from "../../api/client";
 import {
   getCashierAmount,
   getCashierOrNo,
@@ -13,27 +11,8 @@ import {
   type CashierRequest,
 } from "./api";
 import { useCashierRequests } from "./queries";
-import { CashierRequestSkeleton } from "./CashierRequestSkeleton";
 import { StatusBadge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import RequestTable, { type SortOptionDef, type StatusOption } from "@/components/ui/request-table";
+import RequestTable, { type ColumnDef, type SortOptionDef, type StatusOption } from "@/components/ui/request-table";
 
 const currencyFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -89,7 +68,7 @@ export function CashierRequestsPage() {
 
   const query = useCashierRequests(activeFilters);
 
-  const handleApplyFilters = (e: SubmitEvent<HTMLFormElement>) => {
+  const handleApplyFilters = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     startTransition(() => {
       setActiveFilters((prev) => ({
@@ -163,7 +142,7 @@ export function CashierRequestsPage() {
     last_page: lastPage,
   };
 
-  const columns = [
+  const columns: ColumnDef<CashierRequest>[] = [
     {
       header: "Reference #",
       width: "180px",

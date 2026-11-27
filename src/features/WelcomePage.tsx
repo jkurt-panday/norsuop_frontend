@@ -19,15 +19,6 @@ import { useCurrentUser } from "./auth/queries";
 type ProcessType = "payment" | "assessment";
 
 const processes = {
-  payment: {
-    label: "Order of Payment",
-    description: "From online submission to a completed Order of Payment in three clear steps.",
-    steps: [
-      ["Request a payment", "Complete and submit the public Order of Payment form.", Send],
-      ["Staff process your request", "The Accounting Office reviews and prepares your request.", UserRoundCog],
-      ["Receive your Order of Payment", "Get the completed document when it is ready.", FileCheck2],
-    ],
-  },
   assessment: {
     label: "Assessment",
     description: "From submitting your details to receiving your student assessment in four clear steps.",
@@ -36,6 +27,15 @@ const processes = {
       ["The system fetches your records", "Your available student account records are gathered for review.", Database],
       ["Staff review your request", "The Accounting Office verifies your details and prepares the assessment.", UserRoundCog],
       ["Receive your assessment", "Receive your prepared student account assessment by email.", FileCheck2],
+    ],
+  },
+  payment: {
+    label: "Order of Payment",
+    description: "From online submission to a completed Order of Payment in three clear steps.",
+    steps: [
+      ["Request a payment", "Complete and submit the public Order of Payment form.", Send],
+      ["Staff process your request", "The Accounting Office reviews and prepares your request.", UserRoundCog],
+      ["Receive your Order of Payment", "Get the completed document when it is ready.", FileCheck2],
     ],
   },
 } as const;
@@ -48,7 +48,7 @@ function dashboardPath(role?: string) {
 }
 
 export function WelcomePage() {
-  const [selectedProcess, setSelectedProcess] = useState<ProcessType>("payment");
+  const [selectedProcess, setSelectedProcess] = useState<ProcessType>("assessment");
   const [showTeam, setShowTeam] = useState(false);
   const userQuery = useCurrentUser();
   const user = userQuery.data?.data;
@@ -63,10 +63,7 @@ export function WelcomePage() {
       </a>
       <header className="sticky top-0 z-40 border-b border-white/20 bg-[#064b9b]/75 shadow-[0_12px_35px_-22px_rgba(0,20,50,0.85)] backdrop-blur-xl backdrop-saturate-150">
         <div className="mx-auto flex max-w-360 items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <Link
-            to="/"
-            className="flex min-w-0 items-center gap-3 rounded-lg"
-          >
+          <Link to="/" className="flex min-w-0 items-center gap-3 rounded-lg">
             <img
               src="/norsu.png"
               alt="NORSU"
@@ -112,18 +109,18 @@ export function WelcomePage() {
         </div>
       </header>
 
-      <div className="relative isolate overflow-hidden lg:min-h-[650px]">
+      <div className="relative isolate overflow-hidden lg:min-h-162.5">
         <img
           src="/images/norsu-campus.jpg.webp"
           alt=""
           className="absolute inset-0 -z-30 size-full scaleX(-1) object-cover object-center"
         />
         <div className="absolute inset-0 -z-20 bg-[linear-gradient(110deg,rgba(4,24,50,0.98)_5%,rgba(5,57,117,0.88)_55%,rgba(1,32,72,0.74)_100%)]" />
-        <div className="absolute -top-40 right-[8%] -z-10 size-[34rem] rounded-full bg-sky-300/20 blur-[110px]" />
+        <div className="absolute -top-40 right-[8%] -z-10 size-136 rounded-full bg-sky-300/20 blur-[110px]" />
         <main id="main-content">
           <section
             id="hero"
-            className="mx-auto grid max-w-[90rem] scroll-mt-20 items-center gap-12 px-5 py-16 sm:px-8 lg:min-h-[650px] lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.78fr)] lg:px-8 lg:py-20"
+            className="mx-auto grid max-w-360 scroll-mt-20 items-center gap-12 px-5 py-16 sm:px-8 lg:min-h-162.5 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.78fr)] lg:px-8 lg:py-20"
           >
             <div className="max-w-2xl">
               <h1 className="max-w-[16ch] text-4xl leading-[1.05] font-bold tracking-[-0.04em] sm:text-5xl lg:text-6xl">
@@ -283,8 +280,8 @@ export function WelcomePage() {
           <div className="max-w-3xl">
             <h2 className="text-2xl font-bold sm:text-3xl">About the Team</h2>
             <p className="mt-4 leading-7 text-slate-600">
-              This system was designed and developed by NORSU student interns
-              in collaboration with the Accounting Office.
+              This system was designed and developed by NORSU student interns in
+              collaboration with the Accounting Office.
             </p>
             <button
               type="button"
@@ -296,8 +293,8 @@ export function WelcomePage() {
             {showTeam && (
               <p className="mt-6 border-t border-slate-200 pt-5 leading-7 text-slate-600">
                 Student interns contributed to the system's interface,
-                workflows, ledger tools, testing, and continued improvement
-                with guidance from the Accounting Office.
+                workflows, ledger tools, testing, and continued improvement with
+                guidance from the Accounting Office.
               </p>
             )}
           </div>

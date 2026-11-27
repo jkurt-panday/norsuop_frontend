@@ -10,7 +10,7 @@ import {
   getCashierReferenceNumber,
   getCashierRequest,
 } from "@/features/cashier/api";
-import { getStaffRequest } from "@/features/staff/api";
+import { getStaffRequest, type StaffRequestDetail } from "@/features/staff/api";
 
 export interface BreadcrumbItem {
   title: string;
@@ -73,14 +73,14 @@ export function AppSidebarHeader({
   // Check cache first - StaffRequestDetailPage loads this data with key ["staff", "request", id]
   // API returns StaffRequestDetail { data: StaffRequest, ... }, so cached data is { data: { data: { reference_number } } }
   const cachedRequest = requestId
-    ? queryClient.getQueryData<{ data: { data: { reference_number?: string } } }>(["staff", "request", requestId])
+    ? queryClient.getQueryData<StaffRequestDetail>(["staff", "request", requestId])
     : undefined;
 
   const requestQuery = useQuery({
     queryKey: ["staff", "request", requestId],
     queryFn: ({ signal }) => getStaffRequest(requestId!, signal),
     enabled: Boolean(requestId),
-    initialData: cachedRequest ? { data: cachedRequest.data } : undefined,
+    initialData: cachedRequest,
   });
 
   const resolvedBreadcrumbs: BreadcrumbItem[] = React.useMemo(() => {
@@ -147,7 +147,7 @@ export function AppSidebarHeader({
       const isAssessmentId = assessmentId && segments[i] === assessmentId;
       const isCashierRequestId =
         cashierRequestId && segments[i] === cashierRequestId;
-      const isRequestId = requestId && segments[i] === requestId;
+      const isRequestId = requestIdStr && segments[i] === requestIdStr;
       const title = isAssessmentId
         ? assessmentQuery.data?.data.reference_number ?? segments[i]
         : isCashierRequestId

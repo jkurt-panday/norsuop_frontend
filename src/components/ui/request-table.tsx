@@ -103,7 +103,7 @@ export interface RequestTableProps<T extends { id: number | string }> {
   onDateFromChange: (value: string) => void;
   dateTo: string;
   onDateToChange: (value: string) => void;
-  onFilterSubmit: (e: React.SyntheticEvent) => void;
+  onFilterSubmit: (e: React.SyntheticEvent<HTMLFormElement>) => void;
   onFilterReset: () => void;
   resourceKey?: string;
   highlightDuration?: number;
@@ -160,12 +160,6 @@ const resolveStatusColor = (color?: string, statusValue?: string) => {
     return STATUS_COLORS[statusColorMap[statusValue] as keyof typeof STATUS_COLORS];
   }
   return (color && STATUS_COLORS[color as keyof typeof STATUS_COLORS]) || color || STATUS_COLORS.grey;
-};
-
-const alignClass: Record<NonNullable<ColumnDef<unknown>["align"]>, string> = {
-  left: "text-left",
-  right: "text-right",
-  center: "text-center",
 };
 
 function rowSignature(row: unknown): string {
@@ -431,7 +425,7 @@ export default function RequestTable<T extends { id: number | string }>({
                     value={dateFrom}
                     onChange={(e) => onDateFromChange(e.target.value)}
                     aria-label="Date from"
-                    className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground [color-scheme:light] outline-none dark:[color-scheme:dark]"
+                    className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground color-scheme:light outline-none dark:scheme:dark"
                   />
                   <span className="shrink-0 px-1 text-xs font-medium text-muted-foreground">to</span>
                   <input
@@ -440,7 +434,7 @@ export default function RequestTable<T extends { id: number | string }>({
                     value={dateTo}
                     onChange={(e) => onDateToChange(e.target.value)}
                     aria-label="Date to"
-                    className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground [color-scheme:light] outline-none dark:[color-scheme:dark]"
+                    className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground color-scheme:light outline-none dark:scheme:dark"
                   />
                 </div>
               </div>
@@ -543,7 +537,7 @@ export default function RequestTable<T extends { id: number | string }>({
                       {col.sortable ? (
                         <button
                           type="button"
-                          onClick={() => handleSortClick(col.sortable!)}
+                           onClick={() => handleSortClick(String(col.sortable))}
                           className={cn(
                             "flex w-full items-center gap-1.5 rounded-sm py-1 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none",
                             col.align === "right" && "text-right",

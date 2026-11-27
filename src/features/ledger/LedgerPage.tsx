@@ -101,7 +101,8 @@ const optionalColumnLabels: Record<OptionalColumn, string> = {
   feeRate: "Tuition/Unit or Fee",
   entryType: "AR/Payment",
   remark: "Remark",
-  inputBy: "Input By",
+   inputBy: "Input By",
+   status: "Status",
 };
 
 const optionalColumnLabelsLaw: Record<string, string> = {

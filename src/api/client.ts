@@ -17,7 +17,27 @@ export class ApiError extends Error {
   }
 }
 
-const baseUrl = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+function configuredApiBaseUrl(): string {
+  const configured = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/$/, "");
+
+  // A browser opened through the Cloudflare frontend tunnel cannot reach a
+  // developer's loopback address. Falling back to relative URLs also keeps
+  // Sanctum's XSRF-TOKEN and session cookies on the same browser origin.
+  if (typeof window !== "undefined" && configured) {
+    try {
+      const url = new URL(configured, window.location.origin);
+      const isLoopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+      const isRemoteBrowser = !["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+      if (isLoopback && isRemoteBrowser) return "";
+    } catch {
+      return "";
+    }
+  }
+
+  return configured;
+}
+
+const baseUrl = configuredApiBaseUrl();
 const requestTimeoutMs = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 60_000);
 let csrfPromise: Promise<void> | undefined;
 
